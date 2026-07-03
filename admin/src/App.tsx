@@ -375,7 +375,7 @@ export default function App() {
         }`}
       >
         <aside
-          className={`editor-rail flex items-center gap-1 overflow-x-auto border-b border-border px-2 py-2 xl:sticky xl:top-14 xl:h-[calc(100vh-3.5rem)] xl:flex-col xl:gap-1.5 xl:overflow-x-visible xl:border-b-0 xl:border-r xl:py-4 ${
+          className={`editor-rail sticky top-14 z-30 flex items-center justify-center gap-1 overflow-x-auto border-b border-border px-2 py-2 xl:top-14 xl:h-[calc(100vh-3.5rem)] xl:flex-col xl:justify-start xl:gap-1.5 xl:overflow-x-visible xl:border-b-0 xl:border-r xl:py-4 ${
             railExpanded ? 'xl:items-stretch xl:px-3' : 'xl:items-center xl:px-0'
           }`}
         >
