@@ -1,0 +1,33 @@
+{
+  "name": "insta-bio",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "admin": "npm run dev --prefix admin",
+    "admin:build": "npm run build --prefix admin",
+    "admin:serve": "npm run build --prefix admin && npm run serve --prefix admin",
+    "admin:hostgator": "npm run build:hostgator --prefix admin"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.23.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.2",
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "oxlint": "^1.71.0",
+    "tailwindcss": "^4.3.2",
+    "typescript": "~5.7.0",
+    "vite": "^6.4.3"
+  }
+}

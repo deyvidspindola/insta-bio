@@ -1,0 +1,275 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-background: oklch(0.14 0.02 260);
+  --color-foreground: oklch(0.97 0.01 260);
+  --color-muted: oklch(0.22 0.025 260);
+  --color-muted-foreground: oklch(0.65 0.02 260);
+  --color-card: oklch(0.18 0.025 260);
+  --color-border: oklch(0.30 0.03 260);
+  --color-primary: oklch(0.72 0.16 55);
+  --color-primary-foreground: oklch(0.15 0.02 260);
+}
+
+[data-theme="light"] {
+  --color-background: oklch(0.97 0.006 260);
+  --color-foreground: oklch(0.20 0.02 260);
+  --color-muted: oklch(0.94 0.008 260);
+  --color-muted-foreground: oklch(0.48 0.02 260);
+  --color-card: oklch(1 0 260);
+  --color-border: oklch(0.88 0.015 260);
+  --color-primary: oklch(0.62 0.18 55);
+  --color-primary-foreground: oklch(0.99 0 260);
+}
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  font-family: var(--font-sans);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+html {
+  scrollbar-width: thin;
+  /* Oculto por padrão (thumb transparente); revelado ao rolar ou no hover. */
+  scrollbar-color: transparent transparent;
+}
+
+*:hover,
+.is-scrolling {
+  scrollbar-color: color-mix(in oklch, var(--color-primary) 45%, transparent) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Thumb invisível por padrão. */
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: transparent;
+  transition: background 0.25s ease;
+}
+
+/* Aparece enquanto rola ou ao passar o mouse sobre a área rolável. */
+.is-scrolling::-webkit-scrollbar-thumb,
+*:hover::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--color-primary) 35%, transparent);
+}
+
+.is-scrolling::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklch, var(--color-primary) 60%, transparent);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-muted);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-foreground);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--color-primary);
+}
+
+label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+}
+
+.field {
+  margin-bottom: 0.75rem;
+}
+
+/* Botões estilo Bootstrap 5 — sólidos, escurecem no hover, anel de foco.
+   Adaptados ao tema escuro e ao laranja de marca do projeto.
+   As classes de cor já herdam o layout base, então funcionam mesmo
+   sem a classe .btn explícita. */
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    color 0.15s ease-in-out,
+    background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
+}
+
+.btn:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-danger:focus-visible,
+.btn-ghost:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem color-mix(in oklch, var(--color-primary) 45%, transparent);
+}
+
+.btn:disabled,
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-danger:disabled,
+.btn-ghost:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  box-shadow: none;
+}
+
+.btn-ghost {
+  color: var(--color-muted-foreground);
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  color: var(--color-foreground);
+  background-color: color-mix(in oklch, var(--color-foreground) 8%, transparent);
+}
+
+.btn-primary {
+  color: var(--color-primary-foreground);
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: color-mix(in oklch, var(--color-primary) 87%, black);
+  border-color: color-mix(in oklch, var(--color-primary) 80%, black);
+}
+
+.btn-primary:active:not(:disabled) {
+  background-color: color-mix(in oklch, var(--color-primary) 78%, black);
+  border-color: color-mix(in oklch, var(--color-primary) 72%, black);
+}
+
+.btn-secondary {
+  color: var(--color-muted-foreground);
+  background-color: transparent;
+  border-color: var(--color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  color: var(--color-foreground);
+  background-color: color-mix(in oklch, var(--color-foreground) 8%, transparent);
+  border-color: color-mix(in oklch, var(--color-foreground) 25%, var(--color-border));
+}
+
+.btn-secondary:active:not(:disabled) {
+  background-color: color-mix(in oklch, var(--color-foreground) 14%, transparent);
+}
+
+.btn-secondary:focus-visible {
+  box-shadow: 0 0 0 0.25rem color-mix(in oklch, var(--color-border) 55%, transparent);
+}
+
+.btn-danger {
+  color: oklch(0.98 0.01 25);
+  background-color: oklch(0.58 0.19 25);
+  border-color: oklch(0.58 0.19 25);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: oklch(0.52 0.19 25);
+  border-color: oklch(0.49 0.19 25);
+}
+
+.btn-danger:active:not(:disabled) {
+  background-color: oklch(0.47 0.18 25);
+  border-color: oklch(0.44 0.18 25);
+}
+
+.btn-danger:focus-visible {
+  box-shadow: 0 0 0 0.25rem oklch(0.58 0.19 25 / 0.45);
+}
+
+.card {
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  padding: 1rem;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.color-picker {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  padding: 0.15rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-muted);
+  cursor: pointer;
+}
+
+.color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 0.35rem;
+}
+
+.color-picker::-moz-color-swatch {
+  border: none;
+  border-radius: 0.35rem;
+}
+
+input[type='range'] {
+  height: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+}

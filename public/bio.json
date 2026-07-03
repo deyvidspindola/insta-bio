@@ -1,0 +1,258 @@
+{
+  "brand": {
+    "name": "Deyvid Spindola",
+    "tagline": "Desenvolvedor Web",
+    "location": "Paulínia · SP",
+    "instagram": {
+      "handle": "@deyvidspindola",
+      "url": "https://www.instagram.com/deyvidspindola"
+    },
+    "logo": "/assets/foto-perfil.jpg",
+    "theme": {
+      "primary": "#3e9afc",
+      "glow": "rgba(56, 154, 254, 0.69)"
+    },
+    "seo": {
+      "title": "Deyvid Spindola · Link da Bio",
+      "description": "Transforme sua empresa de forma rápida e estruturada"
+    },
+    "footer": "© 2026 Deyvid Spindola · Paulínia"
+  },
+  "sections": [
+    {
+      "id": "hero",
+      "title": "",
+      "items": [
+        {
+          "type": "whatsapp-hero",
+          "badge": "Comunidade oficial",
+          "title": "Comunidade Expressar",
+          "description": "Entre no nosso grupo principal e fique por dentro de tudo que acontece na nossa casa.",
+          "cta": "Entrar agora",
+          "url": "https://chat.whatsapp.com/Ka5ndZn88oqFmOsTW8I8Xi"
+        }
+      ]
+    },
+    {
+      "id": "connect",
+      "title": "Conecte-se",
+      "subtitle": "Solicitações e atendimentos",
+      "items": [
+        {
+          "type": "feature",
+          "badge": "Portal",
+          "title": "Central de solicitações",
+          "description": "Atendimento pastoral, casamento, consagração de crianças e pedidos de oração.",
+          "cta": "Acessar portal",
+          "url": "https://app.pipefy.com/organizations/301223530/interfaces/6cebcada-f5c7-4aff-9dcd-4daf2565de65/pages/b5bf0b02-cb54-4b10-93c0-4ea553b10096",
+          "variant": "gradient",
+          "icon": "form"
+        },
+        {
+          "type": "link",
+          "title": "Atendimento Pastoral",
+          "subtitle": "Agende um momento com nossa equipe",
+          "url": "https://app.pipefy.com/organizations/301223530/interfaces/6cebcada-f5c7-4aff-9dcd-4daf2565de65/pages/b5bf0b02-cb54-4b10-93c0-4ea553b10096",
+          "icon": "heart"
+        },
+        {
+          "type": "link",
+          "title": "Pedidos de oração",
+          "subtitle": "Compartilhe seu pedido conosco",
+          "url": "https://app.pipefy.com/organizations/301223530/interfaces/6cebcada-f5c7-4aff-9dcd-4daf2565de65/pages/b5bf0b02-cb54-4b10-93c0-4ea553b10096",
+          "icon": "pray"
+        }
+      ]
+    },
+    {
+      "id": "stay-informed",
+      "title": "Fique por dentro",
+      "items": [
+        {
+          "type": "link",
+          "title": "Agenda Expressar",
+          "subtitle": "Cultos, eventos e programações",
+          "url": "https://calendar.google.com/calendar/embed?src=f4aa8lkne21lpiidr5fl9255mc%40group.calendar.google.com&ctz=America%2FSao_Paulo",
+          "icon": "calendar"
+        },
+        {
+          "type": "link",
+          "title": "Quero ser membro",
+          "subtitle": "Faça parte da nossa família",
+          "url": "https://chat.whatsapp.com/F99ucoM8q6p2Xgo7SNsm5M",
+          "icon": "heart"
+        },
+        {
+          "type": "link",
+          "title": "Quero ser voluntário",
+          "subtitle": "Sirva com seus dons e talentos",
+          "url": "https://chat.whatsapp.com/KYzHKcXgSQgKn7LgjFPiyS",
+          "icon": "hand-heart"
+        },
+        {
+          "type": "link",
+          "title": "GC — Grupos de Crescimento",
+          "subtitle": "Encontre um grupo perto de você",
+          "url": "https://docs.google.com/forms/d/e/1FAIpQLSdkB2rwLY4FN3WAuCjPM_Fma4YOl74TQezmQsNqyQi7vZEEwA/viewform?usp=sf_link",
+          "icon": "users"
+        }
+      ]
+    },
+    {
+      "id": "events",
+      "title": "Eventos",
+      "layout": "grid-2",
+      "items": [
+        {
+          "type": "feature",
+          "variant": "square",
+          "badge": "Novos membros",
+          "title": "Café de Novos Membros",
+          "description": "Inscrições abertas",
+          "url": "https://docs.google.com/forms/d/1zDsQOELeyPlAwhOgMZeKOOtW63EDP3fnHCt8lZhYb7U/edit",
+          "gradient": "linear-gradient(135deg, oklch(0.70 0.18 55) 0%, oklch(0.55 0.19 40) 100%)",
+          "image": "/assets/img-2366-1.jpg"
+        },
+        {
+          "type": "feature",
+          "variant": "square",
+          "badge": "Próximo passo",
+          "title": "Quero me batizar",
+          "description": "Batismo nas águas",
+          "url": "https://chat.whatsapp.com/GsOwYgm9mFQ50TODkmmmxv",
+          "gradient": "linear-gradient(126deg, #f61818 0%, #0f00e8 100%)"
+        }
+      ]
+    },
+    {
+      "id": "eventos links",
+      "title": "",
+      "items": [
+        {
+          "type": "link",
+          "title": "Novo link",
+          "subtitle": "Subtítulo opcional",
+          "url": "https://",
+          "icon": "heart"
+        },
+        {
+          "type": "link",
+          "title": "Novo link",
+          "subtitle": "Subtítulo opcional",
+          "url": "https://",
+          "icon": "heart"
+        }
+      ]
+    },
+    {
+      "id": "faça-parte",
+      "title": "Faça parte",
+      "items": [
+        {
+          "type": "feature",
+          "variant": "portrait",
+          "badge": "Inscrições abertas",
+          "title": "Faça parte do Ministério Criativo",
+          "description": "Audiovisual, design, comunicação",
+          "url": "https://chat.whatsapp.com/KYzHKcXgSQgKn7LgjFPiyS",
+          "image": "/assets/exemplo-criativo.jpg"
+        },
+        {
+          "type": "feature",
+          "variant": "banner",
+          "badge": "Inscrições abertas · Voluntários",
+          "title": "Venha servir no Kids ou no High",
+          "description": "Faça parte do time que cuida das crianças e dos adolescentes da Igreja Expressar.",
+          "cta": "Inscrever-se",
+          "url": "https://chat.whatsapp.com/KYzHKcXgSQgKn7LgjFPiyS",
+          "image": "/assets/exemplo-kids.jpg",
+          "tags": [
+            {
+              "label": "Kids",
+              "icon": "baby"
+            },
+            {
+              "label": "High",
+              "icon": "zap"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "whatsapp-groups",
+      "title": "Grupos no WhatsApp",
+      "subtitle": "Conecte-se com o ministério da sua faixa etária",
+      "layout": "grid-2",
+      "items": [
+        {
+          "type": "feature",
+          "variant": "square",
+          "badge": "Adolescentes",
+          "title": "Grupo Adolescentes",
+          "url": "https://chat.whatsapp.com/ItDYMDlSpNR8eApSK8iFa3?mode=ac_c",
+          "gradient": "linear-gradient(160deg, oklch(0.65 0.20 195) 0%, oklch(0.42 0.18 220) 100%)"
+        },
+        {
+          "type": "feature",
+          "variant": "square",
+          "badge": "Jovens",
+          "title": "Grupo Jovens",
+          "url": "https://chat.whatsapp.com/Ec3w3DnOF3wBQ7FTqIsJzt",
+          "gradient": "linear-gradient(160deg, oklch(0.55 0.22 290) 0%, oklch(0.35 0.20 305) 100%)"
+        },
+        {
+          "type": "feature",
+          "variant": "square",
+          "badge": "Homens",
+          "title": "Grupo Homens",
+          "url": "https://chat.whatsapp.com/KBJArFv6F1v5qU947Nxx51",
+          "gradient": "linear-gradient(160deg, oklch(0.45 0.12 240) 0%, oklch(0.28 0.10 250) 100%)"
+        },
+        {
+          "type": "feature",
+          "variant": "square",
+          "badge": "Mulheres",
+          "title": "Grupo Mulheres",
+          "url": "https://chat.whatsapp.com/F3m2KEsKr8PFpDXJ74x9TO",
+          "gradient": "linear-gradient(160deg, oklch(0.62 0.18 350) 0%, oklch(0.42 0.20 10) 100%)"
+        }
+      ]
+    },
+    {
+      "id": "content",
+      "title": "Conteúdo",
+      "items": [
+        {
+          "type": "feature",
+          "badge": "YouTube · Expressar",
+          "title": "Mensagens & cultos",
+          "description": "Acompanhe pregações, louvores e transmissões ao vivo.",
+          "cta": "Assistir agora",
+          "url": "https://youtube.com/@igrejaexpressar?si=uu4qMb0x9SnNh6mZ",
+          "variant": "compact",
+          "icon": "youtube"
+        },
+        {
+          "type": "link",
+          "title": "Devocional Filhas no Secreto",
+          "subtitle": "Grupo de devocional para mulheres",
+          "url": "https://chat.whatsapp.com/ECuAC0M7QhlC46x0VUgG2H",
+          "icon": "sparkles"
+        }
+      ]
+    },
+    {
+      "id": "location",
+      "title": "Nos encontre",
+      "items": [
+        {
+          "type": "location",
+          "title": "Igreja Expressar",
+          "address": "Av. José Lozano Araújo, 4545A - Parque Brasil 500, Paulínia - SP",
+          "mapUrl": "https://maps.app.goo.gl/RoWcabXHkivuDtKx7"
+        }
+      ]
+    }
+  ]
+}
