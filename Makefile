@@ -1,4 +1,4 @@
-.PHONY: help install setup dev admin build admin-build hostgator package preview \
+.PHONY: help install setup dev admin site site-build build admin-build hostgator package preview \
 	hash-password auth-init lint clean
 
 .DEFAULT_GOAL := help
@@ -18,9 +18,10 @@ help: ## Lista os comandos disponíveis
 
 ## — Dependências -------------------------------------------------------------
 
-install: ## Instala dependências do site e do admin
+install: ## Instala dependências do site, admin e landing
 	npm install
 	npm install --prefix admin
+	npm install --prefix site
 
 setup: install ## Alias para install
 
@@ -31,6 +32,12 @@ dev: ## Site local → http://localhost:5173
 
 admin: ## Editor local (Node) → http://localhost:5180
 	npm run admin
+
+site: ## Landing comercial → http://localhost:5190
+	npm run site
+
+site-build: ## Build da landing → site/dist/
+	npm run site:build
 
 preview: ## Testa o build do site (dist/) localmente
 	npm run preview
@@ -77,4 +84,4 @@ lint: ## Roda o linter no site e no admin
 ## — Limpeza ------------------------------------------------------------------
 
 clean: ## Remove pastas de build
-	rm -rf dist admin/dist
+	rm -rf dist admin/dist site/dist

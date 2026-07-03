@@ -12,8 +12,9 @@ O conteúdo da página fica em **`bio.json`**. Depois do deploy inicial, dá par
 npm install
 npm install --prefix admin
 
-npm run dev          # Site → http://localhost:5173
+npm run dev          # Site (bio demo) → http://localhost:5173
 npm run admin        # Editor → http://localhost:5180
+npm run site         # Landing comercial → http://localhost:5190
 ```
 
 Login local do editor: `admin` / `troque-esta-senha` (arquivo `admin/auth.json`).
@@ -44,6 +45,17 @@ npm run admin:hostgator        # gera admin/dist/ (editor + PHP)
 | [ADMIN.md](./docs/ADMIN.md) | Editor | Funcionalidades do painel |
 | [BIO-JSON.md](./docs/BIO-JSON.md) | Conteúdo | Campos, cards, ícones, exemplos |
 | [PROJETO.md](./docs/PROJETO.md) | Desenvolvedor | Arquitetura e código |
+| [site/README.md](./site/README.md) | Comercial | Landing page de vendas |
+
+---
+
+## Projetos no repositório
+
+| Pasta | O que é | Porta dev |
+|-------|---------|-----------|
+| `/` (raiz) | Bio demo (produto) | 5173 |
+| `admin/` | Editor online | 5180 |
+| `site/` | Site comercial / vendas | 5190 |
 
 ---
 

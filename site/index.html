@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/logo-instabio.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="insta-bio — link da bio profissional para Instagram. Editor visual, hospedagem simples e página que converte."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <title>insta-bio · Link da Bio Profissional</title>
+    <link rel="stylesheet" href="/template/assets/main.css" />
+    <script>
+      ;(function () {
+        var t = localStorage.getItem('color-theme')
+        document.documentElement.classList.add(t === 'light' ? 'light' : 'dark')
+      })()
+    </script>
+  </head>
+  <body class="bg-white dark:bg-background-7">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

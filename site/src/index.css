@@ -1,0 +1,16 @@
+/* Fallback: visibilidade se animações não inicializarem */
+[data-ns-animate],
+.header-one {
+  opacity: 1 !important;
+}
+
+/* Botão flutuante WhatsApp — acima do conteúdo, abaixo do toggle de tema */
+#wa-float {
+  z-index: 998;
+}
+
+@media (min-width: 1280px) {
+  #wa-float {
+    display: none;
+  }
+}

@@ -65,7 +65,11 @@ insta-bio/
 │   ├── src/                   # React
 │   ├── php/                   # Login, salvar, upload (HostGator)
 │   ├── server/                # Backend Node (só dev)
-│   └── dist/                  # Build para upload (gerado)
+│   └── dist/                  # Build do editor
+│
+├── site/                      # Landing comercial (vendas)
+│   ├── src/                   # React — inspirada em instabio.cc
+│   └── dist/                  # Build da landing
 │
 ├── dist/                      # Saída do build do site (gerado)
 ├── index.html                 # HTML base + meta tags + fontes

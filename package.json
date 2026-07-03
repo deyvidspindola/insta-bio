@@ -11,7 +11,9 @@
     "admin": "npm run dev --prefix admin",
     "admin:build": "npm run build --prefix admin",
     "admin:serve": "npm run build --prefix admin && npm run serve --prefix admin",
-    "admin:hostgator": "npm run build:hostgator --prefix admin"
+    "admin:hostgator": "npm run build:hostgator --prefix admin",
+    "site": "npm run dev --prefix site",
+    "site:build": "npm run build --prefix site"
   },
   "dependencies": {
     "clsx": "^2.1.1",
