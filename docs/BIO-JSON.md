@@ -2,6 +2,8 @@
 
 Este arquivo descreve tudo o que pode ser configurado em `public/bio.json` **sem precisar rebuildar** o projeto (após o deploy inicial).
 
+> **Modelo padrão:** `public/bio.default.json` é o template comercial do produto (bio do próprio insta-bio). Use como ponto de partida para novos clientes ou restaure pelo editor (**Restaurar modelo padrão**).
+
 > Após editar o JSON em produção, basta recarregar a página. Se a mudança não aparecer, force refresh (`Ctrl+F5`).
 
 ---

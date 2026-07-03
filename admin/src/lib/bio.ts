@@ -1,4 +1,5 @@
 import type { BioConfig, BioSection, IconName, SectionItem } from '@bio-types'
+import defaultBio from '../../../public/bio.default.json'
 
 export const ICON_OPTIONS: IconName[] = [
   'whatsapp',
@@ -40,26 +41,13 @@ export const LAYOUT_OPTIONS = [
   { value: 'grid-2', label: 'Grade 2 colunas' },
 ] as const
 
+export function createDefaultConfig(): BioConfig {
+  return structuredClone(defaultBio as BioConfig)
+}
+
+/** @deprecated Use createDefaultConfig — mantido para compatibilidade */
 export function createEmptyConfig(): BioConfig {
-  return {
-    brand: {
-      name: 'Minha Organização',
-      tagline: '',
-      location: 'Cidade · UF',
-      instagram: { handle: '@perfil', url: 'https://instagram.com/perfil' },
-      logo: '/assets/logo.png',
-      theme: {
-        primary: 'oklch(0.72 0.16 55)',
-        glow: 'oklch(0.70 0.18 55 / 0.28)',
-      },
-      seo: {
-        title: 'Link da Bio',
-        description: 'Acesse tudo em um só lugar.',
-      },
-      footer: '© 2026',
-    },
-    sections: [],
-  }
+  return createDefaultConfig()
 }
 
 export function createSection(): BioSection {

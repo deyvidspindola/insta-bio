@@ -10,7 +10,7 @@ import { ThemeToggle } from './components/ThemeToggle'
 import { fetchSession, logout, saveBioConfig } from './lib/auth'
 import {
   copyBioConfig,
-  createEmptyConfig,
+  createDefaultConfig,
   createSection,
   downloadBioConfig,
   loadBioConfig,
@@ -351,9 +351,9 @@ export default function App() {
               <button
                 type="button"
                 className="btn-secondary text-xs"
-                onClick={() => setConfig(createEmptyConfig())}
+                onClick={() => setConfig(createDefaultConfig())}
               >
-                Limpar e começar do zero
+                Restaurar modelo padrão
               </button>
             </div>
           )}

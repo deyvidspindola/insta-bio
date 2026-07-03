@@ -25,7 +25,8 @@ Cada card é um componente React baseado no "type" do JSON
 ```
 insta-bio/
 ├── public/                    # Arquivos estáticos (copiados para dist/ no build)
-│   ├── bio.json               # ★ Configuração principal da página
+│   ├── bio.json               # ★ Configuração da página (ativa)
+│   ├── bio.default.json       # ★ Modelo padrão (comercial / novo cliente)
 │   ├── assets/                # Imagens (logo, fotos dos cards…)
 │   ├── favicon.svg
 │   └── icons.svg

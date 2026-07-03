@@ -72,6 +72,7 @@ npm run admin          # http://localhost:5180
 # Login dev: admin / troque-esta-senha (admin/auth.json)
 
 # 3. Ajustar public/bio.json + public/assets/
+#    (modelo inicial: public/bio.default.json)
 
 # 4. Gerar builds
 npm run build
@@ -134,7 +135,7 @@ Cada um tem seu próprio `bio.json`, `assets/`, `auth.config.php` e senha.
 
 1. Duplicar a pasta `insta-bio` → `insta-bio-cliente-x`
 2. Limpar `public/assets/` (manter só o que for do cliente)
-3. Resetar `public/bio.json` (ou usar `createEmptyConfig` no editor)
+3. Resetar `public/bio.json` (copie de `public/bio.default.json` ou use **Restaurar modelo padrão** no editor)
 4. Novo `auth.config.php` com senha diferente
 
 ---
