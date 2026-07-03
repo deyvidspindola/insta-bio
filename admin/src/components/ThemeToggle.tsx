@@ -20,7 +20,7 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      className="btn-ghost"
+      className="btn-ghost h-10"
       onClick={toggle}
       title={isDark ? 'Modo claro' : 'Modo escuro'}
       aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}

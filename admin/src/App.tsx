@@ -160,7 +160,7 @@ export default function App() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <label className="btn-secondary cursor-pointer" title="Importar um bio.json existente">
+            <label className="btn-secondary h-10 cursor-pointer" title="Importar um bio.json existente">
               <Upload className="h-4 w-4" />
               <span className="hidden sm:inline">Importar</span>
               <input
@@ -174,18 +174,18 @@ export default function App() {
                 }}
               />
             </label>
-            <button type="button" className="btn-secondary" onClick={handleCopy} title="Copiar JSON">
+            <button type="button" className="btn-secondary h-10" onClick={handleCopy} title="Copiar JSON">
               <Copy className="h-4 w-4" />
               <span className="hidden sm:inline">Copiar</span>
             </button>
-            <button type="button" className="btn-secondary" onClick={handleDownload} title="Baixar bio.json">
+            <button type="button" className="btn-secondary h-10" onClick={handleDownload} title="Baixar bio.json">
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">Baixar</span>
             </button>
 
             <div className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden="true" />
 
-            <button type="button" className="btn-primary" onClick={handleSave}>
+            <button type="button" className="btn-primary h-10" onClick={handleSave}>
               <Save className="h-4 w-4" />
               Salvar
             </button>
@@ -194,7 +194,7 @@ export default function App() {
 
             <button
               type="button"
-              className="btn-ghost"
+              className="btn-ghost h-10"
               onClick={handleLogout}
               title="Sair da conta"
             >
@@ -300,15 +300,6 @@ export default function App() {
             </div>
           )}
 
-          <div className="card text-xs text-muted-foreground">
-            <p className="mb-2 font-medium text-foreground">Como publicar</p>
-            <ol className="list-decimal space-y-1 pl-4">
-              <li>Edite aqui</li>
-              <li>Baixe o bio.json</li>
-              <li>Substitua em public/bio.json</li>
-              <li>Recarregue o site (sem rebuild)</li>
-            </ol>
-          </div>
         </aside>
 
         <main>
