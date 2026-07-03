@@ -16,7 +16,7 @@ export function BrandForm({ brand, onChange }: BrandFormProps) {
     <div className="space-y-4">
       <div className="card">
         <h3 className="mb-4 text-sm font-semibold">Identidade</h3>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="field sm:col-span-2">
             <label>Nome</label>
             <input
@@ -81,7 +81,7 @@ export function BrandForm({ brand, onChange }: BrandFormProps) {
 
       <div className="card">
         <h3 className="mb-4 text-sm font-semibold">Tema & SEO</h3>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <ColorField
             label="Cor primária"
             value={brand.theme.primary}

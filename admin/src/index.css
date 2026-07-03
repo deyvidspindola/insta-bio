@@ -273,3 +273,99 @@ input[type='range'] {
   border: none;
   background: transparent;
 }
+
+/* ============================================================
+   Editor "app window" — inspirado na ilustração da landing
+   ============================================================ */
+.editor-topbar {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--color-primary) 90%, black) 0%,
+    var(--color-primary) 55%,
+    color-mix(in oklch, var(--color-primary) 88%, white) 100%
+  );
+  color: #fff;
+}
+
+.topbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 2.25rem;
+  margin: 0;
+  padding: 0 0.6rem;
+  border-radius: 0.6rem;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.topbar-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.topbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.topbar-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2.25rem;
+  padding: 0 1.15rem;
+  border-radius: 9999px;
+  background: #fff;
+  color: color-mix(in oklch, var(--color-primary) 78%, black);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border: 0;
+  box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.45);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.topbar-save:hover {
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.topbar-save:active {
+  transform: translateY(1px);
+}
+
+.editor-rail {
+  background: color-mix(in oklch, var(--color-background) 55%, black);
+}
+
+.rail-btn {
+  display: flex;
+  align-items: center;
+  border-radius: 0.75rem;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.rail-btn > svg {
+  flex-shrink: 0;
+}
+
+.rail-btn:hover {
+  background: var(--color-muted);
+  color: var(--color-foreground);
+}
+
+.rail-btn.active {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+}

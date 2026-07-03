@@ -240,7 +240,7 @@ Use `"layout": "grid-2"` na seção para exibir cards `square` lado a lado.
 | `icon` | Não | Ícone (`gradient` e `compact`) |
 | `image` | Sim** | Foto de fundo (`portrait`, `banner`; opcional em `square`) |
 | `gradient` | Não | Cor de fundo (`gradient` e `square` sem imagem) |
-| `tags` | Não | Múltiplas etiquetas no canto (`banner`) |
+| `tags` | Não | Múltiplas etiquetas no canto (`banner`, `portrait`) |
 
 \* `description` é opcional para `square`.  
 \*\* Obrigatório para `portrait` e `banner` renderizarem com foto.

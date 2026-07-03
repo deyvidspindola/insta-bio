@@ -77,7 +77,18 @@ export function FeatureCard({ item }: { item: FeatureCardType }) {
           />
           <ImageOverlay />
 
-          {item.badge && (
+          {item.tags && item.tags.length > 0 && (
+            <div className="absolute left-3 top-3 inline-flex flex-wrap items-center gap-1.5">
+              {item.tags.map((tag) => (
+                <BadgePill key={tag.label}>
+                  {tag.icon && <BioIcon name={tag.icon} className="mr-1 h-3 w-3" />}
+                  {tag.label}
+                </BadgePill>
+              ))}
+            </div>
+          )}
+
+          {item.badge && !(item.tags && item.tags.length > 0) && (
             <span className="absolute left-3 top-3">
               <BadgePill>{item.badge}</BadgePill>
             </span>
@@ -86,6 +97,11 @@ export function FeatureCard({ item }: { item: FeatureCardType }) {
           <ArrowIcon className="absolute right-3 top-3 h-5 w-5 text-white/90 drop-shadow transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
 
           <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+            {item.badge && item.tags && item.tags.length > 0 && (
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[oklch(0.85_0.16_75)]">
+                {item.badge}
+              </span>
+            )}
             <h3 className="text-xl font-bold leading-tight text-white sm:text-2xl">{item.title}</h3>
             <p className="mt-1 text-xs text-white/85 sm:text-sm">{item.description}</p>
           </div>

@@ -45,6 +45,7 @@ npm run admin:hostgator        # gera admin/dist/ (editor + PHP)
 | [ADMIN.md](./docs/ADMIN.md) | Editor | Funcionalidades do painel |
 | [BIO-JSON.md](./docs/BIO-JSON.md) | Conteúdo | Campos, cards, ícones, exemplos |
 | [PROJETO.md](./docs/PROJETO.md) | Desenvolvedor | Arquitetura e código |
+| [MELHORIAS.md](./docs/MELHORIAS.md) | Produto / negócio | Roadmap, gaps e prioridades |
 | [site/README.md](./site/README.md) | Comercial | Landing page de vendas |
 
 ---
