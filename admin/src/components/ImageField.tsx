@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { resolvePublicUrl } from '@site/lib/publicUrl'
 import { ENDPOINTS } from '../lib/endpoints'
 
@@ -74,10 +75,12 @@ export function ImageField({ label, value, onChange, hint }: ImageFieldProps) {
             {value && (
               <button
                 type="button"
-                className="btn-danger px-3 py-1.5 text-xs"
+                className="btn-danger inline-flex shrink-0 items-center justify-center px-3 py-1.5"
                 onClick={() => onChange(undefined)}
+                title="Remover imagem"
+                aria-label="Remover imagem"
               >
-                Remover
+                <Trash2 className="h-4 w-4" />
               </button>
             )}
           </div>
