@@ -1,9 +1,9 @@
 import type { BioSection, SectionItem } from '../types/bio'
+import { AppHeroCard } from './AppHeroCard'
 import { FeatureCard } from './FeatureCard'
 import { GridCard } from './GridCard'
 import { LinkCard } from './LinkCard'
 import { LocationCard } from './LocationCard'
-import { WhatsAppHeroCard } from './WhatsAppHeroCard'
 
 function SectionTitle({
   title,
@@ -29,9 +29,10 @@ function renderItem(item: SectionItem, index: number) {
 
   switch (item.type) {
     case 'whatsapp-hero':
+    case 'app-hero':
       return (
         <div key={item.title} className="animate-fade-up" style={delay}>
-          <WhatsAppHeroCard item={item} />
+          <AppHeroCard item={item} />
         </div>
       )
     case 'feature':

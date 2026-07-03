@@ -24,7 +24,7 @@ cp admin/auth.example.json admin/auth.json
 |---------|-----------|
 | **Marca** | Nome, logo, Instagram, cores, SEO, rodapé |
 | **Seções** | Criar, editar, excluir e **reordenar** (arrastar) |
-| **Cards** | WhatsApp, Card (várias variantes), Link, Localização |
+| **Cards** | Destaque de app (WhatsApp, YouTube, Instagram…), Card (várias variantes), Link, Localização |
 | **Cards** | Arrastar para reordenar; **recolher/expandir** para organizar |
 | **Preview ao vivo** | Atualiza em tempo real (painel lateral no desktop) |
 | **Upload** | Envia imagens para `assets/` e preenche o caminho |

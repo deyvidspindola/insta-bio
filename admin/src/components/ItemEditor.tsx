@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { IconName, SectionItem } from '@bio-types'
-import { CARD_TYPES, FEATURE_VARIANTS, ICON_OPTIONS } from '../lib/bio'
+import { APP_HERO_PRESETS } from '@site/lib/appHeroPresets'
+import { APP_HERO_PRESET_LIST, CARD_TYPES, FEATURE_VARIANTS, ICON_OPTIONS } from '../lib/bio'
 import { GradientField } from './GradientField'
 import { ImageField } from './ImageField'
 
@@ -127,7 +128,12 @@ export function ItemEditor({
   collapsed = false,
   onToggleCollapse,
 }: ItemEditorProps) {
-  const typeLabel = CARD_TYPES.find((t) => t.value === item.type)?.label ?? item.type
+  const typeLabel =
+    item.type === 'app-hero'
+      ? `Destaque · ${APP_HERO_PRESETS[item.preset].label}`
+      : item.type === 'whatsapp-hero'
+        ? 'WhatsApp destaque'
+        : CARD_TYPES.find((t) => t.value === item.type)?.label ?? item.type
 
   return (
     <div className={`card ${collapsed ? '' : 'space-y-3'}`}>
@@ -177,6 +183,52 @@ export function ItemEditor({
 
       {item.type === 'whatsapp-hero' && (
         <>
+          <Field label="Badge">
+            <input value={item.badge} onChange={(e) => onChange({ ...item, badge: e.target.value })} />
+          </Field>
+          <Field label="Título">
+            <input value={item.title} onChange={(e) => onChange({ ...item, title: e.target.value })} />
+          </Field>
+          <Field label="Descrição">
+            <textarea rows={2} value={item.description} onChange={(e) => onChange({ ...item, description: e.target.value })} />
+          </Field>
+          <Field label="Texto do botão">
+            <input value={item.cta} onChange={(e) => onChange({ ...item, cta: e.target.value })} />
+          </Field>
+        </>
+      )}
+
+      {item.type === 'app-hero' && (
+        <>
+          <Field label="App">
+            <select
+              value={item.preset}
+              onChange={(e) => {
+                const preset = e.target.value as typeof item.preset
+                const defaults = APP_HERO_PRESETS[preset].defaults
+                onChange({
+                  ...item,
+                  preset,
+                  ...defaults,
+                  ...(preset === 'custom' ? { icon: APP_HERO_PRESETS.custom.defaultIcon } : {}),
+                })
+              }}
+            >
+              {APP_HERO_PRESET_LIST.map((preset) => (
+                <option key={preset.value} value={preset.value}>
+                  {preset.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {item.preset === 'custom' && (
+            <Field label="Ícone">
+              <IconSelect
+                value={item.icon}
+                onChange={(icon) => onChange({ ...item, icon })}
+              />
+            </Field>
+          )}
           <Field label="Badge">
             <input value={item.badge} onChange={(e) => onChange({ ...item, badge: e.target.value })} />
           </Field>

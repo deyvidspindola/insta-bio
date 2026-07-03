@@ -30,6 +30,15 @@
           "description": "Montamos sua página com a sua marca, publicamos na hospedagem e você edita tudo sozinho depois — sem programar.",
           "cta": "Falar no WhatsApp",
           "url": "https://wa.me/5519999999999?text=Ol%C3%A1!%20Quero%20saber%20mais%20sobre%20o%20insta-bio"
+        },
+        {
+          "type": "app-hero",
+          "preset": "youtube",
+          "badge": "Canal",
+          "title": "Assista nossos vídeos",
+          "description": "Lives, pregações, tutoriais e conteúdos exclusivos no YouTube.",
+          "cta": "Ver canal",
+          "url": "https://youtube.com/"
         }
       ]
     },
@@ -108,8 +117,14 @@
           "url": "https://wa.me/5519999999999?text=Quero%20uma%20bio%20como%20essa",
           "image": "/assets/post-facebook.png",
           "tags": [
-            { "label": "Mobile", "icon": "zap" },
-            { "label": "Editor", "icon": "form" }
+            {
+              "label": "Mobile",
+              "icon": "zap"
+            },
+            {
+              "label": "Editor",
+              "icon": "form"
+            }
           ]
         }
       ]

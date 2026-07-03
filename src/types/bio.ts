@@ -47,6 +47,19 @@ export interface WhatsAppHero {
   url: string
 }
 
+export type AppHeroPreset = 'whatsapp' | 'youtube' | 'instagram' | 'form' | 'telegram' | 'custom'
+
+export interface AppHero {
+  type: 'app-hero'
+  preset: AppHeroPreset
+  badge: string
+  title: string
+  description: string
+  cta: string
+  url: string
+  icon?: IconName
+}
+
 export interface FeatureCard {
   type: 'feature'
   badge?: string
@@ -106,6 +119,7 @@ export interface BioSection {
 
 export type SectionItem =
   | WhatsAppHero
+  | AppHero
   | FeatureCard
   | LinkCard
   | GridCard

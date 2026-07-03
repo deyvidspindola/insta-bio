@@ -118,11 +118,38 @@ Todo card precisa do campo `"type"`. Os tipos disponíveis hoje:
 
 | `type` | Uso típico |
 |--------|------------|
-| `whatsapp-hero` | Destaque principal com botão verde do WhatsApp |
+| `whatsapp-hero` | **Legado** — use `app-hero` com `preset: "whatsapp"` |
+| `app-hero` | Destaque padronizado por app (WhatsApp, YouTube, Instagram, Formulário, Telegram, Personalizado) |
 | `feature` | Card de destaque (gradiente, quadrado, compacto, retrato, banner) |
 | `link` | Card simples com ícone, título e subtítulo |
 | `location` | Endereço com link para o mapa |
 | `grid` | **Legado** — use `feature` com `variant: "square"` |
+
+---
+
+### `app-hero`
+
+Card de destaque com visual pronto por app. O cliente escolhe o preset no editor e só edita textos e link.
+
+```json
+{
+  "type": "app-hero",
+  "preset": "youtube",
+  "badge": "Canal",
+  "title": "Assista nossos vídeos",
+  "description": "Lives, pregações e conteúdos exclusivos no YouTube.",
+  "cta": "Ver canal",
+  "url": "https://youtube.com/@canal"
+}
+```
+
+| Campo | Obrigatório | Descrição |
+|-------|-------------|-----------|
+| `preset` | Sim | `whatsapp`, `youtube`, `instagram`, `form`, `telegram`, `custom` |
+| `badge`, `title`, `description`, `cta`, `url` | Sim | Textos e link do card |
+| `icon` | Não | Só para `preset: "custom"` — ícone do card |
+
+Presets disponíveis: **WhatsApp** (verde), **YouTube** (vermelho), **Instagram** (gradiente), **Formulário** (azul), **Telegram** (azul claro), **Personalizado** (cor da marca).
 
 ---
 

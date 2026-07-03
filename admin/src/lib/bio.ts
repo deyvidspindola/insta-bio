@@ -1,5 +1,9 @@
-import type { BioConfig, BioSection, IconName, SectionItem } from '@bio-types'
+import type { BioConfig, BioSection, IconName, SectionItem, AppHeroPreset } from '@bio-types'
 import defaultBio from '../../../public/bio.default.json'
+import { APP_HERO_PRESET_LIST, createAppHero } from '@site/lib/appHeroPresets'
+
+export { APP_HERO_PRESET_LIST, createAppHero }
+export type { AppHeroPreset }
 
 export const ICON_OPTIONS: IconName[] = [
   'whatsapp',
@@ -22,7 +26,6 @@ export const ICON_OPTIONS: IconName[] = [
 ]
 
 export const CARD_TYPES = [
-  { value: 'whatsapp-hero', label: 'WhatsApp destaque' },
   { value: 'feature', label: 'Card' },
   { value: 'link', label: 'Link simples' },
   { value: 'location', label: 'Localização' },
@@ -31,7 +34,7 @@ export const CARD_TYPES = [
 export const FEATURE_VARIANTS = [
   { value: 'gradient', label: 'Gradiente' },
   { value: 'square', label: 'Quadrado (grade 2 colunas)' },
-  { value: 'compact', label: 'Compacto (YouTube)' },
+  { value: 'compact', label: 'Compacto' },
   { value: 'portrait', label: 'Retrato com imagem' },
   { value: 'banner', label: 'Banner com imagem' },
 ] as const
@@ -69,6 +72,8 @@ export function createItem(type: SectionItem['type']): SectionItem {
         cta: 'Entrar agora',
         url: 'https://',
       }
+    case 'app-hero':
+      return createAppHero('whatsapp')
     case 'feature':
       return {
         type,

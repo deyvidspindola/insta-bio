@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { BioSection, SectionItem } from '@bio-types'
-import { CARD_TYPES, createItem, LAYOUT_OPTIONS } from '../lib/bio'
+import type { BioSection, SectionItem, AppHeroPreset } from '@bio-types'
+import { APP_HERO_PRESET_LIST, CARD_TYPES, createAppHero, createItem, LAYOUT_OPTIONS } from '../lib/bio'
 import { ItemEditor } from './ItemEditor'
 
 interface SectionEditorProps {
@@ -51,6 +51,10 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
 
   function addItem(type: SectionItem['type']) {
     onChange({ ...section, items: [...section.items, createItem(type)] })
+  }
+
+  function addAppHero(preset: AppHeroPreset) {
+    onChange({ ...section, items: [...section.items, createAppHero(preset)] })
   }
 
   return (
@@ -161,19 +165,37 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
         ))}
       </div>
 
-      <div className="card">
-        <p className="mb-3 text-sm font-medium">Adicionar card</p>
-        <div className="flex flex-wrap gap-2">
-          {CARD_TYPES.map((type) => (
-            <button
-              key={type.value}
-              type="button"
-              className="btn-secondary px-3 py-1.5 text-xs"
-              onClick={() => addItem(type.value)}
-            >
-              + {type.label}
-            </button>
-          ))}
+      <div className="card space-y-4">
+        <div>
+          <p className="mb-3 text-sm font-medium">Destaque de app</p>
+          <div className="flex flex-wrap gap-2">
+            {APP_HERO_PRESET_LIST.map((preset) => (
+              <button
+                key={preset.value}
+                type="button"
+                className="btn-secondary px-3 py-1.5 text-xs"
+                onClick={() => addAppHero(preset.value)}
+              >
+                + {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-3 text-sm font-medium">Outros cards</p>
+          <div className="flex flex-wrap gap-2">
+            {CARD_TYPES.map((type) => (
+              <button
+                key={type.value}
+                type="button"
+                className="btn-secondary px-3 py-1.5 text-xs"
+                onClick={() => addItem(type.value)}
+              >
+                + {type.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
