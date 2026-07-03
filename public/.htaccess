@@ -1,0 +1,11 @@
+# insta-bio — regras de cache para a HostGator (Apache)
+
+# O bio.json muda toda vez que o cliente salva no editor.
+# Forçamos "sem cache" para o conteúdo aparecer na hora, sem F5 repetido.
+<Files "bio.json">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </IfModule>
+</Files>

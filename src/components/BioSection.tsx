@@ -24,7 +24,7 @@ function SectionTitle({
   )
 }
 
-function renderItem(item: SectionItem, index: number) {
+function renderItem(item: SectionItem, index: number, grid: boolean) {
   const delay = { animationDelay: `${index * 60}ms` }
 
   switch (item.type) {
@@ -43,8 +43,8 @@ function renderItem(item: SectionItem, index: number) {
       )
     case 'link':
       return (
-        <div key={item.title} className="animate-fade-up" style={delay}>
-          <LinkCard item={item} />
+        <div key={item.title} className="h-full animate-fade-up" style={delay}>
+          <LinkCard item={item} grid={grid} />
         </div>
       )
     case 'grid':
@@ -71,12 +71,12 @@ export function BioSectionBlock({ section }: { section: BioSection }) {
     <section>
       <SectionTitle title={section.title} subtitle={section.subtitle} />
       {isGrid ? (
-        <div className="mb-3 grid grid-cols-2 gap-3">
-          {section.items.map((item, index) => renderItem(item, index))}
+        <div className="mb-3 grid grid-cols-2 items-stretch gap-3">
+          {section.items.map((item, index) => renderItem(item, index, true))}
         </div>
       ) : (
         <div className="mb-3 space-y-3">
-          {section.items.map((item, index) => renderItem(item, index))}
+          {section.items.map((item, index) => renderItem(item, index, false))}
         </div>
       )}
     </section>

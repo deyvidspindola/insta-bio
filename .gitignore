@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+release
 *.local
 
 # Editor directories and files
@@ -27,3 +28,4 @@ dist-ssr
 admin/auth.json
 admin/.auth-secret
 admin/php/auth.config.php
+deploy.config.json

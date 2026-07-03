@@ -12,6 +12,7 @@
     "admin:build": "npm run build --prefix admin",
     "admin:serve": "npm run build --prefix admin && npm run serve --prefix admin",
     "admin:hostgator": "npm run build:hostgator --prefix admin",
+    "build:package": "node scripts/package-deploy.mjs",
     "site": "npm run dev --prefix site",
     "site:build": "npm run build --prefix site"
   },

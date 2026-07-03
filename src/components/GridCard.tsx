@@ -1,4 +1,5 @@
 import type { GridCard as GridCardType } from '../types/bio'
+import { resolvePublicUrl } from '../lib/publicUrl'
 import { ArrowIcon } from './icons'
 
 export function GridCard({ item }: { item: GridCardType }) {
@@ -12,7 +13,7 @@ export function GridCard({ item }: { item: GridCardType }) {
       {item.image ? (
         <>
           <img
-            src={item.image}
+            src={resolvePublicUrl(item.image)}
             alt={item.title}
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"

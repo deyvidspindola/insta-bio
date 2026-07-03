@@ -1,12 +1,12 @@
 import type { BioConfig } from '../types/bio'
-
-const CONFIG_PATH = '/bio.json'
+import { bioJsonUrl } from './publicUrl'
 
 export async function loadBioConfig(): Promise<BioConfig> {
-  const response = await fetch(CONFIG_PATH, { cache: 'no-store' })
+  const configPath = bioJsonUrl()
+  const response = await fetch(configPath, { cache: 'no-store' })
 
   if (!response.ok) {
-    throw new Error(`Não foi possível carregar ${CONFIG_PATH} (${response.status})`)
+    throw new Error(`Não foi possível carregar ${configPath} (${response.status})`)
   }
 
   return response.json() as Promise<BioConfig>

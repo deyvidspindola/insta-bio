@@ -1,4 +1,5 @@
 import type { BioConfig, BioSection, IconName, SectionItem, AppHeroPreset } from '@bio-types'
+import { bioJsonUrl } from '@site/lib/publicUrl'
 import defaultBio from '../../../public/bio.default.json'
 import { APP_HERO_PRESET_LIST, createAppHero } from '@site/lib/appHeroPresets'
 
@@ -116,7 +117,7 @@ export function createItem(type: SectionItem['type']): SectionItem {
 }
 
 export async function loadBioConfig(): Promise<BioConfig> {
-  const response = await fetch('/bio.json', { cache: 'no-store' })
+  const response = await fetch(bioJsonUrl(), { cache: 'no-store' })
   if (!response.ok) throw new Error('Não foi possível carregar bio.json')
   return response.json()
 }

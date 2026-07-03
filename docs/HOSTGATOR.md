@@ -38,7 +38,72 @@ npm install --prefix admin
 
 ---
 
-## Passo 1 — Gerar o site da bio
+## Passo 1 — Configurar o caminho público (se não for a raiz do domínio)
+
+Se a bio ficar em uma **subpasta** (ex.: `https://dmta.dev.br/insta-bio/`), defina o `basePath` **antes** do build:
+
+```bash
+cp deploy.config.example.json deploy.config.json
+```
+
+Edite `deploy.config.json`:
+
+```json
+{
+  "basePath": "/insta-bio/"
+}
+```
+
+Ou passe na hora do build:
+
+```bash
+make package BASE_PATH=/insta-bio
+```
+
+Para a **raiz do domínio** (`https://cliente.com.br/`), use `"/"` ou omita o arquivo.
+
+---
+
+## Passo 2 — Gerar o pacote de deploy (recomendado)
+
+Na raiz do projeto:
+
+```bash
+make package
+# ou: npm run build:package
+```
+
+Isso cria a pasta **`release/`** com **tudo junto**:
+
+```
+release/
+├── index.html          ← bio pública
+├── bio.json
+├── assets/
+└── editor/             ← painel + PHP
+    ├── index.html
+    ├── login.php
+    └── ...
+```
+
+Suba **todo o conteúdo** de `release/` para a pasta correspondente no servidor.
+
+**Exemplo:** para `https://dmta.dev.br/insta-bio/` → envie para `public_html/insta-bio/` no FTP.
+
+---
+
+## Passo 2 (alternativo) — Builds separados
+
+```bash
+npm run build                  # → dist/
+npm run admin:hostgator        # → admin/dist/
+```
+
+Use `make package-split` se preferir subir `dist/` e `admin/dist/` separadamente (modo legado).
+
+---
+
+## Passo 3 — Gerar só o site (alternativo antigo)
 
 Na raiz do projeto:
 

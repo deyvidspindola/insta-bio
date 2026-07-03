@@ -1,4 +1,5 @@
 import type { BioBrand } from '../types/bio'
+import { resolvePublicUrl } from '../lib/publicUrl'
 import { InstagramIcon } from './icons'
 
 interface BioHeaderProps {
@@ -11,7 +12,7 @@ export function BioHeader({ brand }: BioHeaderProps) {
       {brand.coverImage && (
         <div className="mb-6 w-full overflow-hidden rounded-3xl border border-border">
           <img
-            src={brand.coverImage}
+            src={resolvePublicUrl(brand.coverImage)}
             alt=""
             className="aspect-[21/9] w-full object-cover"
           />
@@ -27,7 +28,7 @@ export function BioHeader({ brand }: BioHeaderProps) {
           }}
         />
         <img
-          src={brand.logo}
+          src={resolvePublicUrl(brand.logo)}
           alt={brand.name}
           className="relative mx-auto h-24 w-24 rounded-2xl object-cover shadow-[0_4px_24px_rgba(0,0,0,0.4)] ring-1 ring-white/10"
         />

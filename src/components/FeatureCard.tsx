@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { FeatureCard as FeatureCardType } from '../types/bio'
+import { resolvePublicUrl } from '../lib/publicUrl'
 import { ArrowIcon, BioIcon } from './icons'
 
 function ImageOverlay() {
@@ -26,7 +27,7 @@ export function FeatureCard({ item }: { item: FeatureCardType }) {
         {item.image ? (
           <>
             <img
-              src={item.image}
+              src={resolvePublicUrl(item.image)}
               alt={item.title}
               loading="lazy"
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
@@ -70,7 +71,7 @@ export function FeatureCard({ item }: { item: FeatureCardType }) {
       >
         <div className="relative aspect-[3/4] w-full overflow-hidden sm:aspect-[3/4]">
           <img
-            src={item.image}
+            src={resolvePublicUrl(item.image)}
             alt={item.title}
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
@@ -120,7 +121,7 @@ export function FeatureCard({ item }: { item: FeatureCardType }) {
       >
         <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-[16/9]">
           <img
-            src={item.image}
+            src={resolvePublicUrl(item.image)}
             alt={item.title}
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"

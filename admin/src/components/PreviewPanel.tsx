@@ -39,7 +39,7 @@ export function PreviewPanel({ config }: PreviewPanelProps) {
       </div>
       <iframe
         ref={iframeRef}
-        src="/preview.html"
+        src={`${import.meta.env.BASE_URL}preview.html`}
         title="Preview da bio"
         className="h-[min(680px,calc(100vh-9rem))] w-full border-0 bg-background"
       />

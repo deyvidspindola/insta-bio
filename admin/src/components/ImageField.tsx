@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { resolvePublicUrl } from '@site/lib/publicUrl'
 import { ENDPOINTS } from '../lib/endpoints'
 
 interface ImageFieldProps {
@@ -50,7 +51,7 @@ export function ImageField({ label, value, onChange, hint }: ImageFieldProps) {
       <div className="flex items-stretch gap-3 rounded-lg border border-border bg-muted/30 p-3">
         {value ? (
           <img
-            src={value}
+            src={resolvePublicUrl(value)}
             alt=""
             className="aspect-square h-auto w-20 shrink-0 self-stretch rounded-lg border border-border object-cover"
           />

@@ -1,11 +1,27 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { getSessionFromRequest, handleAuthRequest, requireSession } from './server/auth.mjs'
 
-const ASSETS_DIR = path.resolve(__dirname, '../public/assets')
+const ADMIN_ROOT = path.dirname(fileURLToPath(import.meta.url))
+
+function normalizeBasePath(input?: string) {
+  if (!input || input === '/') return '/'
+  let value = input.trim()
+  if (!value.startsWith('/')) value = `/${value}`
+  if (!value.endsWith('/')) value = `${value}/`
+  return value
+}
+
+function editorBaseFrom(publicBase: string) {
+  if (publicBase === '/') return '/editor/'
+  return `${publicBase}editor/`
+}
+
+const ASSETS_DIR = path.resolve(ADMIN_ROOT, '../public/assets')
 
 function sanitizeFilename(name: string): string {
   const parsed = path.parse(name)
@@ -29,6 +45,43 @@ function uniqueFilename(filename: string): string {
     counter += 1
   }
   return candidate
+}
+
+const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'])
+const BIO_JSON_PATH = path.resolve(ADMIN_ROOT, '../public/bio.json')
+
+function isValidAssetName(name: string): boolean {
+  return /^[a-z0-9][a-z0-9._-]*\.(jpg|jpeg|png|gif|webp|svg)$/i.test(name)
+}
+
+function bioUsesAsset(filename: string): boolean {
+  if (!fs.existsSync(BIO_JSON_PATH)) return false
+  const json = fs.readFileSync(BIO_JSON_PATH, 'utf-8')
+  return [`assets/${filename}`, `/assets/${filename}`, filename].some((needle) =>
+    json.includes(needle),
+  )
+}
+
+function listAssetFiles() {
+  if (!fs.existsSync(ASSETS_DIR)) return []
+  return fs
+    .readdirSync(ASSETS_DIR)
+    .filter((name) => {
+      const full = path.join(ASSETS_DIR, name)
+      if (!fs.statSync(full).isFile()) return false
+      return IMAGE_EXT.has(path.extname(name).toLowerCase())
+    })
+    .map((name) => {
+      const full = path.join(ASSETS_DIR, name)
+      const stat = fs.statSync(full)
+      return {
+        name,
+        path: `assets/${name}`,
+        size: stat.size,
+        modified: Math.floor(stat.mtimeMs / 1000),
+      }
+    })
+    .sort((a, b) => b.modified - a.modified)
 }
 
 // Recebe uma imagem em base64 e grava em public/assets, devolvendo o caminho.
@@ -64,7 +117,7 @@ function uploadPlugin(): Plugin {
           try {
             const parsed = JSON.parse(body)
             fs.writeFileSync(
-              path.resolve(__dirname, '../public/bio.json'),
+              path.resolve(ADMIN_ROOT, '../public/bio.json'),
               `${JSON.stringify(parsed, null, 2)}\n`,
               'utf-8',
             )
@@ -103,10 +156,71 @@ function uploadPlugin(): Plugin {
             fs.writeFileSync(path.join(ASSETS_DIR, filename), buffer)
 
             res.setHeader('Content-Type', 'application/json')
-            res.end(JSON.stringify({ path: `/assets/${filename}` }))
+            res.end(JSON.stringify({ path: `assets/${filename}` }))
           } catch (error) {
             res.statusCode = 400
             res.end(JSON.stringify({ error: String(error) }))
+          }
+        })
+      })
+
+      server.middlewares.use('/api/assets/list', (req, res) => {
+        if (req.method !== 'GET') {
+          res.statusCode = 405
+          res.end('Method not allowed')
+          return
+        }
+        if (!requireSession(req, res)) return
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ files: listAssetFiles() }))
+      })
+
+      server.middlewares.use('/api/assets/delete', (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.end('Method not allowed')
+          return
+        }
+        if (!requireSession(req, res)) return
+
+        let body = ''
+        req.on('data', (chunk) => {
+          body += chunk
+        })
+        req.on('end', () => {
+          try {
+            const { name } = JSON.parse(body) as { name?: string }
+            const filename = path.basename(String(name ?? ''))
+            if (!isValidAssetName(filename)) {
+              res.statusCode = 400
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ error: 'Nome de arquivo inválido' }))
+              return
+            }
+            const full = path.join(ASSETS_DIR, filename)
+            if (!fs.existsSync(full)) {
+              res.statusCode = 404
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ error: 'Arquivo não encontrado' }))
+              return
+            }
+            if (bioUsesAsset(filename)) {
+              res.statusCode = 409
+              res.setHeader('Content-Type', 'application/json')
+              res.end(
+                JSON.stringify({
+                  error: 'Imagem em uso na bio. Remova das seções antes de excluir.',
+                }),
+              )
+              return
+            }
+            fs.unlinkSync(full)
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ ok: true }))
+          } catch {
+            res.statusCode = 500
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: 'Não foi possível excluir' }))
           }
         })
       })
@@ -114,29 +228,38 @@ function uploadPlugin(): Plugin {
   }
 }
 
-export default defineConfig(({ command }) => ({
-  // Caminhos relativos no build para o editor rodar em qualquer subpasta
-  // (ex.: seusite.com/editor/). Em dev mantém raiz.
-  base: command === 'build' ? './' : '/',
-  plugins: [react(), tailwindcss(), uploadPlugin()],
-  // Em dev servimos ../public para o editor ler o bio.json atual.
-  // No build não copiamos o site inteiro para dentro do editor.
-  publicDir: command === 'serve' ? path.resolve(__dirname, '../public') : false,
-  resolve: {
-    alias: {
-      '@bio-types': path.resolve(__dirname, '../src/types/bio.ts'),
-      '@site': path.resolve(__dirname, '../src'),
+export default defineConfig(({ command }) => {
+  const publicBase = normalizeBasePath(process.env.BASE_PATH)
+  const editorBase = command === 'build' ? editorBaseFrom(publicBase) : '/'
+
+  return {
+    base: editorBase,
+    define: {
+      'import.meta.env.VITE_PUBLIC_BASE': JSON.stringify(publicBase),
     },
-  },
-  server: {
-    port: 5180,
-  },
-  build: {
-    rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, 'index.html'),
-        preview: path.resolve(__dirname, 'preview.html'),
+    plugins: [react(), tailwindcss(), uploadPlugin()],
+    // Em dev servimos ../public para o editor ler o bio.json atual.
+    // No build não copiamos o site inteiro para dentro do editor.
+    publicDir:
+      command === 'serve'
+        ? path.resolve(ADMIN_ROOT, '../public')
+        : path.resolve(ADMIN_ROOT, 'public'),
+    resolve: {
+      alias: {
+        '@bio-types': path.resolve(ADMIN_ROOT, '../src/types/bio.ts'),
+        '@site': path.resolve(ADMIN_ROOT, '../src'),
       },
     },
-  },
-}))
+    server: {
+      port: 5180,
+    },
+    build: {
+      rollupOptions: {
+        input: {
+          main: path.resolve(ADMIN_ROOT, 'index.html'),
+          preview: path.resolve(ADMIN_ROOT, 'preview.html'),
+        },
+      },
+    },
+  }
+})

@@ -68,7 +68,8 @@ npm run admin:hostgator        # gera admin/dist/ (editor + PHP)
 | `npm run build` | Build do site → `dist/` |
 | `npm run preview` | Testa o `dist/` localmente |
 | `npm run admin` | Editor local com Node (porta 5180) |
-| `npm run admin:hostgator` | Build do editor + PHP para HostGator |
+| `npm run build:package` | Gera tudo em `release/` (site + editor) |
+| `npm run admin:hostgator` | Build do editor + PHP em `admin/dist/` |
 | `npm run hash-password --prefix admin -- "senha"` | Gera hash para `auth.config.php` |
 
 ---

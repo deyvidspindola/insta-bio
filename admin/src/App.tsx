@@ -3,6 +3,7 @@ import {
   Braces,
   Copy,
   Download,
+  Images,
   Layers,
   LogOut,
   Moon,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react'
 import type { BioConfig } from '@bio-types'
 import { BrandForm } from './components/BrandForm'
+import { ImagesGallery } from './components/ImagesGallery'
 import { JsonPanel } from './components/JsonPanel'
 import { LoginScreen } from './components/LoginScreen'
 import { PreviewPanel } from './components/PreviewPanel'
@@ -33,7 +35,7 @@ import {
 } from './lib/bio'
 import { applyTheme, getStoredTheme, type Theme } from './lib/theme'
 
-type Tab = 'brand' | 'sections' | 'json' | 'preview'
+type Tab = 'brand' | 'sections' | 'images' | 'json' | 'preview'
 
 const HISTORY_LIMIT = 50
 
@@ -209,6 +211,7 @@ export default function App() {
   const railTabs: { id: Tab; label: string; icon: typeof Palette; mobileOnly?: boolean }[] = [
     { id: 'brand', label: 'Marca', icon: Palette },
     { id: 'sections', label: 'Seções', icon: Layers },
+    { id: 'images', label: 'Imagens', icon: Images },
     { id: 'json', label: 'JSON', icon: Braces },
     { id: 'preview', label: 'Preview', icon: Smartphone, mobileOnly: true },
   ]
@@ -221,7 +224,7 @@ export default function App() {
       <header className="editor-topbar fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-x-3 px-3 sm:px-4">
         <div className="flex min-w-0 items-center gap-3">
           <img
-            src="/logo-instabio.svg"
+            src={`${import.meta.env.BASE_URL}logo-instabio.svg`}
             alt="insta-bio"
             className="h-9 w-9 shrink-0 rounded-lg shadow-sm"
             title="insta-bio"
@@ -384,7 +387,7 @@ export default function App() {
             {railExpanded && (
               <div className="flex items-center gap-2">
                 <img
-                  src="/logo-instabio.svg"
+                  src={`${import.meta.env.BASE_URL}logo-instabio.svg`}
                   alt="insta-bio"
                   className="h-9 w-9 shrink-0 rounded-lg"
                   title="insta-bio"
@@ -463,7 +466,7 @@ export default function App() {
 
           {activeTab === 'sections' && config.sections.length > 0 && (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[210px_minmax(0,1fr)]">
-                <div className="card min-w-0 space-y-2 self-start">
+                <div className="card min-w-0 space-y-2 self-start md:sticky md:top-20 md:max-h-[calc(100vh-6.5rem)] md:overflow-y-auto">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Seções
                   </p>
@@ -553,6 +556,8 @@ export default function App() {
                 </button>
               </div>
             )}
+
+            {activeTab === 'images' && <ImagesGallery config={config} />}
 
             {activeTab === 'json' && <JsonPanel config={config} />}
 

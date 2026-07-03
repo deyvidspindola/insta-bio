@@ -57,4 +57,4 @@ if (file_put_contents(ASSETS_DIR . '/' . $filename, $bytes) === false) {
   exit;
 }
 
-echo json_encode(['path' => '/assets/' . $filename]);
+echo json_encode(['path' => 'assets/' . $filename]);

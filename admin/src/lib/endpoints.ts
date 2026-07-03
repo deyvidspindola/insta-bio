@@ -8,4 +8,6 @@ export const ENDPOINTS = {
   logout: PROD ? 'logout.php' : '/api/auth/logout',
   save: PROD ? 'save.php' : '/api/bio/save',
   upload: PROD ? 'upload.php' : '/__upload',
+  listAssets: PROD ? 'list-images.php' : '/api/assets/list',
+  deleteAsset: PROD ? 'delete-image.php' : '/api/assets/delete',
 }

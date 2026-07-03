@@ -115,7 +115,7 @@
           "description": "Responsiva, rápida e personalizável. Troque cores, logo, seções e links pelo editor online.",
           "cta": "Quero uma igual",
           "url": "https://wa.me/5519999999999?text=Quero%20uma%20bio%20como%20essa",
-          "image": "/assets/post-facebook.png",
+          "image": "assets/bd8f3f98e6cc770f003c0e425222804d.jpg",
           "tags": [
             {
               "label": "Mobile",
@@ -130,13 +130,13 @@
       ]
     },
     {
-      "id": "para-quem",
+      "id": "para-quem-grade",
       "title": "Para quem é",
       "items": [
         {
           "type": "link",
           "title": "Igrejas e ministérios",
-          "subtitle": "Cultos, grupos, eventos e WhatsApp em um lugar",
+          "subtitle": "",
           "url": "https://wa.me/5519999999999?text=Sou%20de%20uma%20igreja",
           "icon": "heart"
         },
@@ -146,12 +146,19 @@
           "subtitle": "Catálogo, contato e redes sociais organizados",
           "url": "https://wa.me/5519999999999?text=Tenho%20um%20neg%C3%B3cio",
           "icon": "compass"
-        },
+        }
+      ],
+      "layout": "grid-2"
+    },
+    {
+      "id": "pra-quem-empilhado",
+      "title": "",
+      "items": [
         {
           "type": "link",
           "title": "Criadores e profissionais",
           "subtitle": "Portfólio, agenda e links de venda na bio",
-          "url": "https://wa.me/5519999999999?text=Sou%20criador%2Fprofissional",
+          "url": "https://",
           "icon": "sparkles"
         }
       ]

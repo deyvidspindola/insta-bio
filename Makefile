@@ -53,7 +53,12 @@ admin-build: ## Gera só o editor em admin/dist/ (sem PHP)
 hostgator: ## Gera editor + PHP para HostGator em admin/dist/
 	npm run admin:hostgator
 
-package: build hostgator ## Build completo para deploy (dist/ + admin/dist/)
+package: ## Build unificado em release/ (BASE_PATH=/insta-bio ou deploy.config.json)
+	npm run build:package
+
+## Build separado (legado) ----------------------------------------------------
+
+package-split: build hostgator ## Build em dist/ + admin/dist/ (sem pasta única)
 	@echo ""
 	@echo "Pronto para FTP:"
 	@echo "  dist/*        → public_html/"
