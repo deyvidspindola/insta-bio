@@ -22,7 +22,7 @@ export function FeatureCard({ item }: { item: FeatureCardType }) {
         href={item.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="group relative block aspect-square overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-primary/50"
+        className="bio-card group relative block aspect-square"
       >
         {item.image ? (
           <>
@@ -67,7 +67,7 @@ export function FeatureCard({ item }: { item: FeatureCardType }) {
         href={item.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="group relative block overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/50"
+        className="bio-card group relative block"
       >
         <div className="relative aspect-[3/4] w-full overflow-hidden sm:aspect-[3/4]">
           <img
@@ -117,7 +117,7 @@ export function FeatureCard({ item }: { item: FeatureCardType }) {
         href={item.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="group relative block overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/50"
+        className="bio-card group relative block"
       >
         <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-[16/9]">
           <img
@@ -186,7 +186,7 @@ export function FeatureCard({ item }: { item: FeatureCardType }) {
         href={item.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="group relative block overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/50"
+        className="bio-card group relative block"
       >
         <div
           className="relative overflow-hidden p-5"
@@ -220,7 +220,7 @@ export function FeatureCard({ item }: { item: FeatureCardType }) {
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative block overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/50"
+      className="bio-card group relative block"
     >
       <div
         className="relative p-5 sm:p-6"

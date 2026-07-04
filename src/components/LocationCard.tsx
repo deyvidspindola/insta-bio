@@ -7,7 +7,7 @@ export function LocationCard({ item }: { item: LocationCardType }) {
       href={item.mapUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative block overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/50"
+      className="bio-card bio-location-card group relative block"
     >
       <div className="relative overflow-hidden">
         <div
@@ -25,7 +25,7 @@ export function LocationCard({ item }: { item: LocationCardType }) {
           </div>
           <div className="min-w-0 flex-1">
             <h3 className="font-semibold text-foreground">{item.title}</h3>
-            <p className="text-xs text-muted-foreground">{item.address}</p>
+            <p className="bio-text-secondary text-xs">{item.address}</p>
             <span className="mt-1 inline-block text-[11px] font-medium text-primary">
               Abrir no mapa →
             </span>

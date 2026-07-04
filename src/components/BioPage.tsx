@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import type { CSSProperties } from 'react'
 import type { BioConfig } from '../types/bio'
+import { resolveBioTemplate } from '../lib/templates'
+import { resolvePublicUrl } from '../lib/publicUrl'
 import { BioHeader } from './BioHeader'
 import { BioSectionBlock } from './BioSection'
 
@@ -10,6 +12,8 @@ interface BioPageProps {
 
 export function BioPage({ config }: BioPageProps) {
   const { brand, sections } = config
+  const template = resolveBioTemplate(brand.template)
+  const hasBgImage = Boolean(brand.theme.backgroundImage)
 
   useEffect(() => {
     document.title = brand.seo.title
@@ -22,19 +26,46 @@ export function BioPage({ config }: BioPageProps) {
 
   const themeVars = {
     '--color-primary': brand.theme.primary,
+    ...(brand.theme.secondary ? { '--color-secondary': brand.theme.secondary } : {}),
+    ...(brand.theme.background ? { '--color-background': brand.theme.background } : {}),
   } as CSSProperties
 
   return (
-    <div className="min-h-screen bg-background text-foreground" style={themeVars}>
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-x-0 top-0 -z-0 h-[480px]"
-        style={{
-          background: `radial-gradient(60% 60% at 50% 0%, ${brand.theme.glow ?? brand.theme.primary}, transparent 70%)`,
-        }}
-      />
+    <div
+      data-bio-template={template}
+      className="relative isolate min-h-screen text-foreground"
+      style={themeVars}
+    >
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-background" />
 
-      <div className="relative mx-auto max-w-md px-5 pb-16 pt-12 sm:max-w-lg sm:px-6 sm:pt-16">
+      {hasBgImage && (
+        <div
+          aria-hidden="true"
+          className="bio-page-bg-image pointer-events-none fixed inset-0 z-[1]"
+          style={{
+            backgroundImage: `url(${resolvePublicUrl(brand.theme.backgroundImage!)})`,
+          }}
+        />
+      )}
+
+      {hasBgImage && (
+        <div
+          aria-hidden="true"
+          className="bio-page-bg-overlay pointer-events-none fixed inset-0 z-[2]"
+        />
+      )}
+
+      {!hasBgImage && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-x-0 top-0 z-[1] h-[480px]"
+          style={{
+            background: `radial-gradient(60% 60% at 50% 0%, ${brand.theme.glow ?? brand.theme.primary}, transparent 70%)`,
+          }}
+        />
+      )}
+
+      <div className="relative z-10 mx-auto max-w-md px-5 pb-16 pt-12 sm:max-w-lg sm:px-6 sm:pt-16">
         <BioHeader brand={brand} />
 
         {sections.map((section) => (

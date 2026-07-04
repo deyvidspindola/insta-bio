@@ -10,6 +10,7 @@
     "logo": "/assets/logo-instabio.svg",
     "theme": {
       "primary": "oklch(0.72 0.16 55)",
+      "secondary": "oklch(0.78 0.1 55)",
       "glow": "oklch(0.70 0.18 55 / 0.28)"
     },
     "seo": {

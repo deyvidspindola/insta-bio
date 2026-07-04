@@ -447,3 +447,60 @@ input[type='range'] {
     transform: translateY(0) scale(1);
   }
 }
+
+/* Mini previews dos templates (espelha src/index.css) */
+.bio-tpl-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 8px;
+  background: oklch(0.14 0.025 260);
+  min-height: 52px;
+}
+
+.bio-tpl-preview span {
+  display: block;
+  height: 8px;
+  border-radius: 9999px;
+}
+
+.bio-tpl-preview-classic span {
+  background: oklch(0.22 0.03 260);
+  border: 1px solid oklch(0.32 0.03 260);
+  border-radius: 6px;
+  height: 10px;
+}
+
+.bio-tpl-preview-pill span {
+  background: oklch(0.72 0.16 55);
+  height: 11px;
+}
+
+.bio-tpl-preview-outline span {
+  border: 2px solid oklch(0.72 0.16 55);
+  background: transparent;
+  height: 10px;
+  border-radius: 6px;
+}
+
+.bio-tpl-preview-solid span {
+  background: linear-gradient(135deg, oklch(0.72 0.16 55), oklch(0.58 0.18 45));
+  height: 11px;
+  border-radius: 6px;
+}
+
+.bio-tpl-preview-glass span {
+  background: oklch(0.22 0.03 260 / 0.45);
+  border: 1px solid oklch(0.9 0.01 260 / 0.12);
+  backdrop-filter: blur(4px);
+  height: 10px;
+  border-radius: 8px;
+}
+
+.bio-tpl-preview-soft span {
+  background: oklch(0.2 0.03 260);
+  box-shadow: 0 2px 8px oklch(0.72 0.16 55 / 0.25);
+  height: 11px;
+  border-radius: 10px;
+}

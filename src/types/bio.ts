@@ -17,6 +17,8 @@ export type IconName =
   | 'coffee'
   | 'message'
 
+export type BioTemplate = 'classic' | 'pill' | 'outline' | 'solid' | 'glass' | 'soft'
+
 export interface BioBrand {
   name: string
   tagline?: string
@@ -27,9 +29,13 @@ export interface BioBrand {
   }
   logo: string
   coverImage?: string
+  template?: BioTemplate
   theme: {
     primary: string
+    secondary?: string
     glow?: string
+    background?: string
+    backgroundImage?: string
   }
   seo: {
     title: string

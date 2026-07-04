@@ -16,10 +16,10 @@ function SectionTitle({
 
   return (
     <div className="mb-3 mt-6 px-1">
-      <h2 className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">
+      <h2 className="bio-section-title text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">
         {title}
       </h2>
-      {subtitle && <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>}
+      {subtitle && <p className="bio-section-subtitle mt-1 text-xs">{subtitle}</p>}
     </div>
   )
 }

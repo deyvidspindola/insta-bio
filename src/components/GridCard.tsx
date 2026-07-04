@@ -8,7 +8,7 @@ export function GridCard({ item }: { item: GridCardType }) {
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative block aspect-square overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-primary/50"
+      className="bio-card group relative block aspect-square"
     >
       {item.image ? (
         <>
