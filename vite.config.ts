@@ -10,10 +10,11 @@ function normalizeBasePath(input?: string) {
   return value
 }
 
-const publicBase = normalizeBasePath(process.env.BASE_PATH)
+const templateBuild = process.env.TEMPLATE_BUILD === '1'
+const publicBase = templateBuild ? 'auto' : normalizeBasePath(process.env.BASE_PATH)
 
 export default defineConfig({
-  base: publicBase,
+  base: templateBuild ? './' : publicBase === '/' ? '/' : publicBase,
   define: {
     'import.meta.env.VITE_PUBLIC_BASE': JSON.stringify(publicBase),
   },

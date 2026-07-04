@@ -11,6 +11,9 @@ node_modules
 dist
 dist-ssr
 release
+platform-release/
+platform-template/
+panel/data/
 *.zip
 *.local
 
@@ -30,3 +33,4 @@ admin/auth.json
 admin/.auth-secret
 admin/php/auth.config.php
 deploy.config.json
+panel/php/db.config.php

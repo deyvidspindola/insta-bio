@@ -138,14 +138,35 @@ Se a resposta for “só deixa o código mais bonito”, pode esperar. A simplic
 
 ---
 
-## 5. Negócio e escala (futuro)
+## Marca e domínio (jul/2026)
+
+Decisão de naming para o produto comercial. Detalhes completos em [PROJETO.md § Marca e domínio](./PROJETO.md#marca-e-domínio).
+
+| Decisão | Valor |
+|---------|--------|
+| Marca | **Links na Bio** |
+| Domínio principal | **`linksnabio.app.br`** |
+| Reserva sugerida | `linksnabio.net` ou `linksnabio.site` |
+
+**Por que não `instabio`:** `instabio.com.br` tomado; risco de marca com a Meta (“insta”). **Por que não `linkdabio`:** concorrente ativo e domínios relacionados já registrados.
+
+**Impacto no produto (futuro, baixa urgência):**
+
+| Item | Quando fazer |
+|------|----------------|
+| Logo e identidade visual “Links na Bio” | Após registrar o domínio |
+| Landing (`site/`) com novo nome e URL | Junto com o go-live do domínio |
+| Renomear pasta/repo `insta-bio` | Opcional; só se fizer sentido operacional |
+| SaaS multi-tenant (`cliente.linksnabio.app.br`) | Fase D do roadmap — ver §5 |
+
+---
 
 Só faz sentido **depois** de alguns clientes pagantes no modelo atual (1 deploy = 1 cliente):
 
 | Iniciativa | Valor | Complexidade |
 |------------|-------|--------------|
 | **Painel multi-cliente** | Um servidor, várias bios (`cliente1/`, `cliente2/`) | Alta |
-| **SaaS com subdomínios** | `igreja.instabio.cc` — receita recorrente | Muito alta |
+| **SaaS com subdomínios** | `igreja.linksnabio.app.br` — receita recorrente | Muito alta |
 | **White-label do editor** | Agências revendem com sua marca | Alta |
 | **Relatório mensal de cliques** | PDF automático no plano de manutenção | Média |
 | **Domínio + SSL no pacote premium** | Você configura tudo; cliente só paga | Média (operacional) |
@@ -170,6 +191,7 @@ Só faz sentido **depois** de alguns clientes pagantes no modelo atual (1 deploy
 
 Foco: landing real + confiança no editor.
 
+0. Registrar domínio `linksnabio.app.br` + DNS/SSL (ver [PROJETO.md](./PROJETO.md#marca-e-domínio))
 1. WhatsApp real na landing (`config.ts` → HTML)
 2. Link “Ver site” no editor
 3. Confirmação em “Restaurar modelo padrão” + aviso de não salvo
@@ -236,4 +258,5 @@ Com o que **já existe**, dá para empacotar sem código novo:
 | Editor | [ADMIN.md](./ADMIN.md) |
 | Schema e cards | [BIO-JSON.md](./BIO-JSON.md) |
 | Arquitetura | [PROJETO.md](./PROJETO.md) |
+| Plataforma multi-cliente | [PLATAFORMA.md](./PLATAFORMA.md) |
 | Landing | [../site/README.md](../site/README.md) |

@@ -42,7 +42,19 @@ export function BioPage({ config }: BioPageProps) {
         ))}
 
         <footer className="mt-10 text-center">
-          <p className="text-[11px] text-muted-foreground/70">{brand.footer}</p>
+          <p className="text-[11px] text-muted-foreground/70">
+            {brand.footer}
+            <span className="mx-1.5 text-muted-foreground/40">·</span>
+            by{' '}
+            <a
+              href="https://linksnabio.app.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground/80 underline-offset-2 transition-colors hover:text-primary hover:underline"
+            >
+              linksnabio
+            </a>
+          </p>
         </footer>
       </div>
     </div>

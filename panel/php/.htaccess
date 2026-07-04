@@ -1,0 +1,6 @@
+# Impede download de configs sensíveis
+<FilesMatch "^(db\.config|db\.config\.example)\.php$">
+  Require all denied
+</FilesMatch>
+
+Options -Indexes

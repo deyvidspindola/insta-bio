@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import { login } from '../lib/auth'
 import { ThemeToggle } from './ThemeToggle'
@@ -7,9 +7,19 @@ type Props = {
   onSuccess: () => void
 }
 
+function prefillUsername(): string {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('user') ?? params.get('email') ?? ''
+}
+
 export function LoginScreen({ onSuccess }: Props) {
-  const [username, setUsername] = useState('')
+  const [username, setUsername] = useState(prefillUsername)
   const [password, setPassword] = useState('')
+  const passwordRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (username) passwordRef.current?.focus()
+  }, [username])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -79,6 +89,7 @@ export function LoginScreen({ onSuccess }: Props) {
           <div className="field mb-0">
             <label htmlFor="login-password">Senha</label>
             <input
+              ref={passwordRef}
               id="login-password"
               type="password"
               autoComplete="current-password"

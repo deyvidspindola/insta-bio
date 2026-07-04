@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "serve": "NODE_ENV=production node server/index.mjs",
     "hash-password": "node scripts/hash-password.mjs",
-    "build:hostgator": "tsc -b && vite build && node scripts/build-hostgator.mjs"
+    "build:hostgator": "tsc -b && vite build && node scripts/build-hostgator.mjs",
+    "build:hostgator-template": "tsc -b && vite build && node scripts/build-hostgator-template.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

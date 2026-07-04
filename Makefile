@@ -1,4 +1,4 @@
-.PHONY: help install setup dev admin site site-build build admin-build hostgator package preview \
+.PHONY: help install setup dev dev-all admin site site-build build admin-build hostgator package preview \
 	hash-password auth-init lint clean
 
 .DEFAULT_GOAL := help
@@ -13,14 +13,16 @@ help: ## Lista os comandos disponíveis
 	@echo ""
 	@echo "Exemplos:"
 	@echo "  make install"
+	@echo "  make dev-all"
 	@echo "  make package"
 	@echo "  make hash-password PASSWORD=\"SenhaForteDoCliente\""
 
 ## — Dependências -------------------------------------------------------------
 
-install: ## Instala dependências do site, admin e landing
+install: ## Instala dependências do site, admin, panel e landing
 	npm install
 	npm install --prefix admin
+	npm install --prefix panel
 	npm install --prefix site
 
 setup: install ## Alias para install
@@ -29,6 +31,9 @@ setup: install ## Alias para install
 
 dev: ## Site local → http://localhost:5173
 	npm run dev
+
+dev-all: ## Sobe bio, editor, painel e landing (Ctrl+C para parar)
+	bash scripts/dev-all.sh
 
 admin: ## Editor local (Node) → http://localhost:5180
 	npm run admin
@@ -52,6 +57,18 @@ admin-build: ## Gera só o editor em admin/dist/ (sem PHP)
 
 hostgator: ## Gera editor + PHP para HostGator em admin/dist/
 	npm run admin:hostgator
+
+panel: ## Painel da plataforma (dev) → http://localhost:5175/panel/
+	npm run panel
+
+package-platform: ## Build completo: landing + panel + template → platform-release/
+	npm run build:platform
+
+package-template: ## Gera só o template de cliente → platform-template/_template/
+	npm run build:template
+
+sync-clients: ## Atualiza bio+editor de todos os clientes locais (preserva bio.json e imagens)
+	npm run sync:clients
 
 package: ## Build unificado em release/ (BASE_PATH=/insta-bio ou deploy.config.json)
 	npm run build:package

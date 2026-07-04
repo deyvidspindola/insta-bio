@@ -11,10 +11,13 @@ O conteúdo da página fica em **`bio.json`**. Depois do deploy inicial, dá par
 ```bash
 npm install
 npm install --prefix admin
+npm install --prefix panel
 
 npm run dev          # Site (bio demo) → http://localhost:5173
 npm run admin        # Editor → http://localhost:5180
+npm run panel        # Painel plataforma → http://localhost:5175/panel/
 npm run site         # Landing comercial → http://localhost:5190
+make dev-all         # Sobe os quatro de uma vez
 ```
 
 Login local do editor: `admin` / `troque-esta-senha` (arquivo `admin/auth.json`).
@@ -45,6 +48,7 @@ npm run admin:hostgator        # gera admin/dist/ (editor + PHP)
 | [ADMIN.md](./docs/ADMIN.md) | Editor | Funcionalidades do painel |
 | [BIO-JSON.md](./docs/BIO-JSON.md) | Conteúdo | Campos, cards, ícones, exemplos |
 | [PROJETO.md](./docs/PROJETO.md) | Desenvolvedor | Arquitetura e código |
+| [PLATAFORMA.md](./docs/PLATAFORMA.md) | Plataforma | Multi-cliente, `/panel/`, MySQL |
 | [MELHORIAS.md](./docs/MELHORIAS.md) | Produto / negócio | Roadmap, gaps e prioridades |
 | [site/README.md](./site/README.md) | Comercial | Landing page de vendas |
 
@@ -55,7 +59,8 @@ npm run admin:hostgator        # gera admin/dist/ (editor + PHP)
 | Pasta | O que é | Porta dev |
 |-------|---------|-----------|
 | `/` (raiz) | Bio demo (produto) | 5173 |
-| `admin/` | Editor online | 5180 |
+| `admin/` | Editor do cliente | 5180 |
+| `panel/` | Super-admin (cadastro de clientes) | 5175 |
 | `site/` | Site comercial / vendas | 5190 |
 
 ---
@@ -68,7 +73,9 @@ npm run admin:hostgator        # gera admin/dist/ (editor + PHP)
 | `npm run build` | Build do site → `dist/` |
 | `npm run preview` | Testa o `dist/` localmente |
 | `npm run admin` | Editor local com Node (porta 5180) |
-| `npm run build:package` | Gera tudo em `release/` (site + editor) |
+| `npm run build:package` | Gera tudo em `release/` (site + editor, 1 cliente) |
+| `npm run build:platform` | Plataforma multi-cliente → `platform-release/` |
+| `npm run panel` | Painel da plataforma em dev |
 | `npm run admin:hostgator` | Build do editor + PHP em `admin/dist/` |
 | `npm run hash-password --prefix admin -- "senha"` | Gera hash para `auth.config.php` |
 

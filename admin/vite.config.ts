@@ -229,8 +229,13 @@ function uploadPlugin(): Plugin {
 }
 
 export default defineConfig(({ command }) => {
-  const publicBase = normalizeBasePath(process.env.BASE_PATH)
-  const editorBase = command === 'build' ? editorBaseFrom(publicBase) : '/'
+  const templateBuild = process.env.TEMPLATE_BUILD === '1'
+  const publicBase = templateBuild ? 'auto' : normalizeBasePath(process.env.BASE_PATH)
+  const editorBase = templateBuild
+    ? './'
+    : command === 'build'
+      ? editorBaseFrom(publicBase === 'auto' ? '/' : publicBase)
+      : '/'
 
   return {
     base: editorBase,

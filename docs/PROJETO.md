@@ -20,6 +20,49 @@ Cada card é um componente React baseado no "type" do JSON
 
 ---
 
+## Marca e domínio
+
+> Decisão registrada em julho/2026. O nome do repositório (`insta-bio`) permanece técnico; a marca comercial em formação é **Links na Bio** / **linksnabio**.
+
+### Domínio principal (recomendado)
+
+| Item | Valor |
+|------|--------|
+| **Marca** | Links na Bio |
+| **Slug / escrita** | `linksnabio` (“links na bio”) |
+| **Domínio principal** | **`linksnabio.app.br`** |
+| **Por quê** | Extensão `.app.br` combina com produto (app de link na bio), custo baixo (~R$ 40/ano), credibilidade no Brasil |
+
+### Reserva opcional
+
+| Domínio | Uso sugerido |
+|---------|----------------|
+| `linksnabio.net` | Redirecionar para o `.app.br` |
+| `linksnabio.site` | Alternativa barata se `.net` não estiver disponível |
+
+### Alternativas avaliadas e descartadas
+
+| Nome | Motivo |
+|------|--------|
+| `instabio.com.br` | Já em uso |
+| `minha.bio`, `bio.co`, `bio.me` | Indisponíveis ou premium |
+| `linkdabio.com` | Registrado; concorrente ativo em [linkda.bio](https://linkda.bio/) |
+| `linknabio.co`, `linkna.bio` | Concorrentes no mesmo nicho |
+| `linxnabio.com` | Boa opção (diferenciação com “x”), mas `.app.br` priorizado para BR |
+| `links-na-bio.com` | Hífen prejudica fala, digitação e SEO |
+| `linksnabio.tech`, `linksnabio.info` | Caros; extensão não agrega para o público-alvo |
+
+### Próximos passos (marca)
+
+- [ ] Registrar `linksnabio.app.br` no [Registro.br](https://registro.br)
+- [ ] Registrar `linksnabio.net` ou `.site` como reserva (opcional)
+- [ ] Apontar DNS para a hospedagem (HostGator ou similar)
+- [ ] Ativar SSL/HTTPS
+- [ ] Atualizar landing, editor e materiais com a nova marca (quando o domínio estiver ativo)
+- [ ] Avaliar redirecionamento de typos (`linknabio`, `linkdabio`) se registrar variações
+
+---
+
 ## Estrutura de pastas
 
 ```
@@ -57,6 +100,7 @@ insta-bio/
 ├── docs/
 │   ├── BIO-JSON.md            # Referência completa do bio.json
 │   ├── PROJETO.md             # Este arquivo
+│   ├── PLATAFORMA.md          # Super-admin e multi-cliente
 │   ├── ADMIN.md               # Editor visual
 │   ├── HOSTGATOR.md           # Deploy na HostGator
 │   └── COMERCIALIZACAO.md     # Instalar e vender para clientes

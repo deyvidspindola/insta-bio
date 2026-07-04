@@ -1,5 +1,7 @@
 <?php
 require __DIR__ . '/auth.config.php';
+require __DIR__ . '/client-guard.php';
+require_client_active();
 session_start();
 header('Content-Type: application/json');
 
