@@ -1,7 +1,10 @@
 import { useEffect } from 'react'
 import type { CSSProperties } from 'react'
 import type { BioConfig } from '../types/bio'
+import { resolveBackgroundPreset } from '../lib/backgroundPresets'
+import { resolvePrimarySurfaceColors } from '../lib/contrastColor'
 import { resolveBioTemplate } from '../lib/templates'
+import { resolveCardRadiusPx } from '../lib/cardRadius'
 import { resolvePublicUrl } from '../lib/publicUrl'
 import { BioHeader } from './BioHeader'
 import { BioSectionBlock } from './BioSection'
@@ -13,7 +16,9 @@ interface BioPageProps {
 export function BioPage({ config }: BioPageProps) {
   const { brand, sections } = config
   const template = resolveBioTemplate(brand.template)
+  const bgPreset = resolveBackgroundPreset(brand.theme.backgroundPreset)
   const hasBgImage = Boolean(brand.theme.backgroundImage)
+  const hasBgPreset = Boolean(bgPreset) && !hasBgImage
 
   useEffect(() => {
     document.title = brand.seo.title
@@ -24,10 +29,22 @@ export function BioPage({ config }: BioPageProps) {
     }
   }, [brand.seo.description, brand.seo.title])
 
+  const primarySurface = resolvePrimarySurfaceColors(brand.theme.primary)
+
   const themeVars = {
     '--color-primary': brand.theme.primary,
+    '--bio-solid-from': primarySurface.solidFrom,
+    '--bio-solid-to': primarySurface.solidTo,
+    '--bio-fill-primary': primarySurface.fillPrimary,
+    '--bio-card-radius': resolveCardRadiusPx(brand.theme.cardRadius),
     ...(brand.theme.secondary ? { '--color-secondary': brand.theme.secondary } : {}),
-    ...(brand.theme.background ? { '--color-background': brand.theme.background } : {}),
+    ...(!hasBgImage && (hasBgPreset ? bgPreset?.edgeColor : brand.theme.background)
+      ? {
+          '--color-background': hasBgPreset
+            ? bgPreset!.edgeColor
+            : brand.theme.background,
+        }
+      : {}),
   } as CSSProperties
 
   return (
@@ -36,12 +53,22 @@ export function BioPage({ config }: BioPageProps) {
       className="relative isolate min-h-screen text-foreground"
       style={themeVars}
     >
-      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-background" />
+      {!hasBgImage && !hasBgPreset && (
+        <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-background" />
+      )}
+
+      {hasBgPreset && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 z-0"
+          style={{ background: bgPreset!.gradient }}
+        />
+      )}
 
       {hasBgImage && (
         <div
           aria-hidden="true"
-          className="bio-page-bg-image pointer-events-none fixed inset-0 z-[1]"
+          className="bio-page-bg-image pointer-events-none fixed inset-0 z-0"
           style={{
             backgroundImage: `url(${resolvePublicUrl(brand.theme.backgroundImage!)})`,
           }}
@@ -51,11 +78,11 @@ export function BioPage({ config }: BioPageProps) {
       {hasBgImage && (
         <div
           aria-hidden="true"
-          className="bio-page-bg-overlay pointer-events-none fixed inset-0 z-[2]"
+          className="bio-page-bg-overlay bio-page-bg-overlay--image pointer-events-none fixed inset-0 z-[1]"
         />
       )}
 
-      {!hasBgImage && (
+      {!hasBgImage && !hasBgPreset && (
         <div
           aria-hidden="true"
           className="pointer-events-none fixed inset-x-0 top-0 z-[1] h-[480px]"

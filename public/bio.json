@@ -9,15 +9,19 @@
     },
     "logo": "/assets/logo-instabio.svg",
     "theme": {
-      "primary": "oklch(0.72 0.16 55)",
-      "secondary": "oklch(0.78 0.1 55)",
-      "glow": "oklch(0.70 0.18 55 / 0.28)"
+      "primary": "oklch(0.74 0.14 350)",
+      "secondary": "oklch(0.84 0.10 350)",
+      "glow": "oklch(0.74 0.14 350 / 0.3)",
+      "background": "oklch(0.12 0.04 350)",
+      "cardRadius": 35,
+      "backgroundPreset": "magenta-dusk"
     },
     "seo": {
       "title": "insta-bio · Link da Bio Profissional",
       "description": "Página de links para Instagram com editor visual. Edite textos, imagens e links sem programar. Ideal para igrejas, empresas e criadores."
     },
-    "footer": "© 2026 insta-bio · Link da bio para Instagram"
+    "footer": "© 2026 insta-bio · Link da bio para Instagram",
+    "template": "solid"
   },
   "sections": [
     {
@@ -30,7 +34,8 @@
           "title": "Quero minha bio profissional",
           "description": "Montamos sua página com a sua marca, publicamos na hospedagem e você edita tudo sozinho depois — sem programar.",
           "cta": "Falar no WhatsApp",
-          "url": "https://wa.me/5519999999999?text=Ol%C3%A1!%20Quero%20saber%20mais%20sobre%20o%20insta-bio"
+          "url": "https://wa.me/5519999999999?text=Ol%C3%A1!%20Quero%20saber%20mais%20sobre%20o%20insta-bio",
+          "layout": "default"
         },
         {
           "type": "app-hero",
@@ -39,9 +44,11 @@
           "title": "Assista nossos vídeos",
           "description": "Lives, pregações, tutoriais e conteúdos exclusivos no YouTube.",
           "cta": "Ver canal",
-          "url": "https://youtube.com/"
+          "url": "https://youtube.com/",
+          "layout": "compact"
         }
-      ]
+      ],
+      "layout": "stack"
     },
     {
       "id": "destaque",
@@ -50,15 +57,17 @@
       "items": [
         {
           "type": "feature",
-          "variant": "gradient",
+          "variant": "banner",
           "badge": "Destaque",
           "title": "Layout que chama atenção e converte",
-          "description": "Cards de WhatsApp, links, eventos em grade, imagens e cores da sua marca — no estilo das melhores bios do mercado.",
+          "description": "Cards de WhatsApp, ",
           "cta": "Quero o meu",
           "url": "https://wa.me/5519999999999?text=Quero%20contratar%20o%20insta-bio",
-          "icon": "sparkles"
+          "icon": "sparkles",
+          "image": "assets/download.png"
         }
-      ]
+      ],
+      "layout": "stack"
     },
     {
       "id": "recursos",
@@ -110,7 +119,7 @@
       "items": [
         {
           "type": "feature",
-          "variant": "banner",
+          "variant": "portrait",
           "badge": "Demonstração ao vivo",
           "title": "É assim que a bio do seu cliente vai ficar",
           "description": "Responsiva, rápida e personalizável. Troque cores, logo, seções e links pelo editor online.",

@@ -8,32 +8,32 @@ export const BIO_TEMPLATES: Record<
 > = {
   classic: {
     label: 'Clássico',
-    description: 'Cards escuros com borda — estilo padrão.',
+    description: 'Links simples com borda escura.',
     previewClass: 'bio-tpl-preview-classic',
   },
   pill: {
     label: 'Pill',
-    description: 'Links em pílulas coloridas, estilo Linktree.',
+    description: 'Links simples em pílula (1 coluna).',
     previewClass: 'bio-tpl-preview-pill',
   },
   outline: {
     label: 'Contorno',
-    description: 'Botões vazados só com borda colorida.',
+    description: 'Links simples vazados com borda.',
     previewClass: 'bio-tpl-preview-outline',
   },
   solid: {
     label: 'Sólido',
-    description: 'Blocos preenchidos com a cor primária.',
+    description: 'Links simples preenchidos com cor primária.',
     previewClass: 'bio-tpl-preview-solid',
   },
   glass: {
     label: 'Glass',
-    description: 'Vidro fosco com blur e transparência.',
+    description: 'Links simples com efeito vidro.',
     previewClass: 'bio-tpl-preview-glass',
   },
   soft: {
     label: 'Soft',
-    description: 'Cantos grandes e sombras suaves.',
+    description: 'Links simples com sombra suave.',
     previewClass: 'bio-tpl-preview-soft',
   },
 }

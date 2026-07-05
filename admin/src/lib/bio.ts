@@ -1,4 +1,4 @@
-import type { BioConfig, BioSection, IconName, SectionItem, AppHeroPreset } from '@bio-types'
+import type { BioConfig, BioSection, IconName, SectionItem, AppHeroPreset, AppHeroLayout } from '@bio-types'
 import { bioJsonUrl } from '@site/lib/publicUrl'
 import defaultBio from '../../../public/bio.default.json'
 import { APP_HERO_PRESET_LIST, createAppHero } from '@site/lib/appHeroPresets'
@@ -44,6 +44,54 @@ export const LAYOUT_OPTIONS = [
   { value: 'stack', label: 'Empilhado' },
   { value: 'grid-2', label: 'Grade 2 colunas' },
 ] as const
+
+export const APP_HERO_LAYOUTS = [
+  { value: 'default', label: 'Completo' },
+  { value: 'compact', label: 'Compacto (2 colunas)' },
+  { value: 'condensed', label: 'Condensado' },
+] as const
+
+export function isHeroItem(
+  item: SectionItem,
+): item is Extract<SectionItem, { type: 'whatsapp-hero' | 'app-hero' }> {
+  return item.type === 'whatsapp-hero' || item.type === 'app-hero'
+}
+
+/** Em grade 2 colunas, cards destaque não podem usar layout completo. */
+export function ensureGridHeroLayouts(section: BioSection): BioSection {
+  if ((section.layout ?? 'stack') !== 'grid-2') return section
+
+  let changed = false
+  const items = section.items.map((item) => {
+    if (!isHeroItem(item)) return item
+    if (item.layout === 'compact' || item.layout === 'condensed') return item
+    changed = true
+    return { ...item, layout: 'compact' as AppHeroLayout }
+  })
+
+  return changed ? { ...section, items } : section
+}
+
+export function resolveHeroLayout(isGrid: boolean, layout?: AppHeroLayout): AppHeroLayout {
+  if (!isGrid) return layout ?? 'default'
+  if (layout === 'condensed') return 'condensed'
+  return 'compact'
+}
+
+export function heroLayoutForSection(
+  section: BioSection,
+  layout?: AppHeroLayout,
+): AppHeroLayout {
+  return resolveHeroLayout((section.layout ?? 'stack') === 'grid-2', layout)
+}
+
+export function newHeroItemForSection(
+  section: BioSection,
+  item: Extract<SectionItem, { type: 'whatsapp-hero' | 'app-hero' }>,
+): Extract<SectionItem, { type: 'whatsapp-hero' | 'app-hero' }> {
+  const layout = heroLayoutForSection(section, item.layout)
+  return layout === item.layout ? item : { ...item, layout }
+}
 
 export function createDefaultConfig(): BioConfig {
   return structuredClone(defaultBio as BioConfig)

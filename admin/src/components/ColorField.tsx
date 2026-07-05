@@ -7,9 +7,6 @@ interface ColorInputProps {
   title?: string
 }
 
-const HUE_GRADIENT =
-  'linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%)'
-
 function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n))
 }
@@ -120,8 +117,7 @@ export function ColorInput({ value, onChange, title }: ColorInputProps) {
             max={360}
             value={Math.round(hsv.h)}
             onChange={(e) => updateHsv({ h: Number(e.target.value) })}
-            className="mt-3 w-full"
-            style={{ background: HUE_GRADIENT, borderRadius: '9999px' }}
+            className="color-hue-slider mt-3 w-full"
             aria-label="Matiz"
           />
 
@@ -222,7 +218,7 @@ export function GlowColorField({ label, value, onChange }: GlowColorFieldProps) 
           max={100}
           value={percent}
           onChange={(e) => onChange(buildGlowColor(hex, Number(e.target.value) / 100))}
-          className="flex-1 accent-[var(--color-primary)]"
+          className="color-opacity-slider flex-1"
         />
         <span className="w-10 text-right text-xs text-muted-foreground">{percent}%</span>
       </div>

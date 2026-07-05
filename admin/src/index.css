@@ -274,6 +274,70 @@ input[type='range'] {
   background: transparent;
 }
 
+/* Barra de matiz (arco-íris) do seletor de cor */
+.color-hue-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 14px;
+  border-radius: 9999px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.color-hue-slider::-webkit-slider-runnable-track {
+  height: 14px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    #f00 0%,
+    #ff0 17%,
+    #0f0 33%,
+    #0ff 50%,
+    #00f 67%,
+    #f0f 83%,
+    #f00 100%
+  );
+}
+
+.color-hue-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -2px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.color-hue-slider::-moz-range-track {
+  height: 14px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    #f00 0%,
+    #ff0 17%,
+    #0f0 33%,
+    #0ff 50%,
+    #00f 67%,
+    #f0f 83%,
+    #f00 100%
+  );
+}
+
+.color-hue-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.color-opacity-slider {
+  accent-color: var(--color-primary);
+}
+
 /* ============================================================
    Editor "app window" — inspirado na ilustração da landing
    ============================================================ */

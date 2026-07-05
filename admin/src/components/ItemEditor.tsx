@@ -1,12 +1,20 @@
 import type { ReactNode } from 'react'
-import type { IconName, SectionItem } from '@bio-types'
+import type { AppHero, AppHeroLayout, IconName, SectionItem, WhatsAppHero } from '@bio-types'
 import { APP_HERO_PRESETS } from '@site/lib/appHeroPresets'
-import { APP_HERO_PRESET_LIST, CARD_TYPES, FEATURE_VARIANTS, ICON_OPTIONS } from '../lib/bio'
+import {
+  APP_HERO_PRESET_LIST,
+  APP_HERO_LAYOUTS,
+  CARD_TYPES,
+  FEATURE_VARIANTS,
+  ICON_OPTIONS,
+  resolveHeroLayout,
+} from '../lib/bio'
 import { GradientField } from './GradientField'
 import { ImageField } from './ImageField'
 
 interface ItemEditorProps {
   item: SectionItem
+  isGridSection?: boolean
   onChange: (item: SectionItem) => void
   onRemove: () => void
   dragHandle?: ReactNode
@@ -120,8 +128,79 @@ function TagsField({
   )
 }
 
+function HeroLayoutFields({
+  item,
+  isGridSection,
+  onChange,
+}: {
+  item: WhatsAppHero | AppHero
+  isGridSection: boolean
+  onChange: (item: WhatsAppHero | AppHero) => void
+}) {
+  const layout = resolveHeroLayout(isGridSection, item.layout)
+  const layoutOptions = APP_HERO_LAYOUTS.filter(
+    (option) => !isGridSection || option.value !== 'default',
+  )
+
+  return (
+    <>
+      <Field label="Layout">
+        <select
+          value={layout}
+          onChange={(e) =>
+            onChange({
+              ...item,
+              layout: e.target.value as AppHeroLayout,
+            })
+          }
+        >
+          {layoutOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        {isGridSection && (
+          <p className="mt-1 text-[10px] text-muted-foreground/75">
+            Layout completo desativado em grade de 2 colunas.
+          </p>
+        )}
+      </Field>
+      {layout === 'default' && (
+        <Field label="Badge">
+          <input value={item.badge} onChange={(e) => onChange({ ...item, badge: e.target.value })} />
+        </Field>
+      )}
+      <Field label="Título">
+        <input value={item.title} onChange={(e) => onChange({ ...item, title: e.target.value })} />
+      </Field>
+      {layout === 'default' && (
+        <Field label="Descrição">
+          <textarea
+            rows={2}
+            value={item.description}
+            onChange={(e) => onChange({ ...item, description: e.target.value })}
+          />
+        </Field>
+      )}
+      {layout !== 'condensed' && (
+        <Field label="Texto do botão">
+          <input value={item.cta} onChange={(e) => onChange({ ...item, cta: e.target.value })} />
+        </Field>
+      )}
+      {(layout === 'compact' || layout === 'condensed') && (
+        <p className="text-[10px] text-muted-foreground/75">
+          No layout {layout === 'compact' ? 'compacto' : 'condensado'}, badge
+          {layout === 'compact' ? ' e descrição' : ', descrição e botão'} não aparecem na bio.
+        </p>
+      )}
+    </>
+  )
+}
+
 export function ItemEditor({
   item,
+  isGridSection = false,
   onChange,
   onRemove,
   dragHandle,
@@ -183,18 +262,11 @@ export function ItemEditor({
 
       {item.type === 'whatsapp-hero' && (
         <>
-          <Field label="Badge">
-            <input value={item.badge} onChange={(e) => onChange({ ...item, badge: e.target.value })} />
-          </Field>
-          <Field label="Título">
-            <input value={item.title} onChange={(e) => onChange({ ...item, title: e.target.value })} />
-          </Field>
-          <Field label="Descrição">
-            <textarea rows={2} value={item.description} onChange={(e) => onChange({ ...item, description: e.target.value })} />
-          </Field>
-          <Field label="Texto do botão">
-            <input value={item.cta} onChange={(e) => onChange({ ...item, cta: e.target.value })} />
-          </Field>
+          <HeroLayoutFields
+            item={item}
+            isGridSection={isGridSection}
+            onChange={(updated) => onChange(updated)}
+          />
         </>
       )}
 
@@ -210,6 +282,7 @@ export function ItemEditor({
                   ...item,
                   preset,
                   ...defaults,
+                  layout: item.layout,
                   ...(preset === 'custom' ? { icon: APP_HERO_PRESETS.custom.defaultIcon } : {}),
                 })
               }}
@@ -229,18 +302,11 @@ export function ItemEditor({
               />
             </Field>
           )}
-          <Field label="Badge">
-            <input value={item.badge} onChange={(e) => onChange({ ...item, badge: e.target.value })} />
-          </Field>
-          <Field label="Título">
-            <input value={item.title} onChange={(e) => onChange({ ...item, title: e.target.value })} />
-          </Field>
-          <Field label="Descrição">
-            <textarea rows={2} value={item.description} onChange={(e) => onChange({ ...item, description: e.target.value })} />
-          </Field>
-          <Field label="Texto do botão">
-            <input value={item.cta} onChange={(e) => onChange({ ...item, cta: e.target.value })} />
-          </Field>
+          <HeroLayoutFields
+            item={item}
+            isGridSection={isGridSection}
+            onChange={(updated) => onChange(updated)}
+          />
         </>
       )}
 

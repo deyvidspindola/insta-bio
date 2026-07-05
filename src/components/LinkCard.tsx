@@ -8,7 +8,7 @@ export function LinkCard({ item, grid = false }: { item: LinkCardType; grid?: bo
         href={item.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="bio-card bio-link-card group relative flex h-full flex-col p-4"
+        className="bio-card bio-link-card bio-link-card--grid group relative flex h-full flex-col p-3"
       >
         <div className="bio-link-body mb-3 flex items-center justify-between">
           <div className="bio-link-icon-wrap flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">

@@ -31,8 +31,12 @@ function renderItem(item: SectionItem, index: number, grid: boolean) {
     case 'whatsapp-hero':
     case 'app-hero':
       return (
-        <div key={item.title} className="animate-fade-up" style={delay}>
-          <AppHeroCard item={item} />
+        <div
+          key={`${item.type}-${item.title}`}
+          className={`animate-fade-up ${grid ? 'h-full' : ''}`}
+          style={delay}
+        >
+          <AppHeroCard item={item} grid={grid} />
         </div>
       )
     case 'feature':

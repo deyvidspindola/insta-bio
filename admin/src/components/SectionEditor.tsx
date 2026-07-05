@@ -1,6 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { BioSection, SectionItem, AppHeroPreset } from '@bio-types'
-import { APP_HERO_PRESET_LIST, CARD_TYPES, createAppHero, createItem, LAYOUT_OPTIONS } from '../lib/bio'
+import {
+  APP_HERO_PRESET_LIST,
+  CARD_TYPES,
+  createAppHero,
+  createItem,
+  ensureGridHeroLayouts,
+  LAYOUT_OPTIONS,
+  newHeroItemForSection,
+} from '../lib/bio'
 import { ItemEditor } from './ItemEditor'
 
 interface SectionEditorProps {
@@ -13,6 +21,20 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
+
+  const isGridSection = (section.layout ?? 'stack') === 'grid-2'
+
+  function patchSection(next: BioSection) {
+    onChange(ensureGridHeroLayouts(next))
+  }
+
+  useEffect(() => {
+    const fixed = ensureGridHeroLayouts(section)
+    const changed = fixed.items.some((item, index) => item !== section.items[index])
+    if (changed) onChange(fixed)
+    // Normaliza heroes legados ao abrir seção em grade 2 colunas.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section.id, section.layout])
 
   function toggleCollapse(index: number) {
     setCollapsed((prev) => {
@@ -34,11 +56,11 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
   function updateItem(index: number, item: SectionItem) {
     const items = [...section.items]
     items[index] = item
-    onChange({ ...section, items })
+    patchSection({ ...section, items })
   }
 
   function removeItem(index: number) {
-    onChange({ ...section, items: section.items.filter((_, i) => i !== index) })
+    patchSection({ ...section, items: section.items.filter((_, i) => i !== index) })
   }
 
   function moveItem(from: number, to: number) {
@@ -46,15 +68,21 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
     const items = [...section.items]
     const [moved] = items.splice(from, 1)
     items.splice(to, 0, moved)
-    onChange({ ...section, items })
+    patchSection({ ...section, items })
   }
 
   function addItem(type: SectionItem['type']) {
-    onChange({ ...section, items: [...section.items, createItem(type)] })
+    const item = createItem(type)
+    const normalized =
+      item.type === 'whatsapp-hero' || item.type === 'app-hero'
+        ? newHeroItemForSection(section, item)
+        : item
+    patchSection({ ...section, items: [...section.items, normalized] })
   }
 
   function addAppHero(preset: AppHeroPreset) {
-    onChange({ ...section, items: [...section.items, createAppHero(preset)] })
+    const hero = newHeroItemForSection(section, createAppHero(preset))
+    patchSection({ ...section, items: [...section.items, hero] })
   }
 
   return (
@@ -72,7 +100,7 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
             <label>ID interno</label>
             <input
               value={section.id}
-              onChange={(e) => onChange({ ...section, id: e.target.value })}
+              onChange={(e) => patchSection({ ...section, id: e.target.value })}
             />
           </div>
           <div className="field">
@@ -80,7 +108,7 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
             <select
               value={section.layout ?? 'stack'}
               onChange={(e) =>
-                onChange({
+                patchSection({
                   ...section,
                   layout: e.target.value as BioSection['layout'],
                 })
@@ -92,12 +120,17 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
                 </option>
               ))}
             </select>
+            {isGridSection && (
+              <p className="mt-1 text-[10px] text-muted-foreground/75">
+                Cards destaque usam layout compacto ou condensado — completo fica desativado.
+              </p>
+            )}
           </div>
           <div className="field sm:col-span-2">
             <label>Título da seção</label>
             <input
               value={section.title}
-              onChange={(e) => onChange({ ...section, title: e.target.value })}
+              onChange={(e) => patchSection({ ...section, title: e.target.value })}
               placeholder='Deixe vazio para ocultar: ""'
             />
           </div>
@@ -105,7 +138,7 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
             <label>Subtítulo</label>
             <input
               value={section.subtitle ?? ''}
-              onChange={(e) => onChange({ ...section, subtitle: e.target.value })}
+              onChange={(e) => patchSection({ ...section, subtitle: e.target.value })}
             />
           </div>
         </div>
@@ -141,6 +174,7 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
           >
             <ItemEditor
               item={item}
+              isGridSection={isGridSection}
               onChange={(updated) => updateItem(index, updated)}
               onRemove={() => removeItem(index)}
               collapsed={collapsed.has(index)}

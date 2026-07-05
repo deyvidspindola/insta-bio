@@ -36,6 +36,10 @@ export interface BioBrand {
     glow?: string
     background?: string
     backgroundImage?: string
+    /** ID de gradiente pronto (ver backgroundPresets.ts) */
+    backgroundPreset?: string
+    /** 0 = cantos retos, 100 = máximo arredondamento (32px) */
+    cardRadius?: number
   }
   seo: {
     title: string
@@ -44,6 +48,10 @@ export interface BioBrand {
   footer: string
 }
 
+export type AppHeroPreset = 'whatsapp' | 'youtube' | 'instagram' | 'form' | 'telegram' | 'custom'
+
+export type AppHeroLayout = 'default' | 'compact' | 'condensed'
+
 export interface WhatsAppHero {
   type: 'whatsapp-hero'
   badge: string
@@ -51,9 +59,8 @@ export interface WhatsAppHero {
   description: string
   cta: string
   url: string
+  layout?: AppHeroLayout
 }
-
-export type AppHeroPreset = 'whatsapp' | 'youtube' | 'instagram' | 'form' | 'telegram' | 'custom'
 
 export interface AppHero {
   type: 'app-hero'
@@ -64,6 +71,7 @@ export interface AppHero {
   cta: string
   url: string
   icon?: IconName
+  layout?: AppHeroLayout
 }
 
 export interface FeatureCard {
