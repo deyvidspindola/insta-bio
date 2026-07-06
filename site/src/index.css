@@ -14,3 +14,243 @@
     display: none;
   }
 }
+
+/* ── Seção Editor (landing) ───────────────────────────────────── */
+
+.site-editor-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  max-width: 640px;
+  margin-inline: auto;
+  padding: 0.375rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklch, var(--color-stroke-4, #ccc) 80%, transparent);
+  background: color-mix(in oklch, var(--color-background-2, #f5f5f5) 90%, transparent);
+}
+
+.dark .site-editor-nav {
+  border-color: color-mix(in oklch, white 12%, transparent);
+  background: color-mix(in oklch, black 40%, transparent);
+}
+
+.site-editor-nav__item {
+  padding: 0.5rem 0.875rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: color-mix(in oklch, var(--color-secondary, #333) 78%, transparent);
+  white-space: nowrap;
+}
+
+.dark .site-editor-nav__item {
+  color: color-mix(in oklch, var(--color-accent, #fff) 86%, transparent);
+}
+
+.site-editor-nav__item--active,
+.dark .site-editor-nav__item.site-editor-nav__item--active {
+  background: var(--color-ns-green, #c4f042);
+  color: #141414;
+  font-weight: 600;
+}
+
+.site-muted-copy {
+  color: color-mix(in oklch, var(--color-secondary, #333) 72%, transparent);
+}
+
+.dark .site-muted-copy,
+.dark #editor .site-muted-copy {
+  color: color-mix(in oklch, var(--color-accent, #fff) 88%, transparent);
+}
+
+.site-editor-pill {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: color-mix(in oklch, var(--color-secondary, #333) 10%, transparent);
+  color: color-mix(in oklch, var(--color-secondary, #333) 82%, transparent);
+  border: 1px solid color-mix(in oklch, var(--color-secondary, #333) 12%, transparent);
+}
+
+.dark .site-editor-pill {
+  background: color-mix(in oklch, white 14%, transparent);
+  color: color-mix(in oklch, white 92%, transparent);
+  border-color: color-mix(in oklch, white 18%, transparent);
+}
+
+.site-editor-pill--accent,
+.dark .site-editor-pill--accent {
+  background: var(--color-ns-green, #c4f042);
+  color: #141414;
+  border-color: transparent;
+}
+
+.site-gradient-row {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.site-gradient-row span {
+  width: 2rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in oklch, white 15%, transparent);
+}
+
+.site-feature-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 1.125rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in oklch, var(--color-secondary, #333) 14%, transparent);
+  background: color-mix(in oklch, var(--color-background-2, #f5f5f5) 92%, transparent);
+}
+
+.dark .site-feature-chip {
+  background: color-mix(in oklch, white 10%, transparent);
+  border-color: color-mix(in oklch, white 20%, transparent);
+}
+
+.site-feature-chip strong {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-secondary, #1a1a1a);
+}
+
+.dark .site-feature-chip strong {
+  color: var(--color-accent, #fff);
+}
+
+.site-feature-chip span {
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  color: color-mix(in oklch, var(--color-secondary, #333) 72%, transparent);
+}
+
+.dark .site-feature-chip span {
+  color: color-mix(in oklch, var(--color-accent, #fff) 80%, transparent);
+}
+
+/* ── Destaque hospedagem flexível ─────────────────────────────── */
+
+.site-hosting-highlight {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 920px;
+  margin-inline: auto;
+  padding: 1.75rem 1.5rem;
+  border-radius: 1.5rem;
+  border: 1px solid color-mix(in oklch, var(--color-ns-green, #c4f042) 35%, transparent);
+  background:
+    radial-gradient(ellipse 80% 70% at 100% 0%, color-mix(in oklch, var(--color-ns-green, #c4f042) 12%, transparent), transparent 55%),
+    color-mix(in oklch, var(--color-background-2, #f5f5f5) 92%, transparent);
+}
+
+.dark .site-hosting-highlight {
+  border-color: color-mix(in oklch, var(--color-ns-green, #c4f042) 28%, transparent);
+  background:
+    radial-gradient(ellipse 80% 70% at 100% 0%, color-mix(in oklch, var(--color-ns-green, #c4f042) 10%, transparent), transparent 55%),
+    color-mix(in oklch, white 4%, transparent);
+}
+
+@media (min-width: 768px) {
+  .site-hosting-highlight {
+    grid-template-columns: 1.15fr 1fr;
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem 2.25rem;
+  }
+}
+
+.site-hosting-highlight__options {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.site-hosting-highlight__option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 1.125rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in oklch, currentColor 10%, transparent);
+  background: color-mix(in oklch, white 70%, transparent);
+}
+
+.dark .site-hosting-highlight__option {
+  background: color-mix(in oklch, black 30%, transparent);
+}
+
+.site-hosting-highlight__option strong {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.site-hosting-highlight__option span {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: color-mix(in oklch, var(--color-secondary, #333) 72%, transparent);
+}
+
+.dark .site-hosting-highlight__option span {
+  color: color-mix(in oklch, var(--color-accent, #fff) 82%, transparent);
+}
+
+.site-hosting-highlight__option--accent {
+  border-color: color-mix(in oklch, var(--color-ns-green, #c4f042) 40%, transparent);
+  background: color-mix(in oklch, var(--color-ns-green, #c4f042) 12%, transparent);
+}
+
+.dark .site-hosting-highlight__option--accent {
+  background: color-mix(in oklch, var(--color-ns-green, #c4f042) 14%, transparent);
+}
+
+/* ── Showcase editor (desktop + mobile) ───────────────────────── */
+
+.site-editor-showcase {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 1008px;
+  margin-inline: auto;
+  align-items: end;
+}
+
+@media (min-width: 768px) {
+  .site-editor-showcase {
+    grid-template-columns: 1.4fr 0.75fr;
+    gap: 1.5rem;
+  }
+}
+
+.site-editor-showcase__frame {
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid color-mix(in oklch, var(--color-stroke-4, #ccc) 80%, transparent);
+  background: color-mix(in oklch, var(--color-background-2, #f5f5f5) 90%, transparent);
+  box-shadow: 0 18px 50px color-mix(in oklch, black 12%, transparent);
+}
+
+.dark .site-editor-showcase__frame {
+  border-color: color-mix(in oklch, white 16%, transparent);
+  background: color-mix(in oklch, white 6%, transparent);
+  box-shadow: 0 18px 50px color-mix(in oklch, black 45%, transparent);
+}
+
+.site-editor-showcase__frame--mobile {
+  max-width: 320px;
+  margin-inline: auto;
+}
+
+@media (min-width: 768px) {
+  .site-editor-showcase__frame--mobile {
+    margin-inline: 0;
+  }
+}

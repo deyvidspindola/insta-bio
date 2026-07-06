@@ -1,30 +1,33 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Braces,
   Copy,
   Download,
   Images,
   Layers,
   LogOut,
   Moon,
-  MoreVertical,
-  PanelLeftClose,
-  PanelLeftOpen,
   Palette,
-  Redo2,
   Save,
+  Settings,
   Smartphone,
   Sun,
   Undo2,
   Upload,
+  User,
+  Redo2,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react'
 import type { BioConfig } from '@bio-types'
-import { BrandForm } from './components/BrandForm'
+import { AdvancedPanel } from './components/AdvancedPanel'
+import { AppearanceForm } from './components/AppearanceForm'
+import { IdentityForm } from './components/IdentityForm'
 import { ImagesGallery } from './components/ImagesGallery'
-import { JsonPanel } from './components/JsonPanel'
 import { LoginScreen } from './components/LoginScreen'
 import { PreviewPanel } from './components/PreviewPanel'
+import { PreviewSheet } from './components/PreviewSheet'
 import { SectionEditor } from './components/SectionEditor'
+import { SectionMobilePicker, SectionSidebar } from './components/SectionSidebar'
 import { fetchSession, logout, saveBioConfig } from './lib/auth'
 import {
   copyBioConfig,
@@ -35,7 +38,7 @@ import {
 } from './lib/bio'
 import { applyTheme, getStoredTheme, type Theme } from './lib/theme'
 
-type Tab = 'brand' | 'sections' | 'images' | 'json' | 'preview'
+type Tab = 'identity' | 'appearance' | 'sections' | 'images' | 'advanced'
 
 const HISTORY_LIMIT = 50
 
@@ -44,7 +47,7 @@ export default function App() {
   const [config, setConfig] = useState<BioConfig | null>(null)
   const [past, setPast] = useState<BioConfig[]>([])
   const [future, setFuture] = useState<BioConfig[]>([])
-  const [activeTab, setActiveTab] = useState<Tab>('brand')
+  const [activeTab, setActiveTab] = useState<Tab>('identity')
   const [activeSection, setActiveSection] = useState(0)
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -52,19 +55,8 @@ export default function App() {
   const [dropIndex, setDropIndex] = useState<number | null>(null)
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme())
   const [railExpanded, setRailExpanded] = useState(false)
-  const [moreOpen, setMoreOpen] = useState(false)
-  const moreRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!moreOpen) return
-    function onClick(e: MouseEvent) {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
-        setMoreOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [moreOpen])
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const statusTimerRef = useRef<number | null>(null)
 
   function toggleTheme() {
     const next: Theme = theme === 'dark' ? 'light' : 'dark'
@@ -72,14 +64,12 @@ export default function App() {
     setTheme(next)
   }
 
-  // Grava uma edição no histórico (para desfazer/refazer) e aplica o novo estado.
   function commit(next: BioConfig) {
     if (config) setPast((p) => [...p.slice(-(HISTORY_LIMIT - 1)), config])
     setFuture([])
     setConfig(next)
   }
 
-  // Define a configuração sem registrar histórico (carga inicial, importação).
   function resetConfig(next: BioConfig) {
     setPast([])
     setFuture([])
@@ -109,7 +99,6 @@ export default function App() {
     sections.splice(to, 0, moved)
     commit({ ...config, sections })
 
-    // mantém selecionada a seção que estava ativa
     if (activeSection === from) setActiveSection(to)
     else if (from < activeSection && to >= activeSection) setActiveSection(activeSection - 1)
     else if (from > activeSection && to <= activeSection) setActiveSection(activeSection + 1)
@@ -126,11 +115,16 @@ export default function App() {
     loadBioConfig()
       .then((data) => {
         resetConfig(data)
-        setStatus('Configuração carregada')
-        window.setTimeout(() => setStatus(null), 3000)
+        showStatus('Configuração carregada')
       })
       .catch((err: Error) => setError(err.message))
   }, [authenticated])
+
+  useEffect(() => {
+    return () => {
+      if (statusTimerRef.current) window.clearTimeout(statusTimerRef.current)
+    }
+  }, [])
 
   async function handleLogout() {
     await logout()
@@ -140,7 +134,8 @@ export default function App() {
 
   function showStatus(message: string) {
     setStatus(message)
-    window.setTimeout(() => setStatus(null), 3000)
+    if (statusTimerRef.current) window.clearTimeout(statusTimerRef.current)
+    statusTimerRef.current = window.setTimeout(() => setStatus(null), 3000)
   }
 
   async function handleCopy() {
@@ -152,7 +147,7 @@ export default function App() {
   function handleDownload() {
     if (!config) return
     downloadBioConfig(config)
-    showStatus('bio.json baixado — substitua em public/bio.json')
+    showStatus('bio.json baixado')
   }
 
   async function handleSave() {
@@ -178,6 +173,12 @@ export default function App() {
       }
     }
     reader.readAsText(file)
+  }
+
+  function addSection() {
+    if (!config) return
+    commit({ ...config, sections: [...config.sections, createSection()] })
+    setActiveSection(config.sections.length)
   }
 
   if (authenticated === null) {
@@ -208,21 +209,20 @@ export default function App() {
     )
   }
 
-  const railTabs: { id: Tab; label: string; icon: typeof Palette; mobileOnly?: boolean }[] = [
-    { id: 'brand', label: 'Marca', icon: Palette },
-    { id: 'sections', label: 'Seções', icon: Layers },
+  const railTabs: { id: Tab; label: string; icon: typeof User }[] = [
+    { id: 'identity', label: 'Identidade', icon: User },
+    { id: 'appearance', label: 'Aparência', icon: Palette },
+    { id: 'sections', label: 'Conteúdo', icon: Layers },
     { id: 'images', label: 'Imagens', icon: Images },
-    { id: 'json', label: 'JSON', icon: Braces },
-    { id: 'preview', label: 'Preview', icon: Smartphone, mobileOnly: true },
+    { id: 'advanced', label: 'Avançado', icon: Settings },
   ]
 
   const isDark = theme === 'dark'
 
   return (
     <div className="min-h-screen">
-      {/* Header fixo no topo, ocupando toda a largura */}
-      <header className="editor-topbar fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-x-3 px-3 sm:px-4">
-        <div className="flex min-w-0 items-center gap-3">
+      <header className="editor-topbar fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-x-2 px-3 sm:gap-x-3 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <img
             src={`${import.meta.env.BASE_URL}logo-instabio.svg`}
             alt="insta-bio"
@@ -237,7 +237,7 @@ export default function App() {
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1 sm:gap-1.5">
           <button
             type="button"
             className="topbar-btn"
@@ -259,11 +259,20 @@ export default function App() {
             <Redo2 className="h-4 w-4" />
           </button>
 
-          <span className="mx-1 hidden h-5 w-px bg-white/25 sm:block" aria-hidden="true" />
+          <button
+            type="button"
+            className="topbar-btn hidden sm:inline-flex"
+            onClick={toggleTheme}
+            title={isDark ? 'Modo claro' : 'Modo escuro'}
+            aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
 
-          {/* Ações de arquivo: inline no desktop, menu no mobile */}
+          <span className="mx-0.5 hidden h-5 w-px bg-white/25 md:block" aria-hidden="true" />
+
           <div className="hidden items-center gap-1.5 md:flex">
-            <label className="topbar-btn cursor-pointer" title="Importar um bio.json existente">
+            <label className="topbar-btn cursor-pointer" title="Importar bio.json">
               <Upload className="h-4 w-4" />
               <span className="hidden lg:inline">Importar</span>
               <input
@@ -287,60 +296,6 @@ export default function App() {
             </button>
           </div>
 
-          <div className="relative md:hidden" ref={moreRef}>
-            <button
-              type="button"
-              className="topbar-btn"
-              onClick={() => setMoreOpen((v) => !v)}
-              title="Mais ações"
-              aria-label="Mais ações"
-              aria-expanded={moreOpen}
-            >
-              <MoreVertical className="h-4 w-4" />
-            </button>
-            {moreOpen && (
-              <div className="absolute right-0 top-11 z-50 w-48 overflow-hidden rounded-lg border border-border bg-card py-1 text-foreground shadow-xl">
-                <label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-muted">
-                  <Upload className="h-4 w-4" />
-                  Importar
-                  <input
-                    type="file"
-                    accept="application/json,.json"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleImport(file)
-                      e.currentTarget.value = ''
-                      setMoreOpen(false)
-                    }}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-muted"
-                  onClick={() => {
-                    handleCopy()
-                    setMoreOpen(false)
-                  }}
-                >
-                  <Copy className="h-4 w-4" />
-                  Copiar JSON
-                </button>
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-muted"
-                  onClick={() => {
-                    handleDownload()
-                    setMoreOpen(false)
-                  }}
-                >
-                  <Download className="h-4 w-4" />
-                  Baixar bio.json
-                </button>
-              </div>
-            )}
-          </div>
-
           <button type="button" className="topbar-save" onClick={handleSave} title="Salvar no servidor">
             <Save className="h-4 w-4" />
             <span className="hidden sm:inline">Salvar</span>
@@ -350,7 +305,7 @@ export default function App() {
             type="button"
             className="topbar-btn"
             onClick={handleLogout}
-            title="Sair da conta"
+            title="Sair"
             aria-label="Sair"
           >
             <LogOut className="h-4 w-4" />
@@ -359,23 +314,22 @@ export default function App() {
       </header>
 
       {status && (
-        <div className="pointer-events-none fixed bottom-5 left-5 z-50">
+        <div className="pointer-events-none fixed bottom-20 left-4 z-50 md:bottom-5">
           <div className="pointer-events-auto rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-sm text-primary shadow-lg backdrop-blur">
             {status}
           </div>
         </div>
       )}
 
-      {/* Corpo: rail fixo (retrátil) + conteúdo rolável + preview fixo */}
       <div
-        className={`grid grid-cols-1 pt-14 ${
+        className={`editor-shell grid grid-cols-1 pt-14 md:grid-cols-[minmax(0,1fr)_min(340px,38vw)] ${
           railExpanded
             ? 'xl:grid-cols-[220px_minmax(0,1fr)_400px]'
             : 'xl:grid-cols-[68px_minmax(0,1fr)_400px]'
         }`}
       >
         <aside
-          className={`editor-rail sticky top-14 z-30 flex items-center justify-center gap-1 overflow-x-auto border-b border-border px-2 py-2 xl:top-14 xl:h-[calc(100vh-3.5rem)] xl:flex-col xl:justify-start xl:gap-1.5 xl:overflow-x-visible xl:border-b-0 xl:border-r xl:py-4 ${
+          className={`editor-rail sticky top-14 z-30 border-b border-border xl:top-14 xl:col-span-1 xl:row-span-1 xl:h-[calc(100vh-3.5rem)] xl:border-b-0 xl:border-r xl:py-4 md:col-span-2 ${
             railExpanded ? 'xl:items-stretch xl:px-3' : 'xl:items-center xl:px-0'
           }`}
         >
@@ -388,11 +342,10 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <img
                   src={`${import.meta.env.BASE_URL}logo-instabio.svg`}
-                  alt="insta-bio"
+                  alt=""
                   className="h-9 w-9 shrink-0 rounded-lg"
-                  title="insta-bio"
                 />
-                <span className="text-sm font-semibold">insta-bio</span>
+                <span className="text-sm font-semibold">Menu</span>
               </div>
             )}
             <button
@@ -410,122 +363,92 @@ export default function App() {
             </button>
           </div>
 
-          {railTabs.map((tab) => {
-            const Icon = tab.icon
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                className={`rail-btn h-11 shrink-0 ${
-                  railExpanded ? 'w-full justify-start gap-3 px-3' : 'w-11 justify-center'
-                } ${tab.mobileOnly ? 'xl:hidden!' : ''} ${
-                  activeTab === tab.id ? 'active' : ''
-                }`}
-                onClick={() => setActiveTab(tab.id)}
-                title={tab.label}
-                aria-label={tab.label}
-              >
-                <Icon className="h-5 w-5" />
-                {railExpanded && <span className="text-sm">{tab.label}</span>}
-              </button>
-            )
-          })}
-
-          <button
-            type="button"
-            className={`rail-btn h-11 shrink-0 xl:mt-auto ${
-              railExpanded ? 'w-full justify-start gap-3 px-3' : 'w-11 justify-center'
+          <nav
+            className={`editor-rail-nav ${
+              railExpanded ? 'xl:items-stretch' : 'xl:items-center'
             }`}
-            onClick={toggleTheme}
-            title={isDark ? 'Modo claro' : 'Modo escuro'}
-            aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
+            aria-label="Menu principal"
           >
-            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            {railExpanded && <span className="text-sm">{isDark ? 'Modo claro' : 'Modo escuro'}</span>}
-          </button>
+            {railTabs.map((tab) => {
+              const Icon = tab.icon
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  className={`rail-btn ${
+                    railExpanded
+                      ? 'xl:w-full xl:justify-start xl:gap-3 xl:px-3'
+                      : 'xl:w-11 xl:justify-center xl:px-0'
+                  } ${activeTab === tab.id ? 'active' : ''}`}
+                  onClick={() => setActiveTab(tab.id)}
+                  title={tab.label}
+                  aria-label={tab.label}
+                  aria-current={activeTab === tab.id ? 'page' : undefined}
+                >
+                  <Icon className="h-5 w-5 shrink-0" />
+                  {railExpanded && <span className="hidden text-sm xl:inline">{tab.label}</span>}
+                </button>
+              )
+            })}
+
+            <button
+              type="button"
+              className={`rail-btn sm:hidden ${
+                railExpanded
+                  ? 'xl:w-full xl:justify-start xl:gap-3 xl:px-3'
+                  : 'xl:w-11 xl:justify-center xl:px-0'
+              } xl:mt-auto`}
+              onClick={toggleTheme}
+              title={isDark ? 'Modo claro' : 'Modo escuro'}
+              aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
+            >
+              {isDark ? <Sun className="h-5 w-5 shrink-0" /> : <Moon className="h-5 w-5 shrink-0" />}
+              {railExpanded && <span className="hidden text-sm xl:inline">{isDark ? 'Modo claro' : 'Modo escuro'}</span>}
+            </button>
+          </nav>
         </aside>
 
-        <main className="min-w-0 p-4 sm:p-6">
-          {activeTab === 'brand' && (
-            <div>
-              <BrandForm
-                brand={config.brand}
-                onChange={(brand) => commit({ ...config, brand })}
-              />
-              <div className="mt-4">
-                <button
-                  type="button"
-                  className="btn-secondary text-xs"
-                  onClick={() => commit(createDefaultConfig())}
-                >
-                  Restaurar modelo padrão
-                </button>
-              </div>
-            </div>
+        <main className="min-w-0 p-4 sm:p-6 md:col-start-1 md:row-start-2 xl:col-start-2 xl:row-start-1">
+          {activeTab === 'identity' && (
+            <IdentityForm brand={config.brand} onChange={(brand) => commit({ ...config, brand })} />
+          )}
+
+          {activeTab === 'appearance' && (
+            <AppearanceForm brand={config.brand} onChange={(brand) => commit({ ...config, brand })} />
           )}
 
           {activeTab === 'sections' && config.sections.length > 0 && (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-[210px_minmax(0,1fr)]">
-                <div className="card min-w-0 space-y-2 self-start md:sticky md:top-20 md:max-h-[calc(100vh-6.5rem)] md:overflow-y-auto">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Seções
-                  </p>
-                  <p className="text-[10px] text-muted-foreground/70">Arraste para reordenar</p>
-                  {config.sections.map((section, index) => (
-                    <div
-                      key={section.id}
-                      draggable
-                      onDragStart={() => setDragIndex(index)}
-                      onDragOver={(e) => {
-                        e.preventDefault()
-                        if (dropIndex !== index) setDropIndex(index)
-                      }}
-                      onDrop={() => {
-                        if (dragIndex !== null) reorderSections(dragIndex, index)
-                        setDragIndex(null)
-                        setDropIndex(null)
-                      }}
-                      onDragEnd={() => {
-                        setDragIndex(null)
-                        setDropIndex(null)
-                      }}
-                      className={`flex items-center gap-2 rounded-lg px-2 py-2 text-xs transition-colors ${
-                        activeSection === index
-                          ? 'bg-muted text-foreground'
-                          : 'text-muted-foreground'
-                      } ${dropIndex === index && dragIndex !== index ? 'ring-1 ring-primary' : ''} ${
-                        dragIndex === index ? 'opacity-50' : ''
-                      }`}
-                    >
-                      <span
-                        className="cursor-grab select-none text-muted-foreground/60 active:cursor-grabbing"
-                        aria-hidden="true"
-                        title="Arraste para reordenar"
-                      >
-                        ⠿
-                      </span>
-                      <button
-                        type="button"
-                        className="flex-1 truncate text-left"
-                        onClick={() => setActiveSection(index)}
-                      >
-                        {section.title || section.id}
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    className="btn-secondary w-full py-1.5 text-xs"
-                    onClick={() => {
-                      commit({
-                        ...config,
-                        sections: [...config.sections, createSection()],
-                      })
-                      setActiveSection(config.sections.length)
+            <>
+              <SectionMobilePicker
+                sections={config.sections}
+                activeSection={activeSection}
+                onSelect={setActiveSection}
+                onAdd={addSection}
+              />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-[210px_minmax(0,1fr)]">
+                <div className="hidden md:block">
+                  <SectionSidebar
+                    sections={config.sections}
+                    activeSection={activeSection}
+                    dragIndex={dragIndex}
+                    dropIndex={dropIndex}
+                    onSelect={setActiveSection}
+                    onReorder={reorderSections}
+                    onAdd={addSection}
+                    onDragStart={setDragIndex}
+                    onDragOver={(index) => {
+                      if (dragIndex !== null && dropIndex !== index) setDropIndex(index)
                     }}
-                  >
-                    + Nova seção
-                  </button>
+                    onDrop={(index) => {
+                      if (dragIndex !== null) reorderSections(dragIndex, index)
+                      setDragIndex(null)
+                      setDropIndex(null)
+                    }}
+                    onDragEnd={() => {
+                      setDragIndex(null)
+                      setDropIndex(null)
+                    }}
+                  />
                 </div>
 
                 <SectionEditor
@@ -542,36 +465,50 @@ export default function App() {
                   }}
                 />
               </div>
-            )}
+            </>
+          )}
 
-            {activeTab === 'sections' && config.sections.length === 0 && (
-              <div className="card text-center">
-                <p className="mb-4 text-sm text-muted-foreground">Nenhuma seção ainda.</p>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => commit({ ...config, sections: [createSection()] })}
-                >
-                  Criar primeira seção
-                </button>
-              </div>
-            )}
+          {activeTab === 'sections' && config.sections.length === 0 && (
+            <div className="card text-center">
+              <p className="mb-4 text-sm text-muted-foreground">Nenhuma seção ainda.</p>
+              <button type="button" className="btn-primary" onClick={addSection}>
+                Criar primeira seção
+              </button>
+            </div>
+          )}
 
-            {activeTab === 'images' && <ImagesGallery config={config} />}
+          {activeTab === 'images' && <ImagesGallery config={config} />}
 
-            {activeTab === 'json' && <JsonPanel config={config} />}
-
-            {activeTab === 'preview' && (
-              <div className="xl:hidden">
-                <PreviewPanel config={config} />
-              </div>
-            )}
+          {activeTab === 'advanced' && (
+            <AdvancedPanel
+              config={config}
+              onImport={handleImport}
+              onCopy={handleCopy}
+              onDownload={handleDownload}
+              onRestoreDefault={() => commit(createDefaultConfig())}
+            />
+          )}
         </main>
 
-        <div className="hidden border-l border-border p-4 xl:sticky xl:top-14 xl:block xl:h-[calc(100vh-3.5rem)] xl:overflow-y-auto">
-          <PreviewPanel config={config} />
+        <div className="editor-preview-col hidden border-l border-border p-3 md:col-start-2 md:row-start-2 md:block md:sticky md:top-14 md:max-h-[calc(100vh-3.5rem)] md:overflow-y-auto md:p-4 xl:col-start-3 xl:row-start-1">
+          <p className="mb-3 hidden text-[10px] font-semibold uppercase tracking-wider text-muted-foreground xl:block">
+            Preview ao vivo
+          </p>
+          <PreviewPanel config={config} compact />
         </div>
       </div>
+
+      <button
+        type="button"
+        className="preview-fab md:hidden"
+        onClick={() => setPreviewOpen(true)}
+        aria-label="Abrir preview da bio"
+      >
+        <Smartphone className="h-5 w-5" />
+        Preview
+      </button>
+
+      <PreviewSheet config={config} open={previewOpen} onClose={() => setPreviewOpen(false)} />
     </div>
   )
 }

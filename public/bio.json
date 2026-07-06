@@ -9,12 +9,12 @@
     },
     "logo": "/assets/logo-instabio.svg",
     "theme": {
-      "primary": "oklch(0.74 0.14 350)",
-      "secondary": "oklch(0.84 0.10 350)",
-      "glow": "oklch(0.74 0.14 350 / 0.3)",
-      "background": "oklch(0.12 0.04 350)",
+      "primary": "#ba6ef4",
+      "secondary": "#66c400",
+      "glow": "oklch(0.72 0.16 350 / 0.28)",
+      "background": "oklch(0.13 0.03 350)",
       "cardRadius": 35,
-      "backgroundPreset": "magenta-dusk"
+      "backgroundPreset": "ocean-glow"
     },
     "seo": {
       "title": "insta-bio · Link da Bio Profissional",

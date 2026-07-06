@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { BioSection, SectionItem, AppHeroPreset } from '@bio-types'
 import {
   APP_HERO_PRESET_LIST,
@@ -180,19 +181,41 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
               collapsed={collapsed.has(index)}
               onToggleCollapse={() => toggleCollapse(index)}
               dragHandle={
-                <span
-                  draggable
-                  onDragStart={() => setDragIndex(index)}
-                  onDragEnd={() => {
-                    setDragIndex(null)
-                    setDropIndex(null)
-                  }}
-                  className="cursor-grab select-none px-1 text-lg leading-none text-muted-foreground/60 active:cursor-grabbing"
-                  title="Arraste para reordenar"
-                  aria-hidden="true"
-                >
-                  ⠿
-                </span>
+                <div className="flex shrink-0 items-center gap-0.5">
+                  <div className="flex flex-col">
+                    <button
+                      type="button"
+                      className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+                      disabled={index === 0}
+                      onClick={() => moveItem(index, index - 1)}
+                      aria-label="Mover card para cima"
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+                      disabled={index === section.items.length - 1}
+                      onClick={() => moveItem(index, index + 1)}
+                      aria-label="Mover card para baixo"
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <span
+                    draggable
+                    onDragStart={() => setDragIndex(index)}
+                    onDragEnd={() => {
+                      setDragIndex(null)
+                      setDropIndex(null)
+                    }}
+                    className="hidden cursor-grab select-none px-0.5 text-lg leading-none text-muted-foreground/60 active:cursor-grabbing sm:inline"
+                    title="Arraste para reordenar"
+                    aria-hidden="true"
+                  >
+                    ⠿
+                  </span>
+                </div>
               }
             />
           </div>

@@ -3,9 +3,11 @@ import type { BioConfig } from '@bio-types'
 
 interface PreviewPanelProps {
   config: BioConfig
+  /** Layout mais compacto para sheet mobile ou coluna estreita */
+  compact?: boolean
 }
 
-export function PreviewPanel({ config }: PreviewPanelProps) {
+export function PreviewPanel({ config, compact = false }: PreviewPanelProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [ready, setReady] = useState(false)
 
@@ -33,7 +35,13 @@ export function PreviewPanel({ config }: PreviewPanelProps) {
   }, [config, ready])
 
   return (
-    <div className="mx-auto w-full max-w-[390px] overflow-hidden rounded-[2rem] border-4 border-border bg-black shadow-2xl">
+    <div
+      className={`mx-auto w-full overflow-hidden bg-black shadow-2xl ${
+        compact
+          ? 'max-w-full rounded-2xl border-2 border-border'
+          : 'max-w-[390px] rounded-[2rem] border-4 border-border'
+      }`}
+    >
       <div className="flex justify-center bg-black py-2">
         <div className="h-1 w-16 rounded-full bg-muted" />
       </div>
@@ -41,7 +49,11 @@ export function PreviewPanel({ config }: PreviewPanelProps) {
         ref={iframeRef}
         src={`${import.meta.env.BASE_URL}preview.html`}
         title="Preview da bio"
-        className="h-[min(680px,calc(100vh-9rem))] w-full border-0 bg-background"
+        className={`w-full border-0 bg-background ${
+          compact
+            ? 'h-[min(560px,calc(100vh-11rem))]'
+            : 'h-[min(680px,calc(100vh-9rem))]'
+        }`}
       />
     </div>
   )

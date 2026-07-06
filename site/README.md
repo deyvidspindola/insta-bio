@@ -19,7 +19,7 @@ make site
 
 | Arquivo | O que mudar |
 |---------|-------------|
-| `src/template-home.html` | Textos, seções e links da landing |
+| `src/template-home.html` | Textos, seções e links da landing (hero, editor, recursos, FAQ…) |
 | `src/config.ts` | WhatsApp e Instagram (referência) |
 | `scripts/patch-content.py` | Script usado para aplicar a copy comercial inicial |
 
