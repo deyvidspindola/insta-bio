@@ -95,6 +95,14 @@ function uploadPlugin(): Plugin {
         next()
       })
 
+      server.middlewares.use((req, _res, next) => {
+        const url = new URL(req.url ?? '/', 'http://localhost')
+        if (url.pathname === '/preview' || url.pathname === '/preview/') {
+          req.url = '/preview.html'
+        }
+        next()
+      })
+
       server.middlewares.use('/api/bio/save', (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405
@@ -130,7 +138,7 @@ function uploadPlugin(): Plugin {
         })
       })
 
-      server.middlewares.use('/__upload', (req, res) => {
+      const handleUpload = (req: import('http').IncomingMessage, res: import('http').ServerResponse) => {
         if (req.method !== 'POST') {
           res.statusCode = 405
           res.end('Method not allowed')
@@ -162,7 +170,10 @@ function uploadPlugin(): Plugin {
             res.end(JSON.stringify({ error: String(error) }))
           }
         })
-      })
+      }
+
+      server.middlewares.use('/api/assets/upload', handleUpload)
+      server.middlewares.use('/__upload', handleUpload)
 
       server.middlewares.use('/api/assets/list', (req, res) => {
         if (req.method !== 'GET') {
@@ -257,12 +268,15 @@ export default defineConfig(({ command }) => {
     },
     server: {
       port: 5180,
+      host: true,
+      strictPort: true,
     },
     build: {
       rollupOptions: {
         input: {
           main: path.resolve(ADMIN_ROOT, 'index.html'),
           preview: path.resolve(ADMIN_ROOT, 'preview.html'),
+          demo: path.resolve(ADMIN_ROOT, 'demo.html'),
         },
       },
     },

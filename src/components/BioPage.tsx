@@ -5,6 +5,7 @@ import { resolveBackgroundPreset } from '../lib/backgroundPresets'
 import { resolvePrimarySurfaceColors } from '../lib/contrastColor'
 import { resolveBioTemplate } from '../lib/templates'
 import { resolveCardRadiusPx } from '../lib/cardRadius'
+import { applyPageMeta } from '../lib/pageMeta'
 import { resolvePublicUrl } from '../lib/publicUrl'
 import { BioHeader } from './BioHeader'
 import { BioSectionBlock } from './BioSection'
@@ -19,15 +20,6 @@ export function BioPage({ config }: BioPageProps) {
   const bgPreset = resolveBackgroundPreset(brand.theme.backgroundPreset)
   const hasBgImage = Boolean(brand.theme.backgroundImage)
   const hasBgPreset = Boolean(bgPreset) && !hasBgImage
-
-  useEffect(() => {
-    document.title = brand.seo.title
-
-    const description = document.querySelector('meta[name="description"]')
-    if (description) {
-      description.setAttribute('content', brand.seo.description)
-    }
-  }, [brand.seo.description, brand.seo.title])
 
   const primarySurface = resolvePrimarySurfaceColors(brand.theme.primary)
 
@@ -46,6 +38,32 @@ export function BioPage({ config }: BioPageProps) {
         }
       : {}),
   } as CSSProperties
+
+  useEffect(() => {
+    applyPageMeta(brand)
+  }, [brand.logo, brand.name, brand.tagline])
+
+  useEffect(() => {
+    const root = document.documentElement
+    const keys = Object.keys(themeVars) as Array<keyof typeof themeVars>
+
+    keys.forEach((key) => {
+      const value = themeVars[key]
+      if (value != null && value !== '') {
+        root.style.setProperty(key, String(value))
+      }
+    })
+  }, [
+    brand.theme.primary,
+    brand.theme.secondary,
+    brand.theme.background,
+    brand.theme.cardRadius,
+    brand.theme.backgroundPreset,
+    brand.theme.backgroundImage,
+    primarySurface.solidFrom,
+    primarySurface.solidTo,
+    primarySurface.fillPrimary,
+  ])
 
   return (
     <div
@@ -99,16 +117,15 @@ export function BioPage({ config }: BioPageProps) {
           <BioSectionBlock key={section.id} section={section} />
         ))}
 
-        <footer className="mt-10 text-center">
-          <p className="text-[11px] text-muted-foreground/70">
-            {brand.footer}
-            <span className="mx-1.5 text-muted-foreground/40">·</span>
+        <footer className="mt-10 text-center space-y-1.5">
+          <p className="text-[11px] text-muted-foreground/70">{brand.footer}</p>
+          <p className="text-[11px] text-muted-foreground/80">
             by{' '}
             <a
               href="https://linksnabio.app.br"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted-foreground/80 underline-offset-2 transition-colors hover:text-primary hover:underline"
+              className="font-medium text-muted-foreground underline-offset-2 transition-colors hover:text-primary hover:underline"
             >
               linksnabio
             </a>

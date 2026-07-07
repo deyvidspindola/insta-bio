@@ -383,6 +383,165 @@
   -webkit-backdrop-filter: none;
 }
 
+.bio-card--video {
+  overflow: hidden;
+}
+
+.bio-card--slide {
+  overflow: visible;
+}
+
+.bio-media-frame {
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--bio-card-radius);
+}
+
+.bio-slide-frame {
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.bio-slide-nav {
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bio-slide-nav:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.75);
+  outline-offset: -2px;
+}
+
+.bio-products-card {
+  padding: 0.25rem 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.bio-products-title {
+  color: var(--color-foreground);
+}
+
+.bio-product-thumb {
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  border-radius: var(--bio-card-radius);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bio-product-thumb:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.bio-lightbox-backdrop {
+  border: none;
+  cursor: pointer;
+  background: rgba(8, 10, 20, 0.42);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+}
+
+.bio-lightbox-image {
+  border-radius: var(--bio-card-radius);
+}
+
+.bio-lightbox-close {
+  border: none;
+  cursor: pointer;
+  color: var(--color-foreground);
+  background: color-mix(in oklch, var(--color-card) 75%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px color-mix(in oklch, black 12%, transparent);
+}
+
+.bio-lightbox-close:hover {
+  background: color-mix(in oklch, var(--color-card) 90%, transparent);
+}
+
+.bio-lightbox-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--color-foreground);
+  background: color-mix(in oklch, var(--color-card) 80%, transparent);
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px color-mix(in oklch, black 10%, transparent);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.bio-lightbox-nav:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.bio-lightbox-nav:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.bio-lightbox-nav:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.bio-lightbox-content {
+  max-width: min(100%, 42rem);
+}
+
+.bio-lightbox-footer {
+  color: var(--color-foreground);
+}
+
+.bio-lightbox-cta {
+  color: white;
+  background: var(--color-primary);
+  text-decoration: none;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.bio-lightbox-cta:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.bio-video-mute-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  border-radius: 9999px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.bio-video-mute-btn:hover {
+  background: rgba(0, 0, 0, 0.62);
+  transform: scale(1.05);
+}
+
+.bio-video-mute-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+}
+
 /* Header & sections (shared) */
 .bio-section-subtitle {
   color: var(--color-secondary);

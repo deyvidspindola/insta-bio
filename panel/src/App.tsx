@@ -7,6 +7,7 @@ import {
   PanelLeftOpen,
   Plus,
   RefreshCw,
+  FolderSync,
   Sun,
   Users,
 } from 'lucide-react'
@@ -21,8 +22,10 @@ import {
   deleteClient,
   listClients,
   setClientStatus,
+  syncAllClientsTemplate,
   type Client,
   type CreatedClient,
+  type SyncTemplateResult,
 } from './lib/clients'
 import { applyTheme, getStoredTheme, type Theme } from './lib/theme'
 
@@ -41,6 +44,8 @@ export default function App() {
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme())
   const [railExpanded, setRailExpanded] = useState(false)
   const [activeTab] = useState<Tab>('clients')
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<SyncTemplateResult | null>(null)
 
   const isDark = theme === 'dark'
 
@@ -108,6 +113,35 @@ export default function App() {
     }
   }
 
+  async function handleSyncTemplate() {
+    if (
+      !window.confirm(
+        'Atualizar todos os sites com o template _template/ mais recente?\n\n' +
+          'Serão atualizados: HTML, JS/CSS, editor, licença e .htaccess.\n' +
+          'Preservados: bio.json, imagens e senha do editor.',
+      )
+    ) {
+      return
+    }
+
+    setSyncing(true)
+    setError(null)
+    setSyncResult(null)
+    try {
+      const result = await syncAllClientsTemplate()
+      setSyncResult(result)
+      if (!result.ok) {
+        setError(
+          `Atualização concluída com erros em ${result.errors.length} site(s). Veja os detalhes abaixo.`,
+        )
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao atualizar sites')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   if (authenticated === null) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -156,8 +190,19 @@ export default function App() {
           <button
             type="button"
             className="topbar-btn"
+            onClick={() => void handleSyncTemplate()}
+            disabled={syncing || loading}
+            title="Atualizar todos os sites com o template"
+            aria-label="Atualizar sites"
+          >
+            <FolderSync className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+          </button>
+
+          <button
+            type="button"
+            className="topbar-btn"
             onClick={() => loadClients()}
-            disabled={loading}
+            disabled={loading || syncing}
             title="Atualizar lista"
             aria-label="Atualizar"
           >
@@ -265,11 +310,48 @@ export default function App() {
                 {user ? ` · ${user}` : ''}
               </p>
             </div>
+            <button
+              type="button"
+              className="btn-secondary inline-flex items-center gap-2"
+              onClick={() => void handleSyncTemplate()}
+              disabled={syncing || loading}
+            >
+              <FolderSync className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Atualizando sites…' : 'Atualizar todos os sites'}
+            </button>
           </div>
 
           {error && (
             <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
               {error}
+            </div>
+          )}
+
+          {syncResult && (
+            <div
+              className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+                syncResult.ok
+                  ? 'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-300'
+                  : 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200'
+              }`}
+            >
+              <p className="font-medium">
+                {syncResult.updated.length}{' '}
+                {syncResult.updated.length === 1 ? 'site atualizado' : 'sites atualizados'}
+                {syncResult.skipped.length > 0
+                  ? ` · ${syncResult.skipped.length} ignorado(s)`
+                  : ''}
+                {syncResult.errors.length > 0 ? ` · ${syncResult.errors.length} com erro` : ''}
+              </p>
+              {syncResult.errors.length > 0 && (
+                <ul className="mt-2 list-inside list-disc text-xs opacity-90">
+                  {syncResult.errors.map((item) => (
+                    <li key={item.slug}>
+                      {item.slug}: {item.error}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 

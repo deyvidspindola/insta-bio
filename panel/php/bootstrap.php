@@ -1,10 +1,13 @@
 <?php
 
-function platform_db(): PDO
+/**
+ * Carrega db.config.php uma única vez por request (evita "Constant already defined").
+ */
+function platform_load_config(): void
 {
-  static $pdo = null;
-  if ($pdo !== null) {
-    return $pdo;
+  static $loaded = false;
+  if ($loaded) {
+    return;
   }
 
   $configFile = __DIR__ . '/db.config.php';
@@ -12,7 +15,78 @@ function platform_db(): PDO
     throw new RuntimeException('Configure panel/php/db.config.php antes de usar o painel.');
   }
 
-  require $configFile;
+  require_once $configFile;
+  $loaded = true;
+}
+
+/**
+ * Inicializa monitoramento de erros no Sentry (quando instalado via Composer).
+ * O painel continua funcionando normalmente se o SDK não estiver presente.
+ */
+function platform_init_observability(): void
+{
+  static $initialized = false;
+  if ($initialized) {
+    return;
+  }
+  $initialized = true;
+
+  $autoload = __DIR__ . '/vendor/autoload.php';
+  if (!file_exists($autoload)) {
+    return;
+  }
+
+  require_once $autoload;
+
+  if (!function_exists('\\Sentry\\init')) {
+    return;
+  }
+
+  $configFile = __DIR__ . '/db.config.php';
+  if (!file_exists($configFile)) {
+    return;
+  }
+
+  platform_load_config();
+
+  $dsn = defined('SENTRY_DSN') ? SENTRY_DSN : null;
+  if ($dsn === null || $dsn === '') {
+    return;
+  }
+
+  $tracesSampleRate = defined('SENTRY_TRACES_SAMPLE_RATE') ? (float) SENTRY_TRACES_SAMPLE_RATE : null;
+  $profilesSampleRate = defined('SENTRY_PROFILES_SAMPLE_RATE') ? (float) SENTRY_PROFILES_SAMPLE_RATE : null;
+  $enableLogs = defined('SENTRY_ENABLE_LOGS') ? (bool) SENTRY_ENABLE_LOGS : false;
+
+  // Apenas erros graves — não envia warnings/notices ao Sentry.
+  $errorTypes = E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR | E_RECOVERABLE_ERROR;
+
+  \Sentry\init([
+    'dsn' => $dsn,
+    'traces_sample_rate' => $tracesSampleRate ?? 1.0,
+    'profiles_sample_rate' => $profilesSampleRate ?? 1.0,
+    'enable_logs' => $enableLogs,
+    'error_types' => $errorTypes,
+  ]);
+}
+
+function platform_capture_exception(Throwable $exception): void
+{
+  if (function_exists('\\Sentry\\captureException')) {
+    \Sentry\captureException($exception);
+  }
+}
+
+platform_init_observability();
+
+function platform_db(): PDO
+{
+  static $pdo = null;
+  if ($pdo !== null) {
+    return $pdo;
+  }
+
+  platform_load_config();
 
   $pdo = new PDO(
     'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4',

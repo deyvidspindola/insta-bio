@@ -19,4 +19,9 @@ export default defineConfig({
     'import.meta.env.VITE_PUBLIC_BASE': JSON.stringify(publicBase),
   },
   plugins: [react(), tailwindcss()],
+  server: {
+    port: 5173,
+    host: true,
+    strictPort: true,
+  },
 })

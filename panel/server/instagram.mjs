@@ -1,6 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+const INSTAGRAM_WEB_APP_ID = '936619743392459'
+const INSTAGRAM_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+
 export function normalizeInstagramHandle(input) {
   let value = String(input ?? '').trim()
   value = value.replace(/^@+/, '')
@@ -44,36 +48,91 @@ function parseBiography(description) {
   return description
 }
 
-export async function fetchInstagramProfile(handleInput) {
-  const username = normalizeInstagramHandle(handleInput)
+function profileFromUserPayload(user, fallbackUsername) {
+  const username = String(user.username ?? fallbackUsername).toLowerCase()
+  const profilePic = user.profile_pic_url_hd ?? user.profile_pic_url
+  if (!profilePic) return null
+
+  const fullName = String(user.full_name ?? '').trim()
+  const biography = String(user.biography ?? '').trim()
+
+  return {
+    username,
+    fullName: fullName || username,
+    biography: biography || null,
+    profilePicUrl: profilePic,
+    profileUrl: `https://www.instagram.com/${encodeURIComponent(username)}/`,
+  }
+}
+
+async function fetchProfileViaApi(username) {
+  const res = await fetch(
+    `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`,
+    {
+      headers: {
+        'User-Agent': INSTAGRAM_USER_AGENT,
+        Accept: '*/*',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        'X-IG-App-ID': INSTAGRAM_WEB_APP_ID,
+        'X-Requested-With': 'XMLHttpRequest',
+        Referer: `https://www.instagram.com/${encodeURIComponent(username)}/`,
+      },
+      redirect: 'follow',
+    },
+  )
+
+  if (!res.ok) return null
+
+  const data = await res.json()
+  const user = data?.data?.user
+  if (!user || typeof user !== 'object') return null
+
+  return profileFromUserPayload(user, username)
+}
+
+async function fetchProfileViaHtml(username) {
   const res = await fetch(`https://www.instagram.com/${encodeURIComponent(username)}/`, {
     headers: {
-      'User-Agent': 'Mozilla/5.0',
-      'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+      'User-Agent': INSTAGRAM_USER_AGENT,
+      'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+      Accept: 'text/html,application/xhtml+xml',
     },
     redirect: 'follow',
   })
 
-  if (!res.ok) throw new Error('Não foi possível acessar o perfil do Instagram')
+  if (!res.ok) return null
 
   const html = await res.text()
   const meta = parseOgMeta(html)
-  if (!meta.image) throw new Error('Perfil não encontrado ou indisponível')
+  if (!meta.image) return null
 
   return {
     username,
     fullName: parseFullName(meta.title, username),
     biography: parseBiography(meta.description),
     profilePicUrl: meta.image,
-    profileUrl: `https://www.instagram.com/${username}/`,
+    profileUrl: `https://www.instagram.com/${encodeURIComponent(username)}/`,
   }
+}
+
+export async function fetchInstagramProfile(handleInput) {
+  const username = normalizeInstagramHandle(handleInput)
+
+  const viaApi = await fetchProfileViaApi(username)
+  if (viaApi) return viaApi
+
+  const viaHtml = await fetchProfileViaHtml(username)
+  if (viaHtml) return viaHtml
+
+  throw new Error('Não foi possível acessar o perfil do Instagram')
 }
 
 export async function downloadInstagramAvatar(imageUrl, assetsDir, username) {
   const res = await fetch(imageUrl, {
     headers: {
-      'User-Agent': 'Mozilla/5.0',
+      'User-Agent': INSTAGRAM_USER_AGENT,
       Referer: 'https://www.instagram.com/',
+      Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
     },
     redirect: 'follow',
   })
@@ -100,9 +159,10 @@ export function applyInstagramToBio(clientDir, profile, clientName) {
   }
   if (profile.biography) data.brand.tagline = profile.biography
   if (data.brand.seo) {
-    data.brand.seo.title = `${data.brand.name} · Link na Bio`
-    data.brand.seo.description =
-      profile.biography || `Página de links de ${data.brand.name}.`
+    const name = data.brand.name
+    const tagline = (data.brand.tagline ?? '').trim()
+    data.brand.seo.title = name
+    data.brand.seo.description = tagline ? `${name}. ${tagline}` : name
   }
 
   return { bioPath, data }

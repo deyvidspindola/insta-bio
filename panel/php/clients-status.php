@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/bootstrap.php';
 require __DIR__ . '/lib/platform.php';
+require __DIR__ . '/lib/license.php';
 platform_require_auth();
 header('Content-Type: application/json');
 
@@ -15,10 +16,10 @@ if ($id <= 0 || !in_array($status, ['active', 'suspended'], true)) {
 }
 
 try {
-  require __DIR__ . '/db.config.php';
+  platform_load_config();
   $pdo = platform_db();
 
-  $find = $pdo->prepare('SELECT slug FROM clients WHERE id = ? LIMIT 1');
+  $find = $pdo->prepare('SELECT * FROM clients WHERE id = ? LIMIT 1');
   $find->execute([$id]);
   $row = $find->fetch();
   if (!$row) {
@@ -29,11 +30,19 @@ try {
 
   $stmt = $pdo->prepare('UPDATE clients SET status = ? WHERE id = ?');
   $stmt->execute([$status, $id]);
+  $row['status'] = $status;
 
   sync_client_status(PLATFORM_ROOT, $row['slug'], $status);
+  sync_client_license_files($pdo, PLATFORM_ROOT, $row);
+
+  $cacheFile = rtrim(PLATFORM_ROOT, '/\\') . DIRECTORY_SEPARATOR . $row['slug'] . DIRECTORY_SEPARATOR . '.license-cache.json';
+  if (file_exists($cacheFile)) {
+    unlink($cacheFile);
+  }
 
   echo json_encode(['ok' => true, 'status' => $status]);
 } catch (Throwable $e) {
+  platform_capture_exception($e);
   http_response_code(500);
   echo json_encode(['error' => $e->getMessage()]);
 }

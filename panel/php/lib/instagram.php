@@ -1,5 +1,8 @@
 <?php
 
+/** App ID público do site instagram.com (usado pelo próprio Instagram no navegador). */
+const INSTAGRAM_WEB_APP_ID = '936619743392459';
+
 function normalize_instagram_handle(string $input): string
 {
   $value = trim($input);
@@ -16,33 +19,104 @@ function normalize_instagram_handle(string $input): string
   return strtolower($value);
 }
 
-function fetch_instagram_profile(string $handleInput): array
+function instagram_default_user_agent(): string
 {
-  $username = normalize_instagram_handle($handleInput);
-  $url = 'https://www.instagram.com/' . rawurlencode($username) . '/';
+  return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+}
+
+/**
+ * @return array{body: string, status: int, error: string, ok: bool}
+ */
+function instagram_http_get(string $url, array $extraHeaders = []): array
+{
+  $headers = array_merge([
+    'User-Agent: ' . instagram_default_user_agent(),
+    'Accept-Language: pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+  ], $extraHeaders);
 
   $ch = curl_init($url);
-  curl_setopt_array($ch, [
+  $options = [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_FOLLOWLOCATION => true,
     CURLOPT_TIMEOUT => 15,
-    CURLOPT_HTTPHEADER => [
-      'User-Agent: Mozilla/5.0',
-      'Accept-Language: pt-BR,pt;q=0.9,en;q=0.8',
-    ],
-  ]);
+    CURLOPT_CONNECTTIMEOUT => 10,
+    CURLOPT_HTTPHEADER => $headers,
+    CURLOPT_ENCODING => '',
+  ];
 
-  $html = curl_exec($ch);
+  if (defined('CURL_IPRESOLVE_V4')) {
+    $options[CURLOPT_IPRESOLVE] = CURL_IPRESOLVE_V4;
+  }
+
+  curl_setopt_array($ch, $options);
+
+  $body = curl_exec($ch);
   $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  $error = curl_error($ch);
   curl_close($ch);
 
-  if ($html === false || $status >= 400) {
-    throw new RuntimeException('Não foi possível acessar o perfil do Instagram');
+  return [
+    'body' => $body === false ? '' : (string) $body,
+    'status' => $status,
+    'error' => $error,
+    'ok' => $body !== false && $status > 0 && $status < 400,
+  ];
+}
+
+function instagram_request_failure_detail(array $response): string
+{
+  if ($response['error'] !== '') {
+    return 'curl: ' . $response['error'];
+  }
+
+  if ($response['status'] > 0) {
+    return 'HTTP ' . $response['status'];
+  }
+
+  return 'sem resposta';
+}
+
+function instagram_profile_from_user_payload(array $user, string $fallbackUsername): ?array
+{
+  $username = strtolower((string) ($user['username'] ?? $fallbackUsername));
+  $profilePic = $user['profile_pic_url_hd'] ?? $user['profile_pic_url'] ?? null;
+  if (!is_string($profilePic) || $profilePic === '') {
+    return null;
+  }
+
+  $fullName = trim((string) ($user['full_name'] ?? ''));
+  $biography = trim((string) ($user['biography'] ?? ''));
+
+  return [
+    'username' => $username,
+    'fullName' => $fullName !== '' ? $fullName : $username,
+    'biography' => $biography !== '' ? $biography : null,
+    'profilePicUrl' => $profilePic,
+    'profileUrl' => 'https://www.instagram.com/' . rawurlencode($username) . '/',
+  ];
+}
+
+function instagram_fetch_profile_via_html(string $username, ?string $html = null): ?array
+{
+  if ($html === null) {
+    $url = 'https://www.instagram.com/' . rawurlencode($username) . '/';
+    $response = instagram_http_get($url, [
+      'Accept: text/html,application/xhtml+xml',
+      'Sec-Fetch-Dest: document',
+      'Sec-Fetch-Mode: navigate',
+      'Sec-Fetch-Site: none',
+    ]);
+
+    if (!$response['ok']) {
+      return null;
+    }
+
+    $html = $response['body'];
   }
 
   $meta = instagram_parse_og_meta($html);
   if ($meta['image'] === null) {
-    throw new RuntimeException('Perfil não encontrado ou indisponível');
+    return null;
   }
 
   $fullName = instagram_parse_full_name($meta['title'], $username);
@@ -53,8 +127,65 @@ function fetch_instagram_profile(string $handleInput): array
     'fullName' => $fullName,
     'biography' => $biography,
     'profilePicUrl' => html_entity_decode($meta['image'], ENT_QUOTES | ENT_HTML5),
-    'profileUrl' => 'https://www.instagram.com/' . $username . '/',
+    'profileUrl' => 'https://www.instagram.com/' . rawurlencode($username) . '/',
   ];
+}
+
+function fetch_instagram_profile(string $handleInput): array
+{
+  $username = normalize_instagram_handle($handleInput);
+  $lastDetail = null;
+
+  $response = instagram_http_get(
+    'https://www.instagram.com/api/v1/users/web_profile_info/?username=' . rawurlencode($username),
+    [
+      'Accept: */*',
+      'X-IG-App-ID: ' . INSTAGRAM_WEB_APP_ID,
+      'X-Requested-With: XMLHttpRequest',
+      'Referer: https://www.instagram.com/' . rawurlencode($username) . '/',
+    ],
+  );
+  if (!$response['ok']) {
+    $lastDetail = instagram_request_failure_detail($response);
+  } else {
+    $data = json_decode($response['body'], true);
+    $user = is_array($data) ? ($data['data']['user'] ?? null) : null;
+    if (is_array($user)) {
+      $profile = instagram_profile_from_user_payload($user, $username);
+      if ($profile !== null) {
+        return $profile;
+      }
+      $lastDetail = 'resposta sem foto de perfil';
+    } else {
+      $lastDetail = 'resposta JSON inválida';
+    }
+  }
+
+  $htmlResponse = instagram_http_get(
+    'https://www.instagram.com/' . rawurlencode($username) . '/',
+    [
+      'Accept: text/html,application/xhtml+xml',
+      'Sec-Fetch-Dest: document',
+      'Sec-Fetch-Mode: navigate',
+      'Sec-Fetch-Site: none',
+    ],
+  );
+  if (!$htmlResponse['ok']) {
+    $lastDetail = instagram_request_failure_detail($htmlResponse);
+  } else {
+    $profile = instagram_fetch_profile_via_html($username, $htmlResponse['body']);
+    if ($profile !== null) {
+      return $profile;
+    }
+    $lastDetail = 'HTML sem metadados do perfil';
+  }
+
+  $message = 'Não foi possível acessar o perfil do Instagram';
+  if ($lastDetail !== null && $lastDetail !== '') {
+    $message .= ' (' . $lastDetail . ')';
+  }
+
+  throw new RuntimeException($message);
 }
 
 function instagram_parse_og_meta(string $html): array
@@ -91,7 +222,6 @@ function instagram_parse_biography(?string $description): ?string
     return null;
   }
 
-  // Ignora linha padrão de estatísticas ("123 Followers, ..." ou "123 seguidores, ...")
   if (preg_match('/^\d[\d,.]*\s+(Followers|seguidores)/i', $description)) {
     return null;
   }
@@ -110,25 +240,17 @@ function download_instagram_avatar(string $imageUrl, string $assetsDir, string $
   $filename = 'instagram-' . $safe . '.jpg';
   $dest = $assetsDir . DIRECTORY_SEPARATOR . $filename;
 
-  $ch = curl_init($imageUrl);
-  curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_FOLLOWLOCATION => true,
-    CURLOPT_TIMEOUT => 20,
-    CURLOPT_HTTPHEADER => [
-      'User-Agent: Mozilla/5.0',
-      'Referer: https://www.instagram.com/',
-    ],
+  $response = instagram_http_get($imageUrl, [
+    'Accept: image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+    'Referer: https://www.instagram.com/',
   ]);
-  $bytes = curl_exec($ch);
-  $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-  curl_close($ch);
 
-  if ($bytes === false || $status >= 400 || strlen($bytes) < 128) {
-    throw new RuntimeException('Não foi possível baixar a foto do perfil');
+  if (!$response['ok'] || strlen($response['body']) < 128) {
+    $detail = instagram_request_failure_detail($response);
+    throw new RuntimeException('Não foi possível baixar a foto do perfil (' . $detail . ')');
   }
 
-  if (file_put_contents($dest, $bytes) === false) {
+  if (file_put_contents($dest, $response['body']) === false) {
     throw new RuntimeException('Não foi possível salvar a foto do perfil');
   }
 
@@ -159,11 +281,10 @@ function apply_instagram_to_client(string $clientDir, array $profile, string $cl
   }
 
   if (isset($data['brand']['seo'])) {
-    $data['brand']['seo']['title'] = $data['brand']['name'] . ' · Link na Bio';
-    $desc = !empty($profile['biography'])
-      ? $profile['biography']
-      : 'Página de links de ' . $data['brand']['name'] . '.';
-    $data['brand']['seo']['description'] = $desc;
+    $name = $data['brand']['name'];
+    $tagline = trim($data['brand']['tagline'] ?? '');
+    $data['brand']['seo']['title'] = $name;
+    $data['brand']['seo']['description'] = $tagline !== '' ? $name . '. ' . $tagline : $name;
   }
 
   if (!empty($profile['profilePicUrl'])) {

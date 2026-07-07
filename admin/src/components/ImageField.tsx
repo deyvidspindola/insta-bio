@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { resolvePublicUrl } from '@site/lib/publicUrl'
+import { useDemoMode } from '../context/DemoModeContext'
 import { ENDPOINTS } from '../lib/endpoints'
 
 interface ImageFieldProps {
@@ -20,6 +21,7 @@ function readAsBase64(file: File): Promise<string> {
 }
 
 export function ImageField({ label, value, onChange, hint }: ImageFieldProps) {
+  const isDemo = useDemoMode()
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -64,14 +66,16 @@ export function ImageField({ label, value, onChange, hint }: ImageFieldProps) {
 
         <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="btn-secondary px-3 py-1.5 text-xs"
-              disabled={uploading}
-              onClick={() => inputRef.current?.click()}
-            >
-              {uploading ? 'Enviando…' : 'Enviar imagem'}
-            </button>
+            {!isDemo && (
+              <button
+                type="button"
+                className="btn-secondary px-3 py-1.5 text-xs"
+                disabled={uploading}
+                onClick={() => inputRef.current?.click()}
+              >
+                {uploading ? 'Enviando…' : 'Enviar imagem'}
+              </button>
+            )}
             {value && (
               <button
                 type="button"
@@ -108,7 +112,12 @@ export function ImageField({ label, value, onChange, hint }: ImageFieldProps) {
       />
 
       {error && <p className="mt-1 text-[10px] text-red-400">{error}</p>}
-      {hint && !error && <p className="mt-1 text-[10px] text-muted-foreground/70">{hint}</p>}
+      {isDemo && !error && (
+        <p className="mt-1 text-[10px] text-muted-foreground/70">
+          Na versão completa você envia imagens pelo editor.
+        </p>
+      )}
+      {hint && !error && !isDemo && <p className="mt-1 text-[10px] text-muted-foreground/70">{hint}</p>}
     </div>
   )
 }

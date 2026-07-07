@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS clients (
   password_hash VARCHAR(255) NOT NULL,
   password_enc  VARCHAR(255) NULL COMMENT 'senha do editor cifrada (AES) para consulta',
   status        ENUM('active', 'suspended', 'pending') NOT NULL DEFAULT 'active',
+  license_token CHAR(48) NULL UNIQUE,
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_status (status),
@@ -24,6 +25,7 @@ CREATE TABLE IF NOT EXISTS clients (
 
 -- Se a tabela já existir sem a coluna, rode:
 -- ALTER TABLE clients ADD COLUMN password_enc VARCHAR(255) NULL AFTER password_hash;
+-- ALTER TABLE clients ADD COLUMN license_token CHAR(48) NULL UNIQUE AFTER status;
 
 -- Insira o primeiro admin depois de gerar o hash:
 -- npm run hash-password --prefix panel -- "SuaSenhaForte"

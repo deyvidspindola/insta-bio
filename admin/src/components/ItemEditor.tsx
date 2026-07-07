@@ -7,10 +7,14 @@ import {
   CARD_TYPES,
   FEATURE_VARIANTS,
   ICON_OPTIONS,
+  MEDIA_CARD_VARIANTS,
   resolveHeroLayout,
 } from '../lib/bio'
 import { GradientField } from './GradientField'
 import { ImageField } from './ImageField'
+import { ProductsField } from './ProductsField'
+import { SlidesField } from './SlidesField'
+import { VideoField } from './VideoField'
 
 interface ItemEditorProps {
   item: SectionItem
@@ -237,7 +241,17 @@ export function ItemEditor({
             disabled={!onToggleCollapse}
           >
             <p className="text-xs uppercase tracking-wider text-muted-foreground">{typeLabel}</p>
-            <p className="truncate font-medium">{'title' in item ? item.title : item.type}</p>
+            <p className="truncate font-medium">
+              {'title' in item && item.title
+                ? item.title
+                : item.type === 'video'
+                  ? 'Vídeo'
+                  : item.type === 'slide'
+                    ? 'Slides'
+                    : item.type === 'products'
+                      ? 'Produtos'
+                      : item.type}
+            </p>
           </button>
         </div>
         <button
@@ -251,7 +265,7 @@ export function ItemEditor({
 
       {collapsed ? null : (
         <>
-      {'url' in item && (
+      {'url' in item && item.type !== 'video' && (
         <Field label="URL">
           <input
             value={item.url}
@@ -362,6 +376,118 @@ export function ItemEditor({
               onChange={(tags) => onChange({ ...item, tags })}
             />
           )}
+        </>
+      )}
+
+      {item.type === 'video' && (
+        <>
+          <VideoField
+            label="Vídeo"
+            value={item.video}
+            onChange={(video) => onChange({ ...item, video: video ?? '' })}
+            hint="MP4 recomendado. Tamanho máximo ~25 MB."
+          />
+          <ImageField
+            label="Capa (opcional)"
+            value={item.poster}
+            onChange={(poster) => onChange({ ...item, poster })}
+            hint="Imagem exibida antes do vídeo carregar."
+          />
+          <Field label="Tamanho / formato">
+            <select
+              value={item.variant ?? 'portrait'}
+              onChange={(e) =>
+                onChange({
+                  ...item,
+                  variant: e.target.value as typeof item.variant,
+                })
+              }
+            >
+              {MEDIA_CARD_VARIANTS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Título (opcional)">
+            <input
+              value={item.title ?? ''}
+              onChange={(e) => onChange({ ...item, title: e.target.value })}
+            />
+          </Field>
+          <Field label="Descrição (opcional)">
+            <textarea
+              rows={2}
+              value={item.description ?? ''}
+              onChange={(e) => onChange({ ...item, description: e.target.value })}
+            />
+          </Field>
+          <Field label="Link ao clicar (opcional)">
+            <input
+              value={item.url ?? ''}
+              onChange={(e) => onChange({ ...item, url: e.target.value || undefined })}
+              placeholder="https://"
+            />
+          </Field>
+        </>
+      )}
+
+      {item.type === 'slide' && (
+        <>
+          <Field label="Tamanho / formato">
+            <select
+              value={item.variant ?? 'portrait'}
+              onChange={(e) =>
+                onChange({
+                  ...item,
+                  variant: e.target.value as typeof item.variant,
+                })
+              }
+            >
+              {MEDIA_CARD_VARIANTS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Título do conjunto (opcional)">
+            <input
+              value={item.title ?? ''}
+              onChange={(e) => onChange({ ...item, title: e.target.value })}
+              placeholder="Ex.: Destaques"
+            />
+          </Field>
+          <Field label="Avançar automaticamente">
+            <select
+              value={item.autoplay === false ? 'false' : 'true'}
+              onChange={(e) => onChange({ ...item, autoplay: e.target.value === 'true' })}
+            >
+              <option value="true">Sim</option>
+              <option value="false">Não — apenas ao tocar</option>
+            </select>
+          </Field>
+          <SlidesField
+            slides={item.slides}
+            onChange={(slides) => onChange({ ...item, slides })}
+          />
+        </>
+      )}
+
+      {item.type === 'products' && (
+        <>
+          <Field label="Título da galeria (opcional)">
+            <input
+              value={item.title ?? ''}
+              onChange={(e) => onChange({ ...item, title: e.target.value })}
+              placeholder="Ex.: Nossa loja"
+            />
+          </Field>
+          <ProductsField
+            products={item.products}
+            onChange={(products) => onChange({ ...item, products })}
+          />
         </>
       )}
 

@@ -1,6 +1,47 @@
+# Links na Bio — painel (/panel/)
+Options -Indexes -MultiViews
+
 # Impede download de configs sensíveis
 <FilesMatch "^(db\.config|db\.config\.example)\.php$">
   Require all denied
 </FilesMatch>
 
-Options -Indexes
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /panel/
+
+  # Canonical (evita loop com rewrite interno)
+  RewriteCond %{THE_REQUEST} \s/panel/install\.php[\s?] [NC]
+  RewriteRule ^install\.php$ install [R=301,L]
+
+  # API amigável → PHP
+  RewriteRule ^api/auth/session$ session.php [L,QSA]
+  RewriteRule ^api/auth/login$ login.php [L,QSA]
+  RewriteRule ^api/auth/logout$ logout.php [L,QSA]
+  RewriteRule ^api/clients/?$ clients-list.php [L,QSA]
+  RewriteRule ^api/clients/create$ clients-create.php [L,QSA]
+  RewriteRule ^api/clients/update$ clients-update.php [L,QSA]
+  RewriteRule ^api/clients/status$ clients-status.php [L,QSA]
+  RewriteRule ^api/clients/delete$ clients-delete.php [L,QSA]
+  RewriteRule ^api/clients/password$ clients-password.php [L,QSA]
+  RewriteRule ^api/clients/reset-password$ clients-reset-password.php [L,QSA]
+  RewriteRule ^api/clients/export$ clients-export.php [L,QSA]
+  RewriteRule ^api/clients/sync-template$ clients-sync-template.php [L,QSA]
+  RewriteRule ^api/license/check$ license-check.php [L,QSA]
+  RewriteRule ^api/instagram/lookup$ instagram-lookup.php [L,QSA]
+
+  RewriteRule ^install/?$ install.php [L,NC]
+
+  # Pastas dos clientes — bloqueia acesso direto por /panel/sites/…
+  RewriteRule ^sites(/|$) - [F,L]
+
+  # Diagnóstico de provisionamento
+  RewriteRule ^api/provision/check$ provision-check.php [L,QSA]
+
+  # Arquivos reais (index.html, *.php, assets…)
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^ - [L]
+
+  # SPA do painel
+  RewriteRule ^ index.html [L]
+</IfModule>

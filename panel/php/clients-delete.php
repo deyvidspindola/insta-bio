@@ -14,7 +14,7 @@ if ($id <= 0) {
 }
 
 try {
-  require __DIR__ . '/db.config.php';
+  platform_load_config();
   $pdo = platform_db();
 
   $stmt = $pdo->prepare('SELECT slug FROM clients WHERE id = ? LIMIT 1');
@@ -35,6 +35,7 @@ try {
 
   echo json_encode(['ok' => true]);
 } catch (Throwable $e) {
+  platform_capture_exception($e);
   http_response_code(500);
   echo json_encode(['error' => $e->getMessage()]);
 }

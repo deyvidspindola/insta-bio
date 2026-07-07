@@ -1,0 +1,15 @@
+{
+  "name": "linksnabio/panel",
+  "description": "Painel PHP da plataforma links na bio",
+  "type": "project",
+  "require": {
+    "php": ">=8.0 <8.4",
+    "sentry/sentry": "^4.8"
+  },
+  "config": {
+    "platform": {
+      "php": "8.3.31"
+    },
+    "sort-packages": true
+  }
+}

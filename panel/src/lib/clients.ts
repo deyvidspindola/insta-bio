@@ -15,6 +15,7 @@ export type CreatedClient = Client & {
   password: string
   bio_url: string
   editor_url: string
+  instagram_warning?: string | null
 }
 
 export async function listClients(): Promise<Client[]> {
@@ -53,10 +54,14 @@ export async function createClient(input: {
   const data = (await res.json().catch(() => null)) as {
     error?: string
     client?: CreatedClient
+    instagram_warning?: string | null
   } | null
 
   if (!res.ok) throw new Error(data?.error ?? 'Não foi possível criar o cliente')
   if (!data?.client) throw new Error('Resposta inválida do servidor')
+  if (data.instagram_warning) {
+    data.client.instagram_warning = data.instagram_warning
+  }
   return data.client
 }
 
@@ -171,4 +176,33 @@ export function clientBioHref(slug: string): string {
 export function clientEditorHref(slug: string, email: string): string {
   const qs = new URLSearchParams({ user: email })
   return `/${slug}/editor/?${qs.toString()}`
+}
+
+export function downloadClientExport(id: number): void {
+  window.location.assign(`${ENDPOINTS.exportClient}?id=${id}`)
+}
+
+export type SyncTemplateResult = {
+  ok: boolean
+  template_dir: string
+  platform_root: string
+  updated: { id: number; slug: string; name: string }[]
+  skipped: { slug: string; reason: string }[]
+  errors: { slug: string; error: string }[]
+}
+
+export async function syncAllClientsTemplate(): Promise<SyncTemplateResult> {
+  const res = await fetch(ENDPOINTS.syncTemplate, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ confirm: true }),
+  })
+
+  const data = (await res.json()) as SyncTemplateResult & { error?: string }
+  if (!res.ok) {
+    throw new Error(data.error ?? 'Não foi possível atualizar os sites')
+  }
+
+  return data
 }

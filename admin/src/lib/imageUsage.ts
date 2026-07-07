@@ -30,6 +30,20 @@ export function collectUsedAssetFilenames(config: BioConfig): Set<string> {
   for (const section of config.sections) {
     for (const item of section.items) {
       if ('image' in item) track(item.image)
+      if ('video' in item && typeof item.video === 'string') track(item.video)
+      if ('poster' in item) track(item.poster)
+      if (item.type === 'slide') {
+        for (const slide of item.slides) {
+          track(slide.image)
+          track(slide.video)
+          track(slide.poster)
+        }
+      }
+      if (item.type === 'products') {
+        for (const product of item.products) {
+          track(product.image)
+        }
+      }
     }
   }
 

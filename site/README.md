@@ -1,4 +1,4 @@
-# Site comercial — insta-bio
+# Site comercial — links na bio
 
 Landing page baseada no template **NextSaaS** (`home-page-22.html`), renderizada em **React** com o HTML/CSS/JS originais do template.
 
@@ -12,16 +12,19 @@ npm run dev    # http://localhost:5190
 Na raiz do monorepo:
 
 ```bash
-make site
+make site          # só a landing
+make dev-all       # landing + editor + demo + bio + painel
 ```
+
+**Editor de demonstração:** com o admin rodando (`make admin` ou `make dev-all`), abra [http://localhost:5180/demo.html](http://localhost:5180/demo.html). Os botões *Experimentar o editor* na landing abrem essa URL automaticamente em dev.
 
 ## Conteúdo e personalização
 
 | Arquivo | O que mudar |
 |---------|-------------|
 | `src/template-home.html` | Textos, seções e links da landing (hero, editor, recursos, FAQ…) |
-| `src/config.ts` | WhatsApp e Instagram (referência) |
-| `scripts/patch-content.py` | Script usado para aplicar a copy comercial inicial |
+| `src/config.ts` | WhatsApp, URL do demo (`DEMO_URL`) e Instagram |
+| `admin/public/demo-bio.json` | Bio de exemplo carregada no modo demonstração |
 
 Os CTAs principais apontam para WhatsApp (`5519999999999` — troque pelo seu número).
 
@@ -41,3 +44,5 @@ Logo do produto: `public/logo-instabio.svg`
 ```bash
 npm run build    # gera site/dist/
 ```
+
+Em produção, copie também `admin/dist/demo.html` e a pasta `admin/dist/assets/` para o mesmo domínio da landing (ex.: `public_html/demo.html`), para o link `/demo.html` funcionar.

@@ -61,7 +61,7 @@ export function AdvancedPanel({
       <div className="card border-red-500/20">
         <h3 className="mb-1 text-sm font-semibold text-red-400">Zona de risco</h3>
         <p className="mb-4 text-xs text-muted-foreground">
-          Restaura o modelo padrão do insta-bio. Todas as seções e personalizações serão perdidas.
+          Restaura a bio ao modelo inicial (sem seções). O nome do cliente é mantido. Todas as seções e personalizações serão perdidas.
         </p>
         <button
           type="button"

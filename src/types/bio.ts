@@ -123,6 +123,56 @@ export interface LocationCard {
   mapUrl: string
 }
 
+import type { MediaCardVariant } from '../lib/mediaCardLayout'
+
+export type { MediaCardVariant } from '../lib/mediaCardLayout'
+
+export interface SlideStoryItem {
+  image?: string
+  video?: string
+  poster?: string
+  /** Duração em segundos para imagens (padrão 5). Vídeos usam a duração do arquivo. */
+  duration?: number
+  url?: string
+  caption?: string
+}
+
+export interface SlideCard {
+  type: 'slide'
+  title?: string
+  variant?: MediaCardVariant
+  slides: SlideStoryItem[]
+  autoplay?: boolean
+}
+
+/** @deprecated use variant — mantido para bios antigas */
+export type VideoAspectRatio = 'reel' | 'portrait' | 'square'
+
+export interface VideoCard {
+  type: 'video'
+  title?: string
+  description?: string
+  video: string
+  poster?: string
+  url?: string
+  variant?: MediaCardVariant
+  /** @deprecated use variant */
+  aspectRatio?: VideoAspectRatio
+}
+
+export interface ProductItem {
+  image: string
+  title?: string
+  url?: string
+  cta?: string
+}
+
+export interface ProductsCard {
+  type: 'products'
+  title?: string
+  products: ProductItem[]
+}
+
 export interface BioSection {
   id: string
   title: string
@@ -139,6 +189,9 @@ export type SectionItem =
   | GridCard
   | InstagramCard
   | LocationCard
+  | VideoCard
+  | SlideCard
+  | ProductsCard
 
 export interface BioConfig {
   brand: BioBrand

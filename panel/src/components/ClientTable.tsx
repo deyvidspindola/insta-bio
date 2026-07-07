@@ -1,5 +1,5 @@
-import { Copy, ExternalLink, KeyRound, Pause, Pencil, Play, Trash2 } from 'lucide-react'
-import { clientBioHref, clientEditorHref, type Client } from '../lib/clients'
+import { Copy, Download, ExternalLink, KeyRound, Pause, Pencil, Play, Trash2 } from 'lucide-react'
+import { clientBioHref, clientEditorHref, downloadClientExport, type Client } from '../lib/clients'
 
 type Props = {
   clients: Client[]
@@ -90,6 +90,14 @@ export function ClientTable({ clients, onToggleStatus, onDelete, onViewPassword,
                   >
                     <ExternalLink className="h-4 w-4" />
                   </a>
+                  <button
+                    type="button"
+                    className="btn-ghost px-2 py-1"
+                    title="Baixar ZIP para hospedagem própria"
+                    onClick={() => downloadClientExport(client.id)}
+                  >
+                    <Download className="h-4 w-4" />
+                  </button>
                   <button
                     type="button"
                     className="btn-ghost px-2 py-1"

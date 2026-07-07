@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BioConfig } from '@bio-types'
 
 interface PreviewPanelProps {
@@ -7,9 +7,24 @@ interface PreviewPanelProps {
   compact?: boolean
 }
 
+/** URL do iframe de preview — demo na raiz usa /preview; editor do cliente usa ./preview */
+function previewIframeSrc(): string {
+  const base = import.meta.env.BASE_URL
+  const onPlatformDemo =
+    typeof window !== 'undefined' &&
+    (window.location.pathname === '/demo' || window.location.pathname.startsWith('/demo/'))
+
+  if (onPlatformDemo && (base === '/editor/' || base.endsWith('/editor/'))) {
+    return '/preview'
+  }
+
+  return `${base}preview`
+}
+
 export function PreviewPanel({ config, compact = false }: PreviewPanelProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [ready, setReady] = useState(false)
+  const previewSrc = useMemo(() => previewIframeSrc(), [])
 
   useEffect(() => {
     function onMessage(event: MessageEvent) {
@@ -47,7 +62,7 @@ export function PreviewPanel({ config, compact = false }: PreviewPanelProps) {
       </div>
       <iframe
         ref={iframeRef}
-        src={`${import.meta.env.BASE_URL}preview.html`}
+        src={previewSrc}
         title="Preview da bio"
         className={`w-full border-0 bg-background ${
           compact

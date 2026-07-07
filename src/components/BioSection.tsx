@@ -4,6 +4,9 @@ import { FeatureCard } from './FeatureCard'
 import { GridCard } from './GridCard'
 import { LinkCard } from './LinkCard'
 import { LocationCard } from './LocationCard'
+import { ProductsCard } from './ProductsCard'
+import { SlideCard } from './SlideCard'
+import { VideoCard } from './VideoCard'
 
 function SectionTitle({
   title,
@@ -61,6 +64,24 @@ function renderItem(item: SectionItem, index: number, grid: boolean) {
       return (
         <div key={item.title} className="animate-fade-up" style={delay}>
           <LocationCard item={item} />
+        </div>
+      )
+    case 'video':
+      return (
+        <div key={`video-${item.video}-${index}`} className="animate-fade-up" style={delay}>
+          <VideoCard item={item} />
+        </div>
+      )
+    case 'slide':
+      return (
+        <div key={`slide-${index}-${item.slides.length}`} className="animate-fade-up" style={delay}>
+          <SlideCard item={item} />
+        </div>
+      )
+    case 'products':
+      return (
+        <div key={`products-${index}-${item.products.length}`} className="animate-fade-up col-span-2" style={delay}>
+          <ProductsCard item={item} />
         </div>
       )
     default:

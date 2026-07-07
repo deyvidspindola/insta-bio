@@ -1,5 +1,100 @@
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react'
 import type { BioSection } from '@bio-types'
+import { SectionOrderSheet } from './SectionOrderSheet'
+
+interface SectionMobilePickerProps {
+  sections: BioSection[]
+  activeSection: number
+  onSelect: (index: number) => void
+  onAdd: () => void
+  onReorder: (from: number, to: number) => void
+}
+
+export function SectionMobilePicker({
+  sections,
+  activeSection,
+  onSelect,
+  onAdd,
+  onReorder,
+}: SectionMobilePickerProps) {
+  const [orderOpen, setOrderOpen] = useState(false)
+  const current = sections[activeSection]
+
+  return (
+    <>
+      <div className="section-mobile-picker sticky top-14 z-20 -mx-4 mb-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md md:hidden">
+        <div className="flex items-center gap-2">
+          <div className="flex shrink-0 flex-col">
+            <button
+              type="button"
+              className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+              disabled={activeSection === 0}
+              onClick={() => onReorder(activeSection, activeSection - 1)}
+              aria-label="Mover seção atual para cima"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+              disabled={activeSection === sections.length - 1}
+              onClick={() => onReorder(activeSection, activeSection + 1)}
+              aria-label="Mover seção atual para baixo"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </button>
+          </div>
+
+          <select
+            className="min-w-0 flex-1"
+            value={activeSection}
+            onChange={(e) => onSelect(Number(e.target.value))}
+            aria-label="Selecionar seção"
+          >
+            {sections.map((section, index) => (
+              <option key={section.id} value={index}>
+                {section.title || section.id}
+              </option>
+            ))}
+          </select>
+
+          <button type="button" className="btn-secondary shrink-0 px-2 py-1.5 text-xs" onClick={onAdd}>
+            +
+          </button>
+        </div>
+
+        <div className="mt-2 flex items-center justify-between gap-2">
+          {current && (
+            <p className="min-w-0 flex-1 text-[10px] text-muted-foreground">
+              Seção {activeSection + 1} de {sections.length}
+              {current.items.length > 0 && ` · ${current.items.length} cards`}
+            </p>
+          )}
+          {sections.length > 1 && (
+            <button
+              type="button"
+              className="btn-ghost inline-flex shrink-0 items-center gap-1 px-2 py-1 text-[11px]"
+              onClick={() => setOrderOpen(true)}
+            >
+              <ArrowUpDown className="h-3.5 w-3.5" />
+              Organizar
+            </button>
+          )}
+        </div>
+      </div>
+
+      <SectionOrderSheet
+        sections={sections}
+        activeSection={activeSection}
+        open={orderOpen}
+        onClose={() => setOrderOpen(false)}
+        onReorder={onReorder}
+        onSelect={onSelect}
+      />
+    </>
+  )
+}
 
 interface SectionSidebarProps {
   sections: BioSection[]
@@ -88,50 +183,6 @@ export function SectionSidebar({
       <button type="button" className="btn-secondary w-full py-1.5 text-xs" onClick={onAdd}>
         + Nova seção
       </button>
-    </div>
-  )
-}
-
-interface SectionMobilePickerProps {
-  sections: BioSection[]
-  activeSection: number
-  onSelect: (index: number) => void
-  onAdd: () => void
-}
-
-export function SectionMobilePicker({
-  sections,
-  activeSection,
-  onSelect,
-  onAdd,
-}: SectionMobilePickerProps) {
-  const current = sections[activeSection]
-
-  return (
-    <div className="section-mobile-picker sticky top-14 z-20 -mx-4 mb-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md md:hidden">
-      <div className="flex items-center gap-2">
-        <select
-          className="min-w-0 flex-1"
-          value={activeSection}
-          onChange={(e) => onSelect(Number(e.target.value))}
-          aria-label="Selecionar seção"
-        >
-          {sections.map((section, index) => (
-            <option key={section.id} value={index}>
-              {section.title || section.id}
-            </option>
-          ))}
-        </select>
-        <button type="button" className="btn-secondary shrink-0 px-2 py-1.5 text-xs" onClick={onAdd}>
-          +
-        </button>
-      </div>
-      {current && (
-        <p className="mt-1.5 text-[10px] text-muted-foreground">
-          Seção {activeSection + 1} de {sections.length}
-          {current.items.length > 0 && ` · ${current.items.length} cards`}
-        </p>
-      )}
     </div>
   )
 }

@@ -433,20 +433,50 @@ input[type='range'] {
   .editor-rail {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 0.375rem;
+  }
+
+  .editor-rail--expanded {
+    align-items: stretch;
+  }
+
+  .editor-rail-toggle {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .editor-rail--expanded .editor-rail-toggle {
+    justify-content: space-between;
   }
 
   .editor-rail-nav {
     flex: 1;
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
     justify-content: flex-start;
     padding: 0;
   }
 
+  .editor-rail-nav--expanded {
+    align-items: stretch;
+  }
+
   .editor-rail-nav .rail-btn {
+    width: 2.75rem;
     height: 2.75rem;
     min-height: 2.75rem;
+    flex-shrink: 0;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .editor-rail-nav--expanded .rail-btn {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    padding-inline: 0.75rem;
   }
 }
 
@@ -670,5 +700,42 @@ input[type='range'] {
   background: var(--color-card);
   padding: 0.5rem 0.75rem;
   font-size: 0.8125rem;
+}
+
+/* ── Banner modo demonstração ──────────────────────────────────── */
+
+.demo-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid color-mix(in oklch, var(--color-primary) 35%, transparent);
+  background: color-mix(in oklch, var(--color-primary) 14%, var(--color-background));
+}
+
+.demo-banner__text {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-foreground);
+}
+
+.demo-banner__text strong {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.demo-banner__cta {
+  flex-shrink: 0;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
 }
 

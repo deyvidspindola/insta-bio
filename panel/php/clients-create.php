@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/bootstrap.php';
 require __DIR__ . '/lib/platform.php';
+require __DIR__ . '/lib/license.php';
 require __DIR__ . '/lib/instagram.php';
 platform_require_auth();
 header('Content-Type: application/json');
@@ -38,7 +39,7 @@ if ($providedPassword !== '' && strlen($providedPassword) < 6) {
 }
 
 try {
-  require __DIR__ . '/db.config.php';
+  platform_load_config();
   $pdo = platform_db();
 
   $check = $pdo->prepare('SELECT id FROM clients WHERE slug = ? OR email = ? LIMIT 1');
@@ -52,9 +53,20 @@ try {
   $plainPassword = $providedPassword !== '' ? $providedPassword : generate_password(12);
   $passwordHash = password_hash($plainPassword, PASSWORD_BCRYPT);
   $passwordEnc = app_encrypt($plainPassword);
+  $licenseToken = generate_license_token();
 
-  $provision = provision_client(PLATFORM_ROOT, TEMPLATE_DIR, $slug, $name, $email, $passwordHash);
+  $provision = provision_client(
+    PLATFORM_ROOT,
+    TEMPLATE_DIR,
+    $slug,
+    $name,
+    $email,
+    $passwordHash,
+    $licenseToken,
+    platform_public_base_url(),
+  );
 
+  $instagramWarning = null;
   $instagramHandle = isset($input['instagram_handle']) ? trim((string) $input['instagram_handle']) : '';
   if ($instagramHandle !== '') {
     try {
@@ -62,15 +74,14 @@ try {
       $clientDir = rtrim(PLATFORM_ROOT, '/\\') . DIRECTORY_SEPARATOR . $slug;
       apply_instagram_to_client($clientDir, $profile, $name);
     } catch (Throwable $e) {
-      remove_directory(rtrim(PLATFORM_ROOT, '/\\') . DIRECTORY_SEPARATOR . $slug);
-      throw $e;
+      $instagramWarning = $e->getMessage();
     }
   }
 
   $insert = $pdo->prepare(
-    'INSERT INTO clients (slug, name, email, password_hash, password_enc, status) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO clients (slug, name, email, password_hash, password_enc, status, license_token) VALUES (?, ?, ?, ?, ?, ?, ?)',
   );
-  $insert->execute([$slug, $name, $email, $passwordHash, $passwordEnc, 'active']);
+  $insert->execute([$slug, $name, $email, $passwordHash, $passwordEnc, 'active', $licenseToken]);
 
   echo json_encode([
     'ok' => true,
@@ -84,11 +95,14 @@ try {
       'editor_url' => $provision['editor_url'],
       'password' => $plainPassword,
     ],
+    'instagram_warning' => $instagramWarning,
   ]);
 } catch (InvalidArgumentException $e) {
+  platform_capture_exception($e);
   http_response_code(400);
   echo json_encode(['error' => $e->getMessage()]);
 } catch (Throwable $e) {
+  platform_capture_exception($e);
   http_response_code(500);
   echo json_encode(['error' => $e->getMessage()]);
 }

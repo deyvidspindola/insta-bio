@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import rawTemplate from './template-home.html?raw'
+import { DEMO_URL } from './config'
 
 const VENDOR_SCRIPTS = [
   '/template/vendor/swiper.min.js',
@@ -65,13 +66,39 @@ export default function App() {
 
     loadScriptsSequentially(VENDOR_SCRIPTS).then(() => {
       if (cancelled) return
+        document.querySelectorAll<HTMLAnchorElement>('[data-demo-link]').forEach((link) => {
+        link.href = DEMO_URL
+        link.target = '_blank'
+        link.rel = 'noopener noreferrer'
+      })
+
+      document.querySelectorAll<HTMLButtonElement>('[data-editor-tab]').forEach((tab) => {
+        tab.addEventListener('click', () => {
+          const id = tab.getAttribute('data-editor-tab')
+          if (!id) return
+          document.querySelectorAll('[data-editor-tab]').forEach((el) => {
+            const active = el === tab
+            el.classList.toggle('site-editor-nav__item--active', active)
+            el.setAttribute('aria-selected', active ? 'true' : 'false')
+          })
+          document.querySelectorAll('[data-editor-panel]').forEach((panel) => {
+            const match = panel.getAttribute('data-editor-panel') === id
+            if (match) panel.removeAttribute('hidden')
+            else panel.setAttribute('hidden', '')
+          })
+        })
+      })
+
       document.dispatchEvent(new Event('DOMContentLoaded'))
       window.dispatchEvent(new Event('load'))
-      // Tema padrão escuro; usuário pode alternar para claro pelo botão fixo
-      if (localStorage.getItem('color-theme') !== 'light') {
+      // Tema padrão claro; usuário pode alternar para escuro pelo botão fixo
+      if (localStorage.getItem('color-theme') === 'dark') {
         document.documentElement.classList.remove('light')
         document.documentElement.classList.add('dark')
-        localStorage.setItem('color-theme', 'dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+        document.documentElement.classList.add('light')
+        localStorage.setItem('color-theme', 'light')
       }
     })
 

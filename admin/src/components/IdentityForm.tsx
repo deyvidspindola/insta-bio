@@ -1,4 +1,5 @@
 import type { BioBrand } from '@bio-types'
+import { pageDescription, pageTitle, syncBrandSeo } from '@site/lib/pageMeta'
 import { ImageField } from './ImageField'
 
 interface IdentityFormProps {
@@ -23,14 +24,14 @@ export function IdentityForm({ brand, onChange }: IdentityFormProps) {
             <label>Nome</label>
             <input
               value={brand.name}
-              onChange={(e) => onChange(update(brand, 'name', e.target.value))}
+              onChange={(e) => onChange(syncBrandSeo(update(brand, 'name', e.target.value)))}
             />
           </div>
           <div className="field sm:col-span-2">
             <label>Tagline</label>
             <input
               value={brand.tagline ?? ''}
-              onChange={(e) => onChange(update(brand, 'tagline', e.target.value))}
+              onChange={(e) => onChange(syncBrandSeo(update(brand, 'tagline', e.target.value)))}
             />
           </div>
           <div className="field sm:col-span-2">
@@ -85,28 +86,20 @@ export function IdentityForm({ brand, onChange }: IdentityFormProps) {
       <div className="card">
         <h3 className="mb-1 text-sm font-semibold">SEO e rodapé</h3>
         <p className="mb-4 text-xs text-muted-foreground">
-          Título e descrição para buscadores e texto no fim da página.
+          O título da aba e a descrição para buscadores usam automaticamente o Nome e a
+          Tagline. O ícone da aba usa o Logo.
         </p>
+        <dl className="mb-4 space-y-3 text-sm">
+          <div>
+            <dt className="text-xs text-muted-foreground">Título da página</dt>
+            <dd className="font-medium">{pageTitle(brand)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">Descrição</dt>
+            <dd className="text-muted-foreground">{pageDescription(brand)}</dd>
+          </div>
+        </dl>
         <div className="grid grid-cols-1 gap-3">
-          <div className="field">
-            <label>Título da página (SEO)</label>
-            <input
-              value={brand.seo.title}
-              onChange={(e) =>
-                onChange({ ...brand, seo: { ...brand.seo, title: e.target.value } })
-              }
-            />
-          </div>
-          <div className="field">
-            <label>Descrição (SEO)</label>
-            <textarea
-              rows={3}
-              value={brand.seo.description}
-              onChange={(e) =>
-                onChange({ ...brand, seo: { ...brand.seo, description: e.target.value } })
-              }
-            />
-          </div>
           <div className="field">
             <label>Rodapé</label>
             <input

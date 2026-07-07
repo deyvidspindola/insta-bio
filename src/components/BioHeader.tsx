@@ -27,11 +27,20 @@ export function BioHeader({ brand }: BioHeaderProps) {
             background: `radial-gradient(ellipse at center, ${brand.theme.glow ?? brand.theme.primary}, transparent 70%)`,
           }}
         />
-        <img
-          src={resolvePublicUrl(brand.logo)}
-          alt={brand.name}
-          className="relative mx-auto h-24 w-24 rounded-2xl object-cover shadow-[0_4px_24px_rgba(0,0,0,0.4)] ring-1 ring-white/10"
-        />
+        {brand.logo ? (
+          <img
+            src={resolvePublicUrl(brand.logo)}
+            alt={brand.name}
+            className="relative mx-auto h-24 w-24 rounded-2xl object-cover shadow-[0_4px_24px_rgba(0,0,0,0.4)] ring-1 ring-white/10"
+          />
+        ) : (
+          <div
+            aria-hidden="true"
+            className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-card text-3xl font-bold text-primary shadow-[0_4px_24px_rgba(0,0,0,0.4)] ring-1 ring-white/10"
+          >
+            {(brand.name.trim()[0] ?? '?').toUpperCase()}
+          </div>
+        )}
       </div>
 
       <h1 className="mt-5 font-display text-2xl font-bold tracking-tight">{brand.name}</h1>
@@ -40,19 +49,23 @@ export function BioHeader({ brand }: BioHeaderProps) {
         <p className="bio-text-secondary mt-2 max-w-xs text-sm">{brand.tagline}</p>
       )}
 
-      <p className="bio-text-secondary mt-4 text-xs font-medium uppercase tracking-[0.28em]">
-        {brand.location}
-      </p>
+      {brand.location && (
+        <p className="bio-text-secondary mt-4 text-xs font-medium uppercase tracking-[0.28em]">
+          {brand.location}
+        </p>
+      )}
 
-      <a
-        href={brand.instagram.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="bio-header-instagram mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-3.5 py-1.5 text-xs font-medium text-foreground/85 backdrop-blur-md transition-colors hover:border-primary/50 hover:text-foreground"
-      >
-        <InstagramIcon className="h-3.5 w-3.5" />
-        {brand.instagram.handle}
-      </a>
+      {brand.instagram.handle && brand.instagram.url && (
+        <a
+          href={brand.instagram.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bio-header-instagram mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-3.5 py-1.5 text-xs font-medium text-foreground/85 backdrop-blur-md transition-colors hover:border-primary/50 hover:text-foreground"
+        >
+          <InstagramIcon className="h-3.5 w-3.5" />
+          {brand.instagram.handle}
+        </a>
+      )}
     </header>
   )
 }

@@ -62,6 +62,13 @@ export function CredentialsModal({ client, onClose }: Props) {
           </p>
         </div>
 
+        {client.instagram_warning && (
+          <p className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+            Instagram não importado: {client.instagram_warning}. O cliente foi criado normalmente — ajuste
+            nome e foto manualmente no editor.
+          </p>
+        )}
+
         <button
           type="button"
           className="btn-secondary mt-4 inline-flex items-center gap-2"

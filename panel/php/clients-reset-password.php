@@ -21,7 +21,7 @@ if ($providedPassword !== '' && strlen($providedPassword) < 6) {
 }
 
 try {
-  require __DIR__ . '/db.config.php';
+  platform_load_config();
   $pdo = platform_db();
 
   $stmt = $pdo->prepare('SELECT slug, email FROM clients WHERE id = ? LIMIT 1');
@@ -45,6 +45,7 @@ try {
 
   echo json_encode(['ok' => true, 'password' => $plainPassword]);
 } catch (Throwable $e) {
+  platform_capture_exception($e);
   http_response_code(500);
   echo json_encode(['error' => $e->getMessage()]);
 }

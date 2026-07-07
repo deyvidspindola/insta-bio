@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { execSync } from 'node:child_process'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const CLIENT_HTACCESS = path.join(ROOT, 'deploy', 'apache', 'client.htaccess')
 const TEMPLATE = path.join(ROOT, 'platform-template', '_template')
 
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'])
@@ -79,6 +80,10 @@ function syncClientEditor(clientDir, templateDir) {
 
   copyDirExcept(tplEditor, dstEditor, new Set(['auth.config.php']))
 
+  if (!fs.existsSync(path.join(dstEditor, 'preview.html'))) {
+    console.warn(`  ⚠ preview.html ausente em ${path.basename(clientDir)}/editor/`)
+  }
+
   const authPath = path.join(dstEditor, 'auth.config.php')
   if (!fs.existsSync(authPath)) {
     console.warn(`  ⚠ auth.config.php ausente em ${path.basename(clientDir)}/editor/`)
@@ -86,24 +91,7 @@ function syncClientEditor(clientDir, templateDir) {
 }
 
 function writeClientHtaccess(clientDir) {
-  const content = `# Links na Bio — cliente
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteCond %{REQUEST_URI} !/suspended\\.html$ [NC]
-  RewriteCond .suspended -f
-  RewriteRule ^ suspended.html [L]
-</IfModule>
-
-# bio.json sempre fresco após salvar no editor
-<Files "bio.json">
-  <IfModule mod_headers.c>
-    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
-    Header set Pragma "no-cache"
-    Header set Expires "0"
-  </IfModule>
-</Files>
-`
-  fs.writeFileSync(path.join(clientDir, '.htaccess'), content)
+  fs.writeFileSync(path.join(clientDir, '.htaccess'), fs.readFileSync(CLIENT_HTACCESS, 'utf8'))
 }
 
 function syncClient(clientDir, templateDir) {

@@ -22,14 +22,22 @@ if (strpos($data, ',') !== false) {
 $bytes = base64_decode($data, true);
 if ($bytes === false || $bytes === '') {
   http_response_code(400);
-  echo json_encode(['error' => 'Imagem inválida']);
+  echo json_encode(['error' => 'Arquivo inválido']);
+  exit;
+}
+
+$maxBytes = 25 * 1024 * 1024;
+if (strlen($bytes) > $maxBytes) {
+  http_response_code(400);
+  echo json_encode(['error' => 'Arquivo muito grande (máximo 25 MB)']);
   exit;
 }
 
 // Sanitiza o nome do arquivo (sem acentos, minúsculo, seguro).
 $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
 $ext = preg_replace('/[^a-z0-9]/', '', $ext);
-if ($ext === '') {
+$allowed = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mov'];
+if ($ext === '' || !in_array($ext, $allowed, true)) {
   $ext = 'png';
 }
 

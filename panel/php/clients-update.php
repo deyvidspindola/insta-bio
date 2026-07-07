@@ -17,16 +17,18 @@ if ($id <= 0 || $name === '' || $email === '' || $slug === '') {
 }
 
 try {
-  require __DIR__ . '/db.config.php';
+  platform_load_config();
   $pdo = platform_db();
 
   $client = update_client($pdo, PLATFORM_ROOT, $id, $name, $email, $slug);
 
   echo json_encode(['ok' => true, 'client' => $client]);
 } catch (InvalidArgumentException $e) {
+  platform_capture_exception($e);
   http_response_code(400);
   echo json_encode(['error' => $e->getMessage()]);
 } catch (Throwable $e) {
+  platform_capture_exception($e);
   http_response_code(500);
   echo json_encode(['error' => $e->getMessage()]);
 }

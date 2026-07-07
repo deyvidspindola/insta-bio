@@ -28,9 +28,14 @@ export const ICON_OPTIONS: IconName[] = [
 
 export const CARD_TYPES = [
   { value: 'feature', label: 'Card' },
+  { value: 'video', label: 'Vídeo' },
+  { value: 'slide', label: 'Slides (Stories)' },
+  { value: 'products', label: 'Produtos' },
   { value: 'link', label: 'Link simples' },
   { value: 'location', label: 'Localização' },
 ] as const
+
+export { MEDIA_CARD_VARIANTS } from '@site/lib/mediaCardLayout'
 
 export const FEATURE_VARIANTS = [
   { value: 'gradient', label: 'Gradiente' },
@@ -154,6 +159,28 @@ export function createItem(type: SectionItem['type']): SectionItem {
         title: 'Local',
         address: 'Endereço completo',
         mapUrl: 'https://maps.google.com',
+      }
+    case 'video':
+      return {
+        type,
+        title: 'Novo vídeo',
+        description: '',
+        video: '',
+        variant: 'portrait',
+      }
+    case 'slide':
+      return {
+        type,
+        title: '',
+        variant: 'portrait',
+        autoplay: true,
+        slides: [{ image: '', duration: 5 }],
+      }
+    case 'products':
+      return {
+        type,
+        title: 'Produtos',
+        products: [{ image: '', title: '', url: '', cta: 'Compre aqui' }],
       }
     default:
       return {

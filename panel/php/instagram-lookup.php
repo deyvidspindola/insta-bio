@@ -17,9 +17,11 @@ try {
   $profile = fetch_instagram_profile($handle);
   echo json_encode(['ok' => true, 'profile' => $profile]);
 } catch (InvalidArgumentException $e) {
+  platform_capture_exception($e);
   http_response_code(400);
   echo json_encode(['error' => $e->getMessage()]);
 } catch (Throwable $e) {
+  platform_capture_exception($e);
   http_response_code(502);
   echo json_encode(['error' => $e->getMessage()]);
 }

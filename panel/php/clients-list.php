@@ -12,6 +12,7 @@ try {
 
   echo json_encode(['clients' => $clients]);
 } catch (Throwable $e) {
+  platform_capture_exception($e);
   http_response_code(500);
   echo json_encode(['error' => $e->getMessage()]);
 }

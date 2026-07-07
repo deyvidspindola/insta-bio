@@ -1,11 +1,13 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import bcrypt from 'bcryptjs'
 import crypto from 'node:crypto'
 import { applyInstagramToClient, fetchInstagramProfile } from './instagram.mjs'
 
 const PANEL_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const GATE_DIR = path.join(PANEL_ROOT, 'php', 'client-gate')
 const DATA_DIR = path.join(PANEL_ROOT, 'data')
 const DB_FILE = path.join(DATA_DIR, 'dev-db.json')
 const PLATFORM_ROOT = path.join(DATA_DIR, 'platform')
@@ -115,6 +117,199 @@ function copyDir(src, dest) {
   }
 }
 
+function isBundleFile(name) {
+  return (
+    /^index-[A-Za-z0-9_-]+\.(js|css)$/.test(name) ||
+    /^main-[A-Za-z0-9_-]+\.(js|css)$/.test(name) ||
+    /^preview-[A-Za-z0-9_-]+\.js$/.test(name)
+  )
+}
+
+function removeBundleFiles(dir) {
+  if (!fs.existsSync(dir)) return
+  for (const name of fs.readdirSync(dir)) {
+    if (isBundleFile(name)) fs.unlinkSync(path.join(dir, name))
+  }
+}
+
+function copyDirExcept(src, dest, skipNames = new Set()) {
+  fs.mkdirSync(dest, { recursive: true })
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    if (skipNames.has(entry.name)) continue
+    const from = path.join(src, entry.name)
+    const to = path.join(dest, entry.name)
+    if (entry.isDirectory()) copyDirExcept(from, to, skipNames)
+    else fs.copyFileSync(from, to)
+  }
+}
+
+function syncClientBioFromTemplate(clientDir, templateDir) {
+  for (const name of [
+    'index.html',
+    'suspended.html',
+    'favicon.svg',
+    'icons.svg',
+    'logo-instabio.svg',
+  ]) {
+    const src = path.join(templateDir, name)
+    if (fs.existsSync(src)) fs.copyFileSync(src, path.join(clientDir, name))
+  }
+
+  const tplAssets = path.join(templateDir, 'assets')
+  const dstAssets = path.join(clientDir, 'assets')
+  fs.mkdirSync(dstAssets, { recursive: true })
+  removeBundleFiles(dstAssets)
+
+  if (fs.existsSync(tplAssets)) {
+    for (const name of fs.readdirSync(tplAssets)) {
+      if (isBundleFile(name)) {
+        fs.copyFileSync(path.join(tplAssets, name), path.join(dstAssets, name))
+      }
+    }
+  }
+}
+
+function syncClientEditorFromTemplate(clientDir, templateDir) {
+  const tplEditor = path.join(templateDir, 'editor')
+  const dstEditor = path.join(clientDir, 'editor')
+  if (!fs.existsSync(tplEditor)) return
+
+  removeBundleFiles(path.join(dstEditor, 'assets'))
+  copyDirExcept(tplEditor, dstEditor, new Set(['auth.config.php']))
+}
+
+function syncClientFromTemplate(clientDir, templateDir) {
+  syncClientBioFromTemplate(clientDir, templateDir)
+  syncClientEditorFromTemplate(clientDir, templateDir)
+  installGateFiles(clientDir)
+}
+
+function syncAllClientsFromTemplate(db) {
+  ensureTemplate()
+  const result = {
+    ok: true,
+    template_dir: TEMPLATE_DIR,
+    platform_root: PLATFORM_ROOT,
+    updated: [],
+    skipped: [],
+    errors: [],
+  }
+
+  for (const client of db.clients) {
+    const clientDir = path.join(PLATFORM_ROOT, client.slug)
+    if (!fs.existsSync(clientDir)) {
+      result.skipped.push({ slug: client.slug, reason: 'Pasta do cliente não encontrada' })
+      continue
+    }
+
+    try {
+      syncClientFromTemplate(clientDir, TEMPLATE_DIR)
+      syncClientLicense(db, client)
+      result.updated.push({ id: client.id, slug: client.slug, name: client.name })
+    } catch (e) {
+      result.errors.push({ slug: client.slug, error: String(e) })
+      result.ok = false
+    }
+  }
+
+  writeDb(db)
+  return result
+}
+
+function generateLicenseToken() {
+  return crypto.randomBytes(24).toString('hex')
+}
+
+function writeLicenseConfig(clientDir, slug, token, selfhost = false) {
+  const api = 'http://localhost:5175/panel/api/license/check'
+  const content = `<?php
+// Gerado pelo painel — não remova. Sem este arquivo a bio não carrega.
+define('LICENSE_SLUG', '${slug.replace(/'/g, "\\'")}');
+define('LICENSE_TOKEN', '${token.replace(/'/g, "\\'")}');
+define('LICENSE_SELFHOST', ${selfhost ? 'true' : 'false'});
+define('LICENSE_API', '${api.replace(/'/g, "\\'")}');
+`
+  fs.writeFileSync(path.join(clientDir, 'license.config.php'), content)
+}
+
+function licenseConfigForSelfhostExport(content) {
+  if (content.includes('LICENSE_SELFHOST')) {
+    return content.replace(
+      /define\('LICENSE_SELFHOST',\s*(?:true|false)\);/,
+      "define('LICENSE_SELFHOST', true);",
+    )
+  }
+  return content.replace(
+    "define('LICENSE_API'",
+    "define('LICENSE_SELFHOST', true);\ndefine('LICENSE_API'",
+  )
+}
+
+function installGateFiles(clientDir) {
+  fs.copyFileSync(path.join(GATE_DIR, 'index-gate.php'), path.join(clientDir, 'index.php'))
+  fs.copyFileSync(path.join(GATE_DIR, 'client-license.php'), path.join(clientDir, 'client-license.php'))
+  const shareMeta = path.join(GATE_DIR, 'bio-share-meta.php')
+  if (fs.existsSync(shareMeta)) {
+    fs.copyFileSync(shareMeta, path.join(clientDir, 'bio-share-meta.php'))
+  }
+  const guard = path.join(GATE_DIR, 'client-guard.php')
+  const editorDir = path.join(clientDir, 'editor')
+  if (fs.existsSync(guard) && fs.existsSync(editorDir)) {
+    fs.copyFileSync(guard, path.join(editorDir, 'client-guard.php'))
+  }
+}
+
+function clientLicenseActive(db, slug) {
+  const client = findClient(db, slug)
+  if (!client) return false
+  if (!client.license_token) return false
+  return client.status === 'active'
+}
+
+function selfHostHtaccess() {
+  return `# Links na Bio — hospedagem própria do cliente
+Options -Indexes -MultiViews
+DirectoryIndex index.php index.html
+`
+}
+
+function exportReadme(slug) {
+  return `Links na Bio — pacote para hospedagem própria
+
+Extraia na raiz do domínio. Não remova license.config.php nem index.php.
+Slug: ${slug}
+`
+}
+
+function createZipBuffer(clientDir, slug) {
+  const tmp = fs.mkdtempSync(path.join(DATA_DIR, 'export-'))
+  const staging = path.join(tmp, 'site')
+  fs.cpSync(clientDir, staging, { recursive: true })
+  const licensePath = path.join(staging, 'license.config.php')
+  if (fs.existsSync(licensePath)) {
+    const licenseContent = fs.readFileSync(licensePath, 'utf8')
+    fs.writeFileSync(licensePath, licenseConfigForSelfhostExport(licenseContent))
+  }
+  fs.writeFileSync(path.join(staging, 'LEIA-ME.txt'), exportReadme(slug))
+  fs.writeFileSync(path.join(staging, '.htaccess'), selfHostHtaccess())
+  const zipPath = path.join(tmp, `bio-${slug}.zip`)
+  execSync(`zip -rq ${JSON.stringify(zipPath)} .`, { cwd: staging, stdio: 'pipe' })
+  const buffer = fs.readFileSync(zipPath)
+  fs.rmSync(tmp, { recursive: true, force: true })
+  return buffer
+}
+
+function syncClientLicense(db, client) {
+  if (!client.license_token) {
+    client.license_token = generateLicenseToken()
+  }
+  const clientDir = path.join(PLATFORM_ROOT, client.slug)
+  if (!fs.existsSync(clientDir)) return
+  writeLicenseConfig(clientDir, client.slug, client.license_token)
+  installGateFiles(clientDir)
+  writeDb(db)
+}
+
 function writeAuthConfig(editorDir, email, passwordHash) {
   const content = `<?php
 define('AUTH_USERNAME', '${email.replace(/'/g, "\\'")}');
@@ -128,11 +323,20 @@ define('ASSETS_DIR', __DIR__ . '/../assets');
 function customizeBio(bioPath, name) {
   const data = JSON.parse(fs.readFileSync(bioPath, 'utf-8'))
   data.brand.name = name
-  if (data.brand.seo) {
-    data.brand.seo.title = `${name} · Link na Bio`
-    data.brand.seo.description = `Página de links de ${name}.`
-  }
   data.brand.footer = `© ${new Date().getFullYear()} ${name}`
+  data.brand.tagline = ''
+  data.brand.location = ''
+  data.brand.logo = ''
+  if (data.brand.seo) {
+    data.brand.seo.title = name
+    data.brand.seo.description = name
+  }
+  if (data.brand.instagram) {
+    data.brand.instagram.handle = ''
+    data.brand.instagram.url = ''
+  }
+  delete data.brand.coverImage
+  data.sections = []
   fs.writeFileSync(bioPath, `${JSON.stringify(data, null, 2)}\n`)
 }
 
@@ -320,12 +524,47 @@ export function platformDevPlugin() {
 
       server.middlewares.use(async (req, res, next) => {
         const url = new URL(req.url ?? '/', 'http://localhost')
-        if (!url.pathname.startsWith('/api/')) return next()
+
+        if (url.pathname === '/panel') {
+          res.writeHead(301, { Location: '/panel/' })
+          res.end()
+          return
+        }
+
+        let apiPath = url.pathname
+        if (apiPath.startsWith('/panel/api/')) {
+          apiPath = apiPath.slice('/panel'.length)
+        } else if (!apiPath.startsWith('/api/')) {
+          return next()
+        }
 
         try {
           const db = readDb()
 
-          if (url.pathname === '/api/auth/session' && req.method === 'GET') {
+          if (apiPath === '/api/license/check' && (req.method === 'GET' || req.method === 'POST')) {
+            const body =
+              req.method === 'POST'
+                ? await readBody(req)
+                : Object.fromEntries(url.searchParams.entries())
+            const slug = normalizeSlug(String(body.slug ?? ''))
+            const token = String(body.token ?? '').trim()
+            const deploy = normalizeSlug(String(body.deploy ?? ''))
+            if (!slug || !token) {
+              return json(res, 400, { ok: false, error: 'slug e token são obrigatórios' })
+            }
+            const client = db.clients.find((c) => c.slug === slug && c.license_token === token)
+            if (!client || (deploy && deploy !== client.slug)) {
+              return json(res, 401, { ok: false, error: 'Licença inválida para esta instalação' })
+            }
+            return json(res, 200, {
+              ok: true,
+              active: client.status === 'active',
+              status: client.status,
+              slug: client.slug,
+            })
+          }
+
+          if (apiPath === '/api/auth/session' && req.method === 'GET') {
             const session = getSession(req, db)
             return json(res, 200, {
               authenticated: Boolean(session),
@@ -333,7 +572,7 @@ export function platformDevPlugin() {
             })
           }
 
-          if (url.pathname === '/api/auth/login' && req.method === 'POST') {
+          if (apiPath === '/api/auth/login' && req.method === 'POST') {
             const body = await readBody(req)
             const email = String(body.email ?? '').toLowerCase().trim()
             const password = String(body.password ?? '')
@@ -351,7 +590,7 @@ export function platformDevPlugin() {
             return json(res, 200, { ok: true, user: admin.email })
           }
 
-          if (url.pathname === '/api/auth/logout' && req.method === 'POST') {
+          if (apiPath === '/api/auth/logout' && req.method === 'POST') {
             const token = parseCookies(req.headers.cookie).platform_dev_session
             if (token) delete db.sessions[token]
             writeDb(db)
@@ -362,12 +601,12 @@ export function platformDevPlugin() {
           const session = getSession(req, db)
           if (!session) return json(res, 401, { error: 'Não autenticado' })
 
-          if (url.pathname === '/api/clients' && req.method === 'GET') {
+          if (apiPath === '/api/clients' && req.method === 'GET') {
             const clients = db.clients.map(({ password_hash, password_enc, ...rest }) => rest)
             return json(res, 200, { clients })
           }
 
-          if (url.pathname === '/api/instagram/lookup' && req.method === 'POST') {
+          if (apiPath === '/api/instagram/lookup' && req.method === 'POST') {
             const body = await readBody(req)
             const handle = String(body.handle ?? '').trim()
             if (!handle) return json(res, 400, { error: 'Informe o @ do Instagram' })
@@ -379,7 +618,7 @@ export function platformDevPlugin() {
             }
           }
 
-          if (url.pathname === '/api/clients/create' && req.method === 'POST') {
+          if (apiPath === '/api/clients/create' && req.method === 'POST') {
             ensureTemplate()
             const body = await readBody(req)
             const name = String(body.name ?? '').trim()
@@ -408,6 +647,9 @@ export function platformDevPlugin() {
             copyDir(TEMPLATE_DIR, clientDir)
             writeAuthConfig(path.join(clientDir, 'editor'), email, passwordHash)
             customizeBio(path.join(clientDir, 'bio.json'), name)
+            const licenseToken = generateLicenseToken()
+            writeLicenseConfig(clientDir, slug, licenseToken)
+            installGateFiles(clientDir)
 
             const instagramHandle = String(body.instagram_handle ?? '').trim()
             if (instagramHandle) {
@@ -429,6 +671,7 @@ export function platformDevPlugin() {
               email,
               password_hash: passwordHash,
               password_enc: appEncrypt(plainPassword),
+              license_token: licenseToken,
               status: 'active',
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
@@ -447,7 +690,7 @@ export function platformDevPlugin() {
             })
           }
 
-          if (url.pathname === '/api/clients/status' && req.method === 'POST') {
+          if (apiPath === '/api/clients/status' && req.method === 'POST') {
             const body = await readBody(req)
             const id = Number(body.id)
             const status = body.status
@@ -466,7 +709,7 @@ export function platformDevPlugin() {
             return json(res, 200, { ok: true, status })
           }
 
-          if (url.pathname === '/api/clients/update' && req.method === 'POST') {
+          if (apiPath === '/api/clients/update' && req.method === 'POST') {
             const body = await readBody(req)
             const id = Number(body.id)
             const name = String(body.name ?? '').trim()
@@ -511,12 +754,12 @@ export function platformDevPlugin() {
               email,
               client.password_hash,
             )
-
             const slugChanged = slug !== client.slug
             client.slug = slug
             client.name = name
             client.email = email
             client.updated_at = new Date().toISOString()
+            syncClientLicense(db, client)
             writeDb(db)
 
             return json(res, 200, {
@@ -534,7 +777,7 @@ export function platformDevPlugin() {
             })
           }
 
-          if (url.pathname === '/api/clients/password' && req.method === 'POST') {
+          if (apiPath === '/api/clients/password' && req.method === 'POST') {
             const body = await readBody(req)
             const client = db.clients.find((c) => c.id === Number(body.id))
             if (!client) return json(res, 404, { error: 'Cliente não encontrado' })
@@ -549,7 +792,7 @@ export function platformDevPlugin() {
             return json(res, 200, { ok: true, password })
           }
 
-          if (url.pathname === '/api/clients/reset-password' && req.method === 'POST') {
+          if (apiPath === '/api/clients/reset-password' && req.method === 'POST') {
             const body = await readBody(req)
             const client = db.clients.find((c) => c.id === Number(body.id))
             if (!client) return json(res, 404, { error: 'Cliente não encontrado' })
@@ -575,7 +818,32 @@ export function platformDevPlugin() {
             return json(res, 200, { ok: true, password: plainPassword })
           }
 
-          if (url.pathname === '/api/clients/delete' && req.method === 'POST') {
+          if (apiPath === '/api/clients/sync-template' && req.method === 'POST') {
+            ensureTemplate()
+            return json(res, 200, syncAllClientsFromTemplate(db))
+          }
+
+          if (apiPath === '/api/clients/export' && req.method === 'GET') {
+            const id = Number(url.searchParams.get('id'))
+            const client = db.clients.find((c) => c.id === id)
+            if (!client) return json(res, 404, { error: 'Cliente não encontrado' })
+            const clientDir = path.join(PLATFORM_ROOT, client.slug)
+            if (!fs.existsSync(clientDir)) {
+              return json(res, 404, { error: 'Pasta do cliente não encontrada' })
+            }
+            syncClientLicense(db, client)
+            const zip = createZipBuffer(clientDir, client.slug)
+            res.statusCode = 200
+            res.setHeader('Content-Type', 'application/zip')
+            res.setHeader(
+              'Content-Disposition',
+              `attachment; filename="bio-${client.slug}.zip"`,
+            )
+            res.end(zip)
+            return
+          }
+
+          if (apiPath === '/api/clients/delete' && req.method === 'POST') {
             const body = await readBody(req)
             const id = Number(body.id)
             const idx = db.clients.findIndex((c) => c.id === id)
@@ -614,6 +882,12 @@ export function platformDevPlugin() {
 
         try {
           const db = readDb()
+          if (!clientLicenseActive(db, slug)) {
+            return json(res, 503, {
+              error: 'Conta suspensa ou licença inválida.',
+              suspended: true,
+            })
+          }
           if (isClientSuspended(db, slug)) {
             return json(res, 503, {
               error: 'Conta suspensa. Entre em contato com o suporte.',
@@ -731,6 +1005,15 @@ export function platformDevPlugin() {
         const db = readDb()
         const relParts = parts.slice(1)
         const relPath = relParts.join('/')
+
+        const licenseConfig = path.join(clientRoot, 'license.config.php')
+        if (!fs.existsSync(licenseConfig) || !clientLicenseActive(db, slug)) {
+          if (relPath !== 'suspended.html') {
+            serveSuspendedPage(res, clientRoot)
+            return
+          }
+        }
+
         if (isClientSuspended(db, slug) && relPath !== 'suspended.html') {
           serveSuspendedPage(res, clientRoot)
           return
