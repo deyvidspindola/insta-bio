@@ -1,6 +1,8 @@
 import type { BioBrand } from '@bio-types'
 import { pageDescription, pageTitle, syncBrandSeo } from '@site/lib/pageMeta'
+import { normalizeBrandSocial, syncBrandSocialLinks } from '@site/lib/socialLinks'
 import { ImageField } from './ImageField'
+import { SocialLinksField } from './SocialLinksField'
 
 interface IdentityFormProps {
   brand: BioBrand
@@ -12,6 +14,10 @@ function update<K extends keyof BioBrand>(brand: BioBrand, key: K, value: BioBra
 }
 
 export function IdentityForm({ brand, onChange }: IdentityFormProps) {
+  const socialLinks = brand.socialLinks?.length
+    ? brand.socialLinks
+    : normalizeBrandSocial(brand).socialLinks!
+
   return (
     <div className="space-y-4">
       <div className="card">
@@ -48,36 +54,24 @@ export function IdentityForm({ brand, onChange }: IdentityFormProps) {
               onChange={(logo) => onChange(update(brand, 'logo', logo ?? ''))}
             />
           </div>
-          <div className="field">
-            <label>Instagram @</label>
-            <input
-              value={brand.instagram.handle}
-              onChange={(e) =>
-                onChange({
-                  ...brand,
-                  instagram: { ...brand.instagram, handle: e.target.value },
-                })
-              }
-            />
-          </div>
-          <div className="field">
-            <label>Instagram URL</label>
-            <input
-              value={brand.instagram.url}
-              onChange={(e) =>
-                onChange({
-                  ...brand,
-                  instagram: { ...brand.instagram, url: e.target.value },
-                })
-              }
-            />
-          </div>
           <div className="sm:col-span-2">
             <ImageField
               label="Capa do topo (banner)"
               value={brand.coverImage}
               onChange={(coverImage) => onChange(update(brand, 'coverImage', coverImage))}
-              hint="Banner horizontal acima do logo. Opcional."
+              hint="Banner horizontal no topo. As redes sociais ficam abaixo do nome e da localização."
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <SocialLinksField
+              value={socialLinks}
+              onChange={(socialLinksUpdater) => {
+                const resolved =
+                  typeof socialLinksUpdater === 'function'
+                    ? socialLinksUpdater(socialLinks)
+                    : socialLinksUpdater
+                onChange(syncBrandSocialLinks(brand, resolved))
+              }}
             />
           </div>
         </div>

@@ -17,6 +17,7 @@
     "build:template": "node scripts/package-template.mjs",
     "sync:clients": "node scripts/sync-clients-template.mjs",
     "build:platform": "node scripts/package-platform.mjs",
+    "build:core": "node scripts/package-core.mjs",
     "verify:platform": "node scripts/verify-platform-release.mjs",
     "panel": "npm run dev --prefix panel",
     "dev:all": "bash scripts/dev-all.sh",

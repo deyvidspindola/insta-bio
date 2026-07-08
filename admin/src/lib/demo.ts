@@ -1,4 +1,5 @@
 import type { BioConfig } from '@bio-types'
+import { normalizeBioConfig } from './bio'
 
 export const DEMO_WHATSAPP_URL =
   'https://wa.me/5519982624408?text=' +
@@ -13,7 +14,7 @@ export async function loadDemoConfig(): Promise<BioConfig> {
 
   for (const url of candidates) {
     const response = await fetch(url, { cache: 'no-store' })
-    if (response.ok) return response.json()
+    if (response.ok) return normalizeBioConfig(await response.json())
   }
 
   throw new Error('Não foi possível carregar a demonstração')

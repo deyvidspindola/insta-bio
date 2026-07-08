@@ -109,6 +109,10 @@
   color: var(--color-secondary);
 }
 
+.bio-header__subtitle {
+  color: color-mix(in oklch, var(--color-foreground) 82%, transparent);
+}
+
 /* Classic — borda só em cards de link/local (não em cards com gradiente/imagem) */
 [data-bio-template='classic'] .bio-card.bio-link-card,
 [data-bio-template='classic'] .bio-card.bio-location-card {
@@ -625,4 +629,46 @@
   box-shadow: 0 2px 8px oklch(0.72 0.16 55 / 0.25);
   height: 11px;
   border-radius: 10px;
+}
+
+/* ── Redes sociais no header ───────────────────────────────────── */
+
+.bio-header .bio-social-links {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 1rem;
+  padding-inline: 1rem;
+}
+
+.bio-social-links__btn {
+  display: inline-flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklch, var(--color-border, #ccc) 80%, transparent);
+  background: color-mix(in oklch, var(--color-card, #1a1a1a) 75%, transparent);
+  color: var(--color-foreground, #fff);
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.bio-social-links__btn:hover {
+  transform: scale(1.06);
+  border-color: color-mix(in oklch, var(--color-primary, #f0b429) 55%, transparent);
+}
+
+/* ── Embeds YouTube / Spotify ──────────────────────────────────── */
+
+.bio-embed-card__frame--video {
+  background: #000;
+}
+
+.bio-embed-card--spotify iframe {
+  display: block;
+  border: 0;
+}
+
+.bio-embed-card--error {
+  color: color-mix(in oklch, var(--color-foreground, #fff) 65%, transparent);
 }

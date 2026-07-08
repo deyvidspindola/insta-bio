@@ -6,7 +6,9 @@ import { LinkCard } from './LinkCard'
 import { LocationCard } from './LocationCard'
 import { ProductsCard } from './ProductsCard'
 import { SlideCard } from './SlideCard'
+import { SpotifyEmbedCard } from './SpotifyEmbedCard'
 import { VideoCard } from './VideoCard'
+import { YoutubeEmbedCard } from './YoutubeEmbedCard'
 
 function SectionTitle({
   title,
@@ -82,6 +84,18 @@ function renderItem(item: SectionItem, index: number, grid: boolean) {
       return (
         <div key={`products-${index}-${item.products.length}`} className="animate-fade-up col-span-2" style={delay}>
           <ProductsCard item={item} />
+        </div>
+      )
+    case 'youtube-embed':
+      return (
+        <div key={`youtube-${item.url}-${index}`} className={`animate-fade-up ${grid ? 'col-span-2' : ''}`} style={delay}>
+          <YoutubeEmbedCard item={item} />
+        </div>
+      )
+    case 'spotify-embed':
+      return (
+        <div key={`spotify-${item.url}-${index}`} className={`animate-fade-up ${grid ? 'col-span-2' : ''}`} style={delay}>
+          <SpotifyEmbedCard item={item} />
         </div>
       )
     default:

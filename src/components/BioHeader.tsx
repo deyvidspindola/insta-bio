@@ -1,20 +1,37 @@
+import { useEffect, useState } from 'react'
 import type { BioBrand } from '../types/bio'
 import { resolvePublicUrl } from '../lib/publicUrl'
 import { InstagramIcon } from './icons'
+import { collectSocialLinks, SocialLinksRow } from './SocialLinksRow'
 
 interface BioHeaderProps {
   brand: BioBrand
 }
 
 export function BioHeader({ brand }: BioHeaderProps) {
+  const [coverFailed, setCoverFailed] = useState(false)
+  const socialLinks = collectSocialLinks(brand.socialLinks, brand.instagram)
+
+  useEffect(() => {
+    setCoverFailed(false)
+  }, [brand.coverImage])
+
+  const showCover = Boolean(brand.coverImage) && !coverFailed
+  const showInstagramPill =
+    brand.instagram.handle &&
+    brand.instagram.url &&
+    socialLinks.length === 0 &&
+    !(brand.socialLinks && brand.socialLinks.length > 0)
+
   return (
-    <header className="mb-10 flex animate-fade-up flex-col items-center text-center">
-      {brand.coverImage && (
-        <div className="bio-header-cover mb-6 w-full overflow-hidden rounded-3xl border border-border">
+    <header className="bio-header mb-10 flex animate-fade-up flex-col items-center text-center">
+      {showCover && (
+        <div className="bio-header-cover relative mb-6 w-full overflow-hidden rounded-3xl border border-border">
           <img
-            src={resolvePublicUrl(brand.coverImage)}
+            src={resolvePublicUrl(brand.coverImage!)}
             alt=""
-            className="aspect-[21/9] w-full object-cover"
+            className="aspect-[4/5] max-h-[420px] w-full object-cover sm:aspect-[21/9] sm:max-h-none"
+            onError={() => setCoverFailed(true)}
           />
         </div>
       )}
@@ -31,12 +48,12 @@ export function BioHeader({ brand }: BioHeaderProps) {
           <img
             src={resolvePublicUrl(brand.logo)}
             alt={brand.name}
-            className="relative mx-auto h-24 w-24 rounded-2xl object-cover shadow-[0_4px_24px_rgba(0,0,0,0.4)] ring-1 ring-white/10"
+            className={`relative mx-auto h-24 w-24 rounded-2xl object-cover shadow-[0_4px_24px_rgba(0,0,0,0.4)] ring-1 ring-white/10 ${showCover ? '-mt-14' : ''}`}
           />
         ) : (
           <div
             aria-hidden="true"
-            className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-card text-3xl font-bold text-primary shadow-[0_4px_24px_rgba(0,0,0,0.4)] ring-1 ring-white/10"
+            className={`relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-card text-3xl font-bold text-primary shadow-[0_4px_24px_rgba(0,0,0,0.4)] ring-1 ring-white/10 ${showCover ? '-mt-14' : ''}`}
           >
             {(brand.name.trim()[0] ?? '?').toUpperCase()}
           </div>
@@ -46,16 +63,18 @@ export function BioHeader({ brand }: BioHeaderProps) {
       <h1 className="mt-5 font-display text-2xl font-bold tracking-tight">{brand.name}</h1>
 
       {brand.tagline && (
-        <p className="bio-text-secondary mt-2 max-w-xs text-sm">{brand.tagline}</p>
+        <p className="bio-header__subtitle bio-text-secondary mt-2 max-w-xs text-sm">{brand.tagline}</p>
       )}
 
       {brand.location && (
-        <p className="bio-text-secondary mt-4 text-xs font-medium uppercase tracking-[0.28em]">
+        <p className="bio-header__subtitle bio-text-secondary mt-4 text-xs font-medium uppercase tracking-[0.28em]">
           {brand.location}
         </p>
       )}
 
-      {brand.instagram.handle && brand.instagram.url && (
+      {socialLinks.length > 0 && <SocialLinksRow links={socialLinks} />}
+
+      {showInstagramPill && (
         <a
           href={brand.instagram.url}
           target="_blank"

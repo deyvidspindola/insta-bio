@@ -1,5 +1,6 @@
 import type { BioConfig, BioSection, IconName, SectionItem, AppHeroPreset, AppHeroLayout } from '@bio-types'
 import { bioJsonUrl } from '@site/lib/publicUrl'
+import { normalizeBrandSocial } from '@site/lib/socialLinks'
 import defaultBio from '../../../public/bio.default.json'
 import { APP_HERO_PRESET_LIST, createAppHero } from '@site/lib/appHeroPresets'
 
@@ -29,6 +30,8 @@ export const ICON_OPTIONS: IconName[] = [
 export const CARD_TYPES = [
   { value: 'feature', label: 'Card' },
   { value: 'video', label: 'Vídeo' },
+  { value: 'youtube-embed', label: 'YouTube' },
+  { value: 'spotify-embed', label: 'Spotify' },
   { value: 'slide', label: 'Slides (Stories)' },
   { value: 'products', label: 'Produtos' },
   { value: 'link', label: 'Link simples' },
@@ -98,8 +101,12 @@ export function newHeroItemForSection(
   return layout === item.layout ? item : { ...item, layout }
 }
 
+export function normalizeBioConfig(config: BioConfig): BioConfig {
+  return { ...config, brand: normalizeBrandSocial(config.brand) }
+}
+
 export function createDefaultConfig(): BioConfig {
-  return structuredClone(defaultBio as BioConfig)
+  return normalizeBioConfig(structuredClone(defaultBio as BioConfig))
 }
 
 /** @deprecated Use createDefaultConfig — mantido para compatibilidade */
@@ -182,6 +189,20 @@ export function createItem(type: SectionItem['type']): SectionItem {
         title: 'Produtos',
         products: [{ image: '', title: '', url: '', cta: 'Compre aqui' }],
       }
+    case 'youtube-embed':
+      return {
+        type,
+        title: '',
+        url: 'https://www.youtube.com/watch?v=',
+      }
+    case 'spotify-embed':
+      return {
+        type,
+        title: '',
+        url: 'https://open.spotify.com/playlist/',
+        theme: 'dark',
+        size: 'compact',
+      }
     default:
       return {
         type: 'link',
@@ -194,7 +215,8 @@ export function createItem(type: SectionItem['type']): SectionItem {
 export async function loadBioConfig(): Promise<BioConfig> {
   const response = await fetch(bioJsonUrl(), { cache: 'no-store' })
   if (!response.ok) throw new Error('Não foi possível carregar bio.json')
-  return response.json()
+  const data = (await response.json()) as BioConfig
+  return normalizeBioConfig(data)
 }
 
 export function downloadBioConfig(config: BioConfig) {

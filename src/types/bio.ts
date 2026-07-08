@@ -17,6 +17,20 @@ export type IconName =
   | 'coffee'
   | 'message'
 
+export type SocialNetwork =
+  | 'instagram'
+  | 'tiktok'
+  | 'youtube'
+  | 'facebook'
+  | 'email'
+  | 'whatsapp'
+  | 'spotify'
+
+export interface SocialLink {
+  network: SocialNetwork
+  url: string
+}
+
 export type BioTemplate = 'classic' | 'pill' | 'outline' | 'solid' | 'glass' | 'soft'
 
 export interface BioBrand {
@@ -27,6 +41,8 @@ export interface BioBrand {
     handle: string
     url: string
   }
+  /** Ícones de redes no topo da bio (opcional). */
+  socialLinks?: SocialLink[]
   logo: string
   coverImage?: string
   template?: BioTemplate
@@ -173,6 +189,24 @@ export interface ProductsCard {
   products: ProductItem[]
 }
 
+export interface YoutubeEmbedCard {
+  type: 'youtube-embed'
+  title?: string
+  url: string
+}
+
+export type SpotifyEmbedTheme = 'dark' | 'light'
+
+export interface SpotifyEmbedCard {
+  type: 'spotify-embed'
+  title?: string
+  url: string
+  /** Tema visual do player (Spotify embed). */
+  theme?: SpotifyEmbedTheme
+  /** @deprecated legado */
+  size?: 'compact' | 'default'
+}
+
 export interface BioSection {
   id: string
   title: string
@@ -192,6 +226,8 @@ export type SectionItem =
   | VideoCard
   | SlideCard
   | ProductsCard
+  | YoutubeEmbedCard
+  | SpotifyEmbedCard
 
 export interface BioConfig {
   brand: BioBrand

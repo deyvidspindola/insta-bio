@@ -250,7 +250,11 @@ export function ItemEditor({
                     ? 'Slides'
                     : item.type === 'products'
                       ? 'Produtos'
-                      : item.type}
+                      : item.type === 'youtube-embed'
+                        ? 'YouTube'
+                        : item.type === 'spotify-embed'
+                          ? 'Spotify'
+                          : item.type}
             </p>
           </button>
         </div>
@@ -265,7 +269,10 @@ export function ItemEditor({
 
       {collapsed ? null : (
         <>
-      {'url' in item && item.type !== 'video' && (
+      {'url' in item &&
+        item.type !== 'video' &&
+        item.type !== 'youtube-embed' &&
+        item.type !== 'spotify-embed' && (
         <Field label="URL">
           <input
             value={item.url}
@@ -488,6 +495,63 @@ export function ItemEditor({
             products={item.products}
             onChange={(products) => onChange({ ...item, products })}
           />
+        </>
+      )}
+
+      {item.type === 'youtube-embed' && (
+        <>
+          <Field label="Link do vídeo no YouTube">
+            <input
+              value={item.url}
+              onChange={(e) => onChange({ ...item, url: e.target.value })}
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+          </Field>
+          <Field label="Título (opcional)">
+            <input
+              value={item.title ?? ''}
+              onChange={(e) => onChange({ ...item, title: e.target.value })}
+            />
+          </Field>
+          <p className="text-[10px] text-muted-foreground/75">
+            Aceita links de vídeo, Shorts ou youtu.be. O player aparece embutido na bio.
+          </p>
+        </>
+      )}
+
+      {item.type === 'spotify-embed' && (
+        <>
+          <Field label="Link do Spotify">
+            <input
+              value={item.url}
+              onChange={(e) => onChange({ ...item, url: e.target.value, size: 'compact' })}
+              placeholder="https://open.spotify.com/playlist/..."
+            />
+          </Field>
+          <Field label="Título (opcional)">
+            <input
+              value={item.title ?? ''}
+              onChange={(e) => onChange({ ...item, title: e.target.value })}
+            />
+          </Field>
+          <Field label="Cor do player">
+            <select
+              value={item.theme ?? 'dark'}
+              onChange={(e) =>
+                onChange({
+                  ...item,
+                  theme: e.target.value as 'dark' | 'light',
+                })
+              }
+            >
+              <option value="dark">Escuro</option>
+              <option value="light">Claro</option>
+            </select>
+          </Field>
+          <p className="text-[10px] text-muted-foreground/75">
+            Player compacto com capa, lista de faixas e controles — igual ao embed oficial do
+            Spotify. Playlist, álbum, artista ou música.
+          </p>
         </>
       )}
 

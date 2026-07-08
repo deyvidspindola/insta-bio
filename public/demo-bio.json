@@ -7,6 +7,12 @@
       "handle": "@linksnabio",
       "url": "https://www.instagram.com/instabio"
     },
+    "socialLinks": [
+      {
+        "network": "instagram",
+        "url": "https://www.instagram.com/instabio"
+      }
+    ],
     "logo": "/assets/logo-instabio.svg",
     "background": {
       "preset": "cobalt-spot"

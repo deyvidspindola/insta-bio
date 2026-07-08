@@ -38,6 +38,7 @@ import {
   createSection,
   downloadBioConfig,
   loadBioConfig,
+  normalizeBioConfig,
 } from './lib/bio'
 import { DEMO_WHATSAPP_URL, loadDemoConfig } from './lib/demo'
 import { applyTheme, getStoredTheme, type Theme } from './lib/theme'
@@ -75,11 +76,15 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     setTheme(next)
   }
 
-  function commit(next: BioConfig) {
-    const synced = { ...next, brand: syncBrandSeo(next.brand) }
-    if (config) setPast((p) => [...p.slice(-(HISTORY_LIMIT - 1)), config])
-    setFuture([])
-    setConfig(synced)
+  function commit(updater: BioConfig | ((prev: BioConfig) => BioConfig)) {
+    setConfig((prev) => {
+      if (!prev) return prev
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      const synced = { ...next, brand: syncBrandSeo(next.brand) }
+      setPast((p) => [...p.slice(-(HISTORY_LIMIT - 1)), prev])
+      setFuture([])
+      return synced
+    })
   }
 
   function resetConfig(next: BioConfig) {
@@ -106,10 +111,12 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
 
   function reorderSections(from: number, to: number) {
     if (!config || from === to) return
-    const sections = [...config.sections]
-    const [moved] = sections.splice(from, 1)
-    sections.splice(to, 0, moved)
-    commit({ ...config, sections })
+    commit((prev) => {
+      const sections = [...prev.sections]
+      const [moved] = sections.splice(from, 1)
+      sections.splice(to, 0, moved)
+      return { ...prev, sections }
+    })
 
     if (activeSection === from) setActiveSection(to)
     else if (from < activeSection && to >= activeSection) setActiveSection(activeSection - 1)
@@ -185,7 +192,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     reader.onload = () => {
       try {
         const parsed = JSON.parse(String(reader.result)) as BioConfig
-        resetConfig(parsed)
+        resetConfig(normalizeBioConfig(parsed))
         setActiveSection(0)
         showStatus('JSON importado com sucesso')
       } catch {
@@ -197,7 +204,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
 
   function addSection() {
     if (!config) return
-    commit({ ...config, sections: [...config.sections, createSection()] })
+    commit((prev) => ({ ...prev, sections: [...prev.sections, createSection()] }))
     setActiveSection(config.sections.length)
   }
 
@@ -468,11 +475,11 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
 
           <main className="min-w-0 p-4 sm:p-6 md:col-start-1 md:row-start-2 xl:col-start-2 xl:row-start-1">
             {activeTab === 'identity' && (
-              <IdentityForm brand={config.brand} onChange={(brand) => commit({ ...config, brand })} />
+              <IdentityForm brand={config.brand} onChange={(brand) => commit((prev) => ({ ...prev, brand }))} />
             )}
 
             {activeTab === 'appearance' && (
-              <AppearanceForm brand={config.brand} onChange={(brand) => commit({ ...config, brand })} />
+              <AppearanceForm brand={config.brand} onChange={(brand) => commit((prev) => ({ ...prev, brand }))} />
             )}
 
             {activeTab === 'sections' && config.sections.length > 0 && (
@@ -513,13 +520,17 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                   <SectionEditor
                     section={config.sections[activeSection]}
                     onChange={(section) => {
-                      const sections = [...config.sections]
-                      sections[activeSection] = section
-                      commit({ ...config, sections })
+                      commit((prev) => {
+                        const sections = [...prev.sections]
+                        sections[activeSection] = section
+                        return { ...prev, sections }
+                      })
                     }}
                     onRemove={() => {
-                      const sections = config.sections.filter((_, i) => i !== activeSection)
-                      commit({ ...config, sections })
+                      commit((prev) => {
+                        const sections = prev.sections.filter((_, i) => i !== activeSection)
+                        return { ...prev, sections }
+                      })
                       setActiveSection(Math.max(0, activeSection - 1))
                     }}
                   />

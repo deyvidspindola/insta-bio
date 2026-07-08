@@ -7,6 +7,12 @@
       "handle": "",
       "url": ""
     },
+    "socialLinks": [
+      {
+        "network": "instagram",
+        "url": ""
+      }
+    ],
     "logo": "",
     "theme": {
       "primary": "oklch(0.72 0.16 55)",

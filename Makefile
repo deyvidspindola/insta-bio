@@ -1,5 +1,5 @@
 .PHONY: help install setup dev dev-all admin site site-build build admin-build hostgator package preview \
-	hash-password auth-init lint clean
+	hash-password auth-init lint clean platform-core
 
 .DEFAULT_GOAL := help
 
@@ -15,6 +15,7 @@ help: ## Lista os comandos disponíveis
 	@echo "  make install"
 	@echo "  make dev-all"
 	@echo "  make package"
+	@echo "  make platform-core"
 	@echo "  make hash-password PASSWORD=\"SenhaForteDoCliente\""
 
 ## — Dependências -------------------------------------------------------------
@@ -63,6 +64,9 @@ panel: ## Painel da plataforma (dev) → http://localhost:5175/panel/
 
 package-platform: ## Build completo: landing + panel + template → platform-release/
 	npm run build:platform
+
+platform-core: ## Platform sem landing → platform-release/
+	npm run build:core
 
 package-template: ## Gera só o template de cliente → platform-template/_template/
 	npm run build:template

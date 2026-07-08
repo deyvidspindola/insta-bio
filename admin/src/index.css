@@ -118,6 +118,19 @@ label {
   margin-bottom: 0.75rem;
 }
 
+.social-link-row select {
+  width: 100%;
+  min-width: 9rem;
+  padding-left: 0.625rem;
+  padding-right: 2rem;
+  font-size: 0.8125rem;
+}
+
+.social-link-row input {
+  width: 100%;
+  min-width: 0;
+}
+
 /* Botões estilo Bootstrap 5 — sólidos, escurecem no hover, anel de foco.
    Adaptados ao tema escuro e ao laranja de marca do projeto.
    As classes de cor já herdam o layout base, então funcionam mesmo
