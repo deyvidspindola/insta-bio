@@ -73,6 +73,11 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   const [actionError, setActionError] = useState<string | null>(null)
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null)
   const [focusItemIndex, setFocusItemIndex] = useState<number | null>(null)
+  const [openItemRequest, setOpenItemRequest] = useState<{
+    sectionId: string
+    index: number
+    nonce: number
+  } | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme())
@@ -100,6 +105,24 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
           itemIndex: focusItemIndex,
         }
       : null
+
+  function handlePreviewSelect(target: { sectionId: string; itemIndex: number }) {
+    if (!config) return
+    const sectionIndex = config.sections.findIndex((section) => section.id === target.sectionId)
+    if (sectionIndex < 0) return
+    if (target.itemIndex < 0 || target.itemIndex >= config.sections[sectionIndex].items.length) {
+      return
+    }
+
+    setActiveTab('sections')
+    setActiveSection(sectionIndex)
+    setFocusItemIndex(target.itemIndex)
+    setOpenItemRequest({
+      sectionId: target.sectionId,
+      index: target.itemIndex,
+      nonce: Date.now(),
+    })
+  }
 
   function toggleTheme() {
     const next: Theme = theme === 'dark' ? 'light' : 'dark'
@@ -696,6 +719,12 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                       })
                     }}
                     onFocusItem={setFocusItemIndex}
+                    openItemRequest={
+                      openItemRequest &&
+                      openItemRequest.sectionId === config.sections[activeSection].id
+                        ? { index: openItemRequest.index, nonce: openItemRequest.nonce }
+                        : null
+                    }
                     onRemove={() => {
                       commit((prev) => {
                         const sections = prev.sections.filter((_, i) => i !== activeSection)
@@ -703,6 +732,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                       })
                       setActiveSection(Math.max(0, activeSection - 1))
                       setFocusItemIndex(null)
+                      setOpenItemRequest(null)
                     }}
                   />
                 </div>
@@ -757,7 +787,12 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
             <p className="mb-3 hidden text-[10px] font-semibold uppercase tracking-wider text-muted-foreground xl:block">
               Preview ao vivo
             </p>
-            <PreviewPanel config={config} compact focus={previewFocus} />
+            <PreviewPanel
+              config={config}
+              compact
+              focus={previewFocus}
+              onSelectItem={handlePreviewSelect}
+            />
           </div>
         </div>
 
@@ -777,6 +812,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
           open={previewOpen}
           onClose={() => setPreviewOpen(false)}
           focus={previewFocus}
+          onSelectItem={handlePreviewSelect}
         />
 
         <ConfirmDialog

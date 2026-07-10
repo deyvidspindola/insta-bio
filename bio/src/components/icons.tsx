@@ -1,33 +1,72 @@
 import {
   ArrowUpRight,
   Baby,
+  Bell,
+  Bookmark,
   BookOpen,
+  Briefcase,
+  Building2,
+  Cake,
   Calendar,
   Camera,
+  Car,
+  Check,
   Church,
   ClipboardList,
+  Clock,
+  Coffee,
   Compass,
+  CreditCard,
+  Download,
   Droplets,
+  Dumbbell,
+  ExternalLink,
+  FileText,
+  Flame,
   Gift,
   Globe,
+  GraduationCap,
   HandHeart,
+  Handshake,
   Headphones,
   Heart,
   Home,
+  Image,
+  Info,
+  Leaf,
   Link,
+  Lock,
   Mail,
   MapPin,
+  Megaphone,
   MessageCircle,
   Mic,
   Moon,
   Music,
+  Newspaper,
+  Palette,
+  PartyPopper,
+  Percent,
   Phone,
+  Plane,
   Play,
+  Scissors,
+  Send,
   Share2,
+  Shirt,
+  ShoppingCart,
+  Smile,
   Sparkles,
   Star,
+  Store,
   Sun,
+  Tag,
+  Ticket,
+  ThumbsUp,
+  Utensils,
   Users,
+  Video,
+  Wallet,
   Zap,
 } from 'lucide-react'
 import type { ComponentType } from 'react'
@@ -49,7 +88,7 @@ const lucideIcons = {
   form: ClipboardList,
   youtube: Play,
   pray: Church,
-  coffee: Gift,
+  coffee: Coffee,
   message: MessageCircle,
   star: Star,
   phone: Phone,
@@ -66,7 +105,55 @@ const lucideIcons = {
   sun: Sun,
   moon: Moon,
   church: Church,
-} as const
+  cart: ShoppingCart,
+  store: Store,
+  card: CreditCard,
+  tag: Tag,
+  percent: Percent,
+  briefcase: Briefcase,
+  clock: Clock,
+  ticket: Ticket,
+  video: Video,
+  image: Image,
+  check: Check,
+  info: Info,
+  bell: Bell,
+  bookmark: Bookmark,
+  'thumbs-up': ThumbsUp,
+  flame: Flame,
+  leaf: Leaf,
+  utensils: Utensils,
+  car: Car,
+  building: Building2,
+  graduation: GraduationCap,
+  wallet: Wallet,
+  download: Download,
+  external: ExternalLink,
+  megaphone: Megaphone,
+  newspaper: Newspaper,
+  palette: Palette,
+  scissors: Scissors,
+  shirt: Shirt,
+  dumbbell: Dumbbell,
+  plane: Plane,
+  cake: Cake,
+  party: PartyPopper,
+  smile: Smile,
+  lock: Lock,
+  send: Send,
+  file: FileText,
+  handshake: Handshake,
+} as const satisfies Partial<Record<IconName, ComponentType<{ className?: string }>>>
+
+/** Cruz cristã simples (Lucide Cross é um “X”). */
+export function FaithCrossIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3v18" />
+      <path d="M7 9h10" />
+    </svg>
+  )
+}
 
 export function WhatsAppIcon({ className }: { className?: string }) {
   return (
@@ -136,11 +223,15 @@ export function SpotifyIcon({ className }: { className?: string }) {
 }
 
 const brandIcons: Partial<Record<IconName, ComponentType<{ className?: string }>>> = {
+  whatsapp: WhatsAppIcon,
+  youtube: YouTubeIcon,
   instagram: InstagramIcon,
   tiktok: TikTokIcon,
   facebook: FacebookIcon,
   telegram: TelegramIcon,
   spotify: SpotifyIcon,
+  mail: EmailIcon,
+  cross: FaithCrossIcon,
 }
 
 export function BioIcon({
@@ -150,17 +241,13 @@ export function BioIcon({
   name?: IconName
   className?: string
 }) {
-  if (!name) {
-    return <ArrowUpRight className={className} aria-hidden="true" />
-  }
+  if (!name) return null
 
   const Brand = brandIcons[name]
   if (Brand) return <Brand className={className} />
 
   const Icon = lucideIcons[name as keyof typeof lucideIcons]
-  if (!Icon) {
-    return <ArrowUpRight className={className} aria-hidden="true" />
-  }
+  if (!Icon) return null
 
   return <Icon className={className} aria-hidden="true" />
 }

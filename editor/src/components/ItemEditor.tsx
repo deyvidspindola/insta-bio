@@ -8,12 +8,11 @@ import {
   CARD_TYPES,
   CARD_WIDTH_OPTIONS,
   FEATURE_VARIANTS,
-  ICON_LABELS,
-  ICON_OPTIONS,
   MEDIA_CARD_VARIANTS,
   resolveHeroLayout,
 } from '../lib/bio'
 import { GradientField } from './GradientField'
+import { IconPicker } from './IconPicker'
 import { ImageField } from './ImageField'
 import { ProductsField } from './ProductsField'
 import { SlidesField } from './SlidesField'
@@ -28,6 +27,8 @@ interface ItemEditorProps {
   dragHandle?: ReactNode
   collapsed?: boolean
   onToggleCollapse?: () => void
+  /** Abre este card (acordeão) ao clicar no cabeçalho */
+  onSelect?: () => void
   onFocus?: () => void
 }
 
@@ -55,26 +56,12 @@ function FieldGroup({ title, children }: { title: string; children: ReactNode })
   )
 }
 
-function IconSelect({
-  value,
-  onChange,
-}: {
-  value?: IconName
-  onChange: (value?: IconName) => void
-}) {
-  return (
-    <select
-      value={value ?? ''}
-      onChange={(e) => onChange((e.target.value as IconName) || undefined)}
-    >
-      <option value="">Sem ícone</option>
-      {ICON_OPTIONS.map((icon) => (
-        <option key={icon} value={icon}>
-          {ICON_LABELS[icon] ?? icon}
-        </option>
-      ))}
-    </select>
-  )
+/** Define ou remove o ícone sem deixar `icon: undefined` no objeto. */
+function withOptionalIcon<T extends { icon?: IconName }>(item: T, icon?: IconName): T {
+  if (icon) return { ...item, icon }
+  if (!('icon' in item)) return item
+  const { icon: _removed, ...rest } = item
+  return rest as T
 }
 
 type Tag = { label: string; icon?: IconName }
@@ -87,7 +74,11 @@ function TagsField({
   onChange: (tags: Tag[]) => void
 }) {
   function updateTag(index: number, patch: Partial<Tag>) {
-    const next = value.map((tag, i) => (i === index ? { ...tag, ...patch } : tag))
+    const next = value.map((tag, i) => {
+      if (i !== index) return tag
+      if ('icon' in patch) return withOptionalIcon({ ...tag, ...patch }, patch.icon)
+      return { ...tag, ...patch }
+    })
     onChange(next)
   }
 
@@ -109,23 +100,26 @@ function TagsField({
         {value.map((tag, index) => (
           <div
             key={index}
-            className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 p-2"
+            className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-2 sm:flex-row sm:items-end"
           >
-            <input
-              className="min-w-0 flex-1"
-              value={tag.label}
-              placeholder="Texto da tag"
-              onChange={(e) => updateTag(index, { label: e.target.value })}
-            />
-            <div className="w-32 shrink-0 sm:w-40">
-              <IconSelect
+            <div className="min-w-0 flex-1">
+              <input
+                className="w-full"
+                value={tag.label}
+                placeholder="Texto da tag"
+                onChange={(e) => updateTag(index, { label: e.target.value })}
+              />
+            </div>
+            <div className="min-w-0 flex-1 sm:max-w-[11rem]">
+              <IconPicker
+                bare
                 value={tag.icon}
                 onChange={(icon) => updateTag(index, { icon })}
               />
             </div>
             <button
               type="button"
-              className="btn-ghost shrink-0 px-2 py-1 text-xs"
+              className="btn-ghost shrink-0 self-end px-2 py-1 text-xs sm:mb-0.5"
               onClick={() => removeTag(index)}
               title="Remover tag"
               aria-label="Remover tag"
@@ -262,6 +256,7 @@ export function ItemEditor({
   dragHandle,
   collapsed = false,
   onToggleCollapse,
+  onSelect,
   onFocus,
 }: ItemEditorProps) {
   const typeLabel =
@@ -271,23 +266,47 @@ export function ItemEditor({
         ? 'WhatsApp destaque'
         : CARD_TYPES.find((t) => t.value === item.type)?.label ?? item.type
 
-  function expandAndFocus() {
+  function selectCard() {
     onFocus?.()
-    onToggleCollapse?.()
+    if (collapsed) onSelect?.()
   }
 
   return (
     <div
-      className={`card ${collapsed ? '' : 'space-y-3'} ${onFocus ? 'ring-offset-background' : ''}`}
+      className={`card ${collapsed ? '' : 'space-y-3'} ${
+        !collapsed ? 'ring-1 ring-primary/35' : ''
+      }`}
       onFocusCapture={() => onFocus?.()}
     >
-      <div className="flex items-center justify-between gap-3">
+      <div
+        className={`flex items-center justify-between gap-3 ${
+          collapsed ? 'cursor-pointer rounded-lg' : ''
+        }`}
+        onClick={(e) => {
+          if (!collapsed) return
+          const target = e.target as HTMLElement
+          if (target.closest('button, a, input, select, textarea')) return
+          selectCard()
+        }}
+        onKeyDown={(e) => {
+          if (!collapsed) return
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            selectCard()
+          }
+        }}
+        role={collapsed ? 'button' : undefined}
+        tabIndex={collapsed ? 0 : undefined}
+      >
         <div className="flex min-w-0 items-center gap-2">
           {dragHandle}
           {onToggleCollapse && (
             <button
               type="button"
-              onClick={expandAndFocus}
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleCollapse()
+              }}
               className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
               title={collapsed ? 'Expandir' : 'Recolher'}
               aria-expanded={!collapsed}
@@ -297,9 +316,11 @@ export function ItemEditor({
           )}
           <button
             type="button"
-            onClick={expandAndFocus}
+            onClick={(e) => {
+              e.stopPropagation()
+              selectCard()
+            }}
             className="min-w-0 text-left"
-            disabled={!onToggleCollapse}
           >
             <p className="text-xs uppercase tracking-wider text-muted-foreground">{typeLabel}</p>
             <p className="truncate font-medium">
@@ -319,7 +340,7 @@ export function ItemEditor({
             </p>
           </button>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
           {onDuplicate && (
             <button
               type="button"
@@ -387,12 +408,10 @@ export function ItemEditor({
                 </select>
               </Field>
               {item.preset === 'custom' && (
-                <Field label="Ícone">
-                  <IconSelect
-                    value={item.icon}
-                    onChange={(icon) => onChange({ ...item, icon })}
-                  />
-                </Field>
+                <IconPicker
+                  value={item.icon}
+                  onChange={(icon) => onChange(withOptionalIcon(item, icon))}
+                />
               )}
               <HeroLayoutFields
                 item={item}
@@ -467,9 +486,10 @@ export function ItemEditor({
               </FieldGroup>
 
               <FieldGroup title="Mídia e estilo">
-                <Field label="Ícone">
-                  <IconSelect value={item.icon} onChange={(icon) => onChange({ ...item, icon })} />
-                </Field>
+                <IconPicker
+                  value={item.icon}
+                  onChange={(icon) => onChange(withOptionalIcon(item, icon))}
+                />
                 <ImageField
                   label="Imagem (retrato / banner)"
                   value={item.image}
@@ -514,9 +534,10 @@ export function ItemEditor({
                     onChange={(e) => onChange({ ...item, subtitle: e.target.value })}
                   />
                 </Field>
-                <Field label="Ícone">
-                  <IconSelect value={item.icon} onChange={(icon) => onChange({ ...item, icon })} />
-                </Field>
+                <IconPicker
+                  value={item.icon}
+                  onChange={(icon) => onChange(withOptionalIcon(item, icon))}
+                />
               </FieldGroup>
             </>
           )}

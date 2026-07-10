@@ -13,6 +13,8 @@ interface PreviewPanelProps {
   compact?: boolean
   /** Destaca e rola até o card sendo editado */
   focus?: PreviewFocus | null
+  /** Clique em um card no preview → seleciona no editor */
+  onSelectItem?: (focus: PreviewFocus) => void
 }
 
 /** URL do iframe de preview — demo na raiz usa /preview; editor do cliente usa ./preview.html */
@@ -35,7 +37,12 @@ function previewIframeSrc(): string {
   return `${base}preview.html`
 }
 
-export function PreviewPanel({ config, compact = false, focus = null }: PreviewPanelProps) {
+export function PreviewPanel({
+  config,
+  compact = false,
+  focus = null,
+  onSelectItem,
+}: PreviewPanelProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [ready, setReady] = useState(false)
   const previewSrc = useMemo(() => previewIframeSrc(), [])
@@ -45,11 +52,18 @@ export function PreviewPanel({ config, compact = false, focus = null }: PreviewP
       if (event.data?.type === 'bio-preview-ready') {
         setReady(true)
       }
+      if (event.data?.type === 'bio-preview-select' && onSelectItem) {
+        const sectionId = event.data.sectionId
+        const itemIndex = event.data.itemIndex
+        if (typeof sectionId === 'string' && typeof itemIndex === 'number') {
+          onSelectItem({ sectionId, itemIndex })
+        }
+      }
     }
 
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [])
+  }, [onSelectItem])
 
   useEffect(() => {
     if (!ready || !iframeRef.current?.contentWindow) return

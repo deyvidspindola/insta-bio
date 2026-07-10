@@ -164,8 +164,7 @@ export function FeatureCard({ item, grid = false }: { item: FeatureCardType; gri
               )}
             </div>
             {item.cta && (
-              <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-black shadow-md sm:hidden">
-                <BioIcon name="hand-heart" className="h-3.5 w-3.5" />
+              <span className="mt-3 inline-flex items-center rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-black shadow-md sm:hidden">
                 {item.cta}
               </span>
             )}
@@ -186,9 +185,11 @@ export function FeatureCard({ item, grid = false }: { item: FeatureCardType; gri
           }}
         >
           <div className="relative flex items-center gap-3 sm:gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#FF0000] shadow-[0_8px_24px_-6px_rgba(255,0,0,0.6)] ring-1 ring-white/10 sm:h-14 sm:w-[60px]">
-              <BioIcon name={item.icon} className="h-6 w-6 text-white sm:h-7 sm:w-7" />
-            </div>
+            {item.icon && (
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#FF0000] shadow-[0_8px_24px_-6px_rgba(255,0,0,0.6)] ring-1 ring-white/10 sm:h-14 sm:w-[60px]">
+                <BioIcon name={item.icon} className="h-6 w-6 text-white sm:h-7 sm:w-7" />
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               {item.badge && (
                 <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#FF4D6A]">
@@ -223,9 +224,11 @@ export function FeatureCard({ item, grid = false }: { item: FeatureCardType; gri
           <ArrowIcon className="absolute right-3 top-3 h-5 w-5 text-white/80 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         )}
         <div className="relative z-10 flex items-start gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-            <BioIcon name={item.icon ?? 'compass'} className="h-7 w-7 text-white" />
-          </div>
+          {item.icon && (
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+              <BioIcon name={item.icon} className="h-7 w-7 text-white" />
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             {item.badge && (
               <span className="inline-block text-[10px] font-semibold uppercase tracking-[0.2em] text-white/90">

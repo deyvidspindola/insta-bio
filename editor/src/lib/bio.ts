@@ -1,4 +1,4 @@
-import type { BioConfig, BioSection, IconName, SectionItem, AppHeroPreset, AppHeroLayout } from '@bio-types'
+import type { BioConfig, BioSection, SectionItem, AppHeroPreset, AppHeroLayout } from '@bio-types'
 import { bioJsonUrl } from '@site/lib/publicUrl'
 import { normalizeBrandSocial } from '@site/lib/socialLinks'
 import defaultBio from '../../../bio/public/bio.default.json'
@@ -6,86 +6,14 @@ import { APP_HERO_PRESET_LIST, createAppHero } from '@site/lib/appHeroPresets'
 
 export { APP_HERO_PRESET_LIST, createAppHero }
 export type { AppHeroPreset }
-
-export const ICON_LABELS: Record<IconName, string> = {
-  whatsapp: 'WhatsApp',
-  compass: 'Bússola',
-  droplets: 'Água / Batismo',
-  'map-pin': 'Localização',
-  heart: 'Coração',
-  gift: 'Presente',
-  'hand-heart': 'Voluntariado',
-  sparkles: 'Brilho',
-  zap: 'Raio / Energia',
-  baby: 'Bebê / Kids',
-  users: 'Pessoas / Grupo',
-  calendar: 'Calendário / Evento',
-  form: 'Formulário',
-  youtube: 'YouTube',
-  pray: 'Oração / Igreja',
-  coffee: 'Café',
-  message: 'Mensagem',
-  star: 'Estrela',
-  phone: 'Telefone',
-  mail: 'E-mail',
-  globe: 'Site / Web',
-  link: 'Link',
-  music: 'Música',
-  mic: 'Microfone / Podcast',
-  book: 'Livro / Bíblia',
-  camera: 'Câmera / Foto',
-  home: 'Casa / Início',
-  share: 'Compartilhar',
-  headphones: 'Áudio',
-  sun: 'Sol',
-  moon: 'Lua',
-  church: 'Igreja',
-  instagram: 'Instagram',
-  tiktok: 'TikTok',
-  facebook: 'Facebook',
-  telegram: 'Telegram',
-  spotify: 'Spotify',
-}
-
-export const ICON_OPTIONS: IconName[] = [
-  'whatsapp',
-  'instagram',
-  'youtube',
-  'tiktok',
-  'facebook',
-  'telegram',
-  'spotify',
-  'message',
-  'phone',
-  'mail',
-  'globe',
-  'link',
-  'compass',
-  'map-pin',
-  'heart',
-  'gift',
-  'hand-heart',
-  'sparkles',
-  'star',
-  'zap',
-  'baby',
-  'users',
-  'calendar',
-  'form',
-  'pray',
-  'church',
-  'coffee',
-  'music',
-  'mic',
-  'book',
-  'camera',
-  'home',
-  'share',
-  'headphones',
-  'sun',
-  'moon',
-  'droplets',
-]
+export {
+  ICON_CATALOG,
+  ICON_CATEGORY_LABELS,
+  ICON_LABELS,
+  ICON_OPTIONS,
+  filterIconCatalog,
+} from './iconCatalog'
+export type { IconCatalogEntry, IconCategory } from './iconCatalog'
 
 export const CARD_WIDTH_OPTIONS = [
   { value: 'full', label: 'Largura total' },
@@ -250,7 +178,6 @@ export function createItem(type: SectionItem['type']): SectionItem {
         description: 'Descrição do card',
         url: 'https://',
         variant: 'gradient',
-        icon: 'heart',
       }
     case 'link':
       return {
@@ -258,7 +185,6 @@ export function createItem(type: SectionItem['type']): SectionItem {
         title: 'Novo link',
         subtitle: 'Subtítulo opcional',
         url: 'https://',
-        icon: 'heart',
       }
     case 'grid':
       return {

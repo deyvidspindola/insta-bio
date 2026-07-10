@@ -4,6 +4,7 @@ import { ArrowIcon, BioIcon } from './icons'
 
 export function LinkCard({ item, grid = false }: { item: LinkCardType; grid?: boolean }) {
   const clickable = hasClickableUrl(item.url)
+  const hasIcon = Boolean(item.icon)
 
   if (grid) {
     return (
@@ -12,9 +13,13 @@ export function LinkCard({ item, grid = false }: { item: LinkCardType; grid?: bo
         className="bio-card bio-link-card bio-link-card--grid group relative flex h-full flex-col p-3"
       >
         <div className="bio-link-body mb-3 flex items-center justify-between">
-          <div className="bio-link-icon-wrap flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
-            <BioIcon name={item.icon} className="h-5 w-5 text-primary" />
-          </div>
+          {hasIcon ? (
+            <div className="bio-link-icon-wrap flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
+              <BioIcon name={item.icon} className="h-5 w-5 text-primary" />
+            </div>
+          ) : (
+            <span />
+          )}
           {clickable && (
             <ArrowIcon className="bio-link-arrow h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
           )}
@@ -36,9 +41,11 @@ export function LinkCard({ item, grid = false }: { item: LinkCardType; grid?: bo
   return (
     <CardLink url={item.url} className="bio-card bio-link-card group relative block">
       <div className="bio-link-body flex items-center gap-4 p-4">
-        <div className="bio-link-icon-wrap flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
-          <BioIcon name={item.icon} className="h-6 w-6 text-primary" />
-        </div>
+        {hasIcon && (
+          <div className="bio-link-icon-wrap flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
+            <BioIcon name={item.icon} className="h-6 w-6 text-primary" />
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <h3 className="bio-link-title text-base font-bold leading-tight text-foreground">
             {item.title}

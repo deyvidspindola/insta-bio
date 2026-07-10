@@ -7,10 +7,17 @@ interface PreviewSheetProps {
   open: boolean
   onClose: () => void
   focus?: PreviewFocus | null
+  onSelectItem?: (focus: PreviewFocus) => void
 }
 
 /** Preview dockado no mobile: metade inferior da tela, formulário continua editável. */
-export function PreviewSheet({ config, open, onClose, focus = null }: PreviewSheetProps) {
+export function PreviewSheet({
+  config,
+  open,
+  onClose,
+  focus = null,
+  onSelectItem,
+}: PreviewSheetProps) {
   if (!open) return null
 
   return (
@@ -24,7 +31,9 @@ export function PreviewSheet({ config, open, onClose, focus = null }: PreviewShe
         <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
           <div>
             <p className="text-sm font-semibold">Preview ao vivo</p>
-            <p className="text-[10px] text-muted-foreground">Continue editando acima — o preview atualiza sozinho</p>
+            <p className="text-[10px] text-muted-foreground">
+              Toque num card para editá-lo · continue editando acima
+            </p>
           </div>
           <button
             type="button"
@@ -36,7 +45,7 @@ export function PreviewSheet({ config, open, onClose, focus = null }: PreviewShe
           </button>
         </div>
         <div className="overflow-y-auto px-3 py-3">
-          <PreviewPanel config={config} compact focus={focus} />
+          <PreviewPanel config={config} compact focus={focus} onSelectItem={onSelectItem} />
         </div>
       </div>
     </div>

@@ -19,12 +19,21 @@ interface SectionEditorProps {
   onChange: (section: BioSection) => void
   onRemove: () => void
   onFocusItem?: (index: number | null) => void
+  /** Abre este card (ex.: clique no preview) e fecha os demais */
+  openItemRequest?: { index: number; nonce: number } | null
 }
 
-export function SectionEditor({ section, onChange, onRemove, onFocusItem }: SectionEditorProps) {
+export function SectionEditor({
+  section,
+  onChange,
+  onRemove,
+  onFocusItem,
+  openItemRequest = null,
+}: SectionEditorProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
-  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set(section.items.map((_, i) => i)))
+  /** Índice do único card expandido; null = todos recolhidos */
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
   const [confirmRemoveSection, setConfirmRemoveSection] = useState(false)
   const [confirmRemoveItem, setConfirmRemoveItem] = useState<number | null>(null)
 
@@ -34,12 +43,24 @@ export function SectionEditor({ section, onChange, onRemove, onFocusItem }: Sect
     onChange(ensureGridHeroLayouts(next))
   }
 
+  function openOnly(index: number) {
+    setExpandedIndex(index)
+    onFocusItem?.(index)
+  }
+
   useEffect(() => {
-    setCollapsed(new Set(section.items.map((_, i) => i)))
+    setExpandedIndex(null)
     onFocusItem?.(null)
     // Ao trocar de seção, recolhe todos os cards.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section.id])
+
+  useEffect(() => {
+    if (!openItemRequest) return
+    if (openItemRequest.index < 0 || openItemRequest.index >= section.items.length) return
+    openOnly(openItemRequest.index)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openItemRequest?.nonce, openItemRequest?.index, section.id])
 
   useEffect(() => {
     const fixed = ensureGridHeroLayouts(section)
@@ -49,26 +70,18 @@ export function SectionEditor({ section, onChange, onRemove, onFocusItem }: Sect
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section.id, section.layout])
 
+  /** Seta do acordeão: abre este (fechando os outros) ou fecha se já estiver aberto. */
   function toggleCollapse(index: number) {
-    setCollapsed((prev) => {
-      const next = new Set(prev)
-      if (next.has(index)) {
-        next.delete(index)
-        onFocusItem?.(index)
-      } else {
-        next.add(index)
-      }
-      return next
-    })
+    if (expandedIndex === index) {
+      setExpandedIndex(null)
+      return
+    }
+    openOnly(index)
   }
 
   function collapseAll() {
-    setCollapsed(new Set(section.items.map((_, i) => i)))
+    setExpandedIndex(null)
     onFocusItem?.(null)
-  }
-
-  function expandAll() {
-    setCollapsed(new Set())
   }
 
   function updateItem(index: number, item: SectionItem) {
@@ -80,13 +93,11 @@ export function SectionEditor({ section, onChange, onRemove, onFocusItem }: Sect
 
   function removeItem(index: number) {
     patchSection({ ...section, items: section.items.filter((_, i) => i !== index) })
-    setCollapsed((prev) => {
-      const next = new Set<number>()
-      for (const i of prev) {
-        if (i < index) next.add(i)
-        else if (i > index) next.add(i - 1)
-      }
-      return next
+    setExpandedIndex((current) => {
+      if (current === null) return null
+      if (current === index) return null
+      if (current > index) return current - 1
+      return current
     })
     onFocusItem?.(null)
     setConfirmRemoveItem(null)
@@ -98,11 +109,12 @@ export function SectionEditor({ section, onChange, onRemove, onFocusItem }: Sect
     const [moved] = items.splice(from, 1)
     items.splice(to, 0, moved)
     patchSection({ ...section, items })
-    setCollapsed((prev) => {
-      const flags = section.items.map((_, i) => prev.has(i))
-      const [moved] = flags.splice(from, 1)
-      flags.splice(to, 0, moved)
-      return new Set(flags.flatMap((collapsedFlag, i) => (collapsedFlag ? [i] : [])))
+    setExpandedIndex((current) => {
+      if (current === null) return null
+      if (current === from) return to
+      if (from < current && to >= current) return current - 1
+      if (from > current && to <= current) return current + 1
+      return current
     })
     onFocusItem?.(to)
   }
@@ -111,16 +123,7 @@ export function SectionEditor({ section, onChange, onRemove, onFocusItem }: Sect
     const items = [...section.items]
     items.splice(index + 1, 0, cloneItem(section.items[index]))
     patchSection({ ...section, items })
-    setCollapsed((prev) => {
-      const next = new Set<number>()
-      for (const i of prev) {
-        if (i <= index) next.add(i)
-        else next.add(i + 1)
-      }
-      // novo card expandido
-      return next
-    })
-    onFocusItem?.(index + 1)
+    openOnly(index + 1)
   }
 
   function addItem(type: SectionItem['type']) {
@@ -131,16 +134,14 @@ export function SectionEditor({ section, onChange, onRemove, onFocusItem }: Sect
         : item
     const newIndex = section.items.length
     patchSection({ ...section, items: [...section.items, normalized] })
-    setCollapsed(new Set(section.items.map((_, i) => i)))
-    onFocusItem?.(newIndex)
+    openOnly(newIndex)
   }
 
   function addAppHero(preset: AppHeroPreset) {
     const hero = newHeroItemForSection(section, createAppHero(preset))
     const newIndex = section.items.length
     patchSection({ ...section, items: [...section.items, hero] })
-    setCollapsed(new Set(section.items.map((_, i) => i)))
-    onFocusItem?.(newIndex)
+    openOnly(newIndex)
   }
 
   const pendingItem =
@@ -229,9 +230,6 @@ export function SectionEditor({ section, onChange, onRemove, onFocusItem }: Sect
           <button type="button" className="btn-secondary px-3 py-1.5 text-xs" onClick={collapseAll}>
             Recolher todos
           </button>
-          <button type="button" className="btn-secondary px-3 py-1.5 text-xs" onClick={expandAll}>
-            Expandir todos
-          </button>
         </div>
       )}
 
@@ -258,8 +256,9 @@ export function SectionEditor({ section, onChange, onRemove, onFocusItem }: Sect
               onChange={(updated) => updateItem(index, updated)}
               onRemove={() => setConfirmRemoveItem(index)}
               onDuplicate={() => duplicateItem(index)}
-              collapsed={collapsed.has(index)}
+              collapsed={expandedIndex !== index}
               onToggleCollapse={() => toggleCollapse(index)}
+              onSelect={() => openOnly(index)}
               onFocus={() => onFocusItem?.(index)}
               dragHandle={
                 <div className="flex shrink-0 items-center gap-0.5">

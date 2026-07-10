@@ -900,6 +900,161 @@ input[type='range'] {
   font-size: 0.8125rem;
 }
 
+/* ── Icon picker ───────────────────────────────────────────────── */
+
+.icon-picker-trigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  padding: 0.55rem 0.75rem;
+  color: var(--color-foreground);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.icon-picker-trigger:hover {
+  border-color: color-mix(in oklch, var(--color-primary) 45%, var(--color-border));
+}
+
+.icon-picker-trigger__preview {
+  display: inline-flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.45rem;
+  background: color-mix(in oklch, var(--color-muted) 70%, transparent);
+  color: var(--color-foreground);
+}
+
+.icon-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  border: none;
+  background: oklch(0 0 0 / 0.5);
+  cursor: pointer;
+}
+
+.icon-picker-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 40;
+  max-height: min(22rem, 70vh);
+  overflow: auto;
+  border-radius: 0.85rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  box-shadow: 0 16px 40px oklch(0 0 0 / 0.28);
+}
+
+@media (max-width: 767px) {
+  .icon-picker-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    z-index: 60;
+    max-height: min(78vh, 34rem);
+    border-radius: 1.1rem 1.1rem 0 0;
+    box-shadow: 0 -12px 40px oklch(0 0 0 / 0.35);
+  }
+}
+
+.icon-picker-cats {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  scrollbar-width: none;
+}
+
+.icon-picker-cats::-webkit-scrollbar {
+  display: none;
+}
+
+.icon-picker-cat {
+  flex-shrink: 0;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+}
+
+.icon-picker-cat.active {
+  border-color: color-mix(in oklch, var(--color-primary) 50%, transparent);
+  background: color-mix(in oklch, var(--color-primary) 12%, transparent);
+  color: var(--color-foreground);
+}
+
+.icon-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+@media (min-width: 480px) {
+  .icon-picker-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.icon-picker-cell {
+  display: flex;
+  min-height: 4.25rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--color-border);
+  background: color-mix(in oklch, var(--color-card) 80%, transparent);
+  padding: 0.5rem 0.35rem;
+  color: var(--color-foreground);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.icon-picker-cell span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.625rem;
+  line-height: 1.2;
+  color: var(--color-muted-foreground);
+}
+
+.icon-picker-cell:hover {
+  border-color: color-mix(in oklch, var(--color-primary) 40%, var(--color-border));
+}
+
+.icon-picker-cell.active {
+  border-color: var(--color-primary);
+  background: color-mix(in oklch, var(--color-primary) 12%, transparent);
+}
+
+.icon-picker-cell.active span {
+  color: var(--color-foreground);
+  font-weight: 600;
+}
+
 /* ── Banner modo demonstração ──────────────────────────────────── */
 
 .demo-banner {

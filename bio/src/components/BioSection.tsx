@@ -1,3 +1,4 @@
+import type { CSSProperties, MouseEvent, ReactNode } from 'react'
 import type { BioSection, SectionItem } from '../types/bio'
 import { itemSpansFullInGrid, groupStackSectionItems } from '../lib/sectionLayout'
 import { AppHeroCard } from './AppHeroCard'
@@ -10,6 +11,48 @@ import { SlideCard } from './SlideCard'
 import { SpotifyEmbedCard } from './SpotifyEmbedCard'
 import { VideoCard } from './VideoCard'
 import { YoutubeEmbedCard } from './YoutubeEmbedCard'
+
+function isPreviewMode() {
+  return typeof document !== 'undefined' && document.documentElement.dataset.bioPreview === '1'
+}
+
+function wrapPreviewItem({
+  sectionId,
+  index,
+  className,
+  style,
+  children,
+}: {
+  sectionId: string
+  index: number
+  className: string
+  style?: CSSProperties
+  children: ReactNode
+}) {
+  const preview = isPreviewMode()
+
+  function onClickCapture(event: MouseEvent) {
+    if (!preview) return
+    event.preventDefault()
+    event.stopPropagation()
+    window.parent.postMessage(
+      { type: 'bio-preview-select', sectionId, itemIndex: index },
+      '*',
+    )
+  }
+
+  return (
+    <div
+      key={`${sectionId}:${index}`}
+      data-preview-item={`${sectionId}:${index}`}
+      className={`${className}${preview ? ' bio-preview-selectable' : ''}`}
+      style={style}
+      onClickCapture={preview ? onClickCapture : undefined}
+    >
+      {children}
+    </div>
+  )
+}
 
 function SectionTitle({
   title,
@@ -49,122 +92,90 @@ function renderItem(
   const inGrid = itemUsesGridLayout(item, grid)
   const spanClass = grid && itemSpansFullInGrid(item) ? 'col-span-2' : ''
   const focusClass = focused ? 'bio-preview-focus' : ''
-  const previewAttrs = {
-    'data-preview-item': `${sectionId}:${index}`,
-  }
+  const shell = `animate-fade-up ${spanClass} ${focusClass}`.trim()
 
   switch (item.type) {
     case 'whatsapp-hero':
     case 'app-hero':
-      return (
-        <div
-          key={`${item.type}-${item.title}-${index}`}
-          className={`animate-fade-up h-full ${spanClass} ${focusClass}`}
-          style={delay}
-          {...previewAttrs}
-        >
-          <AppHeroCard item={item} grid={grid} />
-        </div>
-      )
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        className: `${shell} h-full`,
+        style: delay,
+        children: <AppHeroCard item={item} grid={grid} />,
+      })
     case 'feature':
-      return (
-        <div
-          key={`feature-${item.title}-${index}`}
-          className={`animate-fade-up h-full ${spanClass} ${focusClass}`}
-          style={delay}
-          {...previewAttrs}
-        >
-          <FeatureCard item={item} grid={inGrid} />
-        </div>
-      )
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        className: `${shell} h-full`,
+        style: delay,
+        children: <FeatureCard item={item} grid={inGrid} />,
+      })
     case 'link':
-      return (
-        <div
-          key={`link-${item.title}-${index}`}
-          className={`animate-fade-up h-full ${spanClass} ${focusClass}`}
-          style={delay}
-          {...previewAttrs}
-        >
-          <LinkCard item={item} grid={inGrid} />
-        </div>
-      )
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        className: `${shell} h-full`,
+        style: delay,
+        children: <LinkCard item={item} grid={inGrid} />,
+      })
     case 'grid':
-      return (
-        <div
-          key={`grid-${item.title}-${index}`}
-          className={`animate-fade-up h-full ${spanClass} ${focusClass}`}
-          style={delay}
-          {...previewAttrs}
-        >
-          <GridCard item={item} />
-        </div>
-      )
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        className: `${shell} h-full`,
+        style: delay,
+        children: <GridCard item={item} />,
+      })
     case 'location':
-      return (
-        <div
-          key={`location-${item.title}-${index}`}
-          className={`animate-fade-up ${spanClass} ${focusClass}`}
-          style={delay}
-          {...previewAttrs}
-        >
-          <LocationCard item={item} />
-        </div>
-      )
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        className: shell,
+        style: delay,
+        children: <LocationCard item={item} />,
+      })
     case 'video':
-      return (
-        <div
-          key={`video-${item.video}-${index}`}
-          className={`animate-fade-up ${spanClass} ${focusClass}`}
-          style={delay}
-          {...previewAttrs}
-        >
-          <VideoCard item={item} />
-        </div>
-      )
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        className: shell,
+        style: delay,
+        children: <VideoCard item={item} />,
+      })
     case 'slide':
-      return (
-        <div
-          key={`slide-${index}-${item.slides.length}`}
-          className={`animate-fade-up ${spanClass} ${focusClass}`}
-          style={delay}
-          {...previewAttrs}
-        >
-          <SlideCard item={item} />
-        </div>
-      )
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        className: shell,
+        style: delay,
+        children: <SlideCard item={item} />,
+      })
     case 'products':
-      return (
-        <div
-          key={`products-${index}-${item.products.length}`}
-          className={`animate-fade-up col-span-2 ${focusClass}`}
-          style={delay}
-          {...previewAttrs}
-        >
-          <ProductsCard item={item} />
-        </div>
-      )
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
+        style: delay,
+        children: <ProductsCard item={item} />,
+      })
     case 'youtube-embed':
-      return (
-        <div
-          key={`youtube-${item.url}-${index}`}
-          className={`animate-fade-up col-span-2 ${focusClass}`}
-          style={delay}
-          {...previewAttrs}
-        >
-          <YoutubeEmbedCard item={item} />
-        </div>
-      )
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
+        style: delay,
+        children: <YoutubeEmbedCard item={item} />,
+      })
     case 'spotify-embed':
-      return (
-        <div
-          key={`spotify-${item.embed ?? item.url ?? index}-${index}`}
-          className={`animate-fade-up col-span-2 ${focusClass}`}
-          style={delay}
-          {...previewAttrs}
-        >
-          <SpotifyEmbedCard item={item} />
-        </div>
-      )
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
+        style: delay,
+        children: <SpotifyEmbedCard item={item} />,
+      })
     default:
       return null
   }

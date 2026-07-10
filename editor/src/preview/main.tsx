@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import type { BioConfig } from '@bio-types'
 import { BioPage } from '@site/components/BioPage'
@@ -24,6 +24,11 @@ async function loadBioJsonPathFromFile(): Promise<string | null> {
 function PreviewApp() {
   const [config, setConfig] = useState<BioConfig | null>(null)
   const [focus, setFocus] = useState<PreviewFocus | null>(null)
+  const lastScrolledFocusRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    document.documentElement.dataset.bioPreview = '1'
+  }, [])
 
   useEffect(() => {
     async function initPaths() {
@@ -47,7 +52,22 @@ function PreviewApp() {
       if (event.data?.type === 'bio-preview' && event.data.config) {
         setConfig(event.data.config as BioConfig)
         const nextFocus = event.data.focus as PreviewFocus | null | undefined
-        setFocus(nextFocus?.sectionId != null && nextFocus.itemIndex != null ? nextFocus : null)
+        const normalized =
+          nextFocus?.sectionId != null && nextFocus.itemIndex != null
+            ? { sectionId: nextFocus.sectionId, itemIndex: nextFocus.itemIndex }
+            : null
+        setFocus((prev) => {
+          if (!normalized && !prev) return prev
+          if (
+            prev &&
+            normalized &&
+            prev.sectionId === normalized.sectionId &&
+            prev.itemIndex === normalized.itemIndex
+          ) {
+            return prev
+          }
+          return normalized
+        })
       }
     }
 
@@ -57,19 +77,27 @@ function PreviewApp() {
     return () => window.removeEventListener('message', onMessage)
   }, [])
 
+  // Só rola quando o card em foco muda — nunca a cada edição de estilo/texto.
   useEffect(() => {
-    if (!focus) return
-    const key = `${focus.sectionId}:${focus.itemIndex}`
-    const el = document.querySelector<HTMLElement>(`[data-preview-item="${CSS.escape(key)}"]`)
-    if (!el) return
-
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    el.classList.add('bio-preview-focus')
-    const timer = window.setTimeout(() => el.classList.remove('bio-preview-focus'), 1600)
-    return () => {
-      window.clearTimeout(timer)
-      el.classList.remove('bio-preview-focus')
+    if (!focus) {
+      lastScrolledFocusRef.current = null
+      return
     }
+    if (!config) return
+
+    const key = `${focus.sectionId}:${focus.itemIndex}`
+    if (lastScrolledFocusRef.current === key) return
+
+    const frame = window.requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLElement>(
+        `[data-preview-item="${CSS.escape(key)}"]`,
+      )
+      if (!el) return
+      lastScrolledFocusRef.current = key
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    })
+
+    return () => window.cancelAnimationFrame(frame)
   }, [focus, config])
 
   if (!config) {
