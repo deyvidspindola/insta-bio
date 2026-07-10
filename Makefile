@@ -34,7 +34,7 @@ setup: install ## Alias para install
 dev: ## Site local → http://localhost:5173
 	npm run dev
 
-dev-all: ## Sobe bio, editor, painel e landing (Ctrl+C para parar)
+dev-all: ## Sobe bio, editor, painel e landing (rebuilda template se fontes mudaram)
 	bash scripts/dev-all.sh
 
 editor: ## Editor local (Node) → http://localhost:5180

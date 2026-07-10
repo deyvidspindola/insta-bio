@@ -157,3 +157,5 @@ console.log('Template pronto em: platform-template/_template/')
 console.log(`  bio assets: ${bioAssets}`)
 console.log(`  editor assets: ${editorAssets} arquivo(s)`)
 console.log('')
+
+fs.writeFileSync(path.join(TEMPLATE, '.dev-build-stamp'), String(Date.now()))

@@ -5,6 +5,11 @@ import { BioPage } from '@site/components/BioPage'
 import { setBioJsonRelativePath, pageRelativeUrl } from '@site/lib/publicUrl'
 import './preview.css'
 
+export interface PreviewFocus {
+  sectionId: string
+  itemIndex: number
+}
+
 async function loadBioJsonPathFromFile(): Promise<string | null> {
   try {
     const res = await fetch(pageRelativeUrl('bio-path.json'), { cache: 'no-store' })
@@ -18,6 +23,7 @@ async function loadBioJsonPathFromFile(): Promise<string | null> {
 
 function PreviewApp() {
   const [config, setConfig] = useState<BioConfig | null>(null)
+  const [focus, setFocus] = useState<PreviewFocus | null>(null)
 
   useEffect(() => {
     async function initPaths() {
@@ -40,6 +46,8 @@ function PreviewApp() {
       }
       if (event.data?.type === 'bio-preview' && event.data.config) {
         setConfig(event.data.config as BioConfig)
+        const nextFocus = event.data.focus as PreviewFocus | null | undefined
+        setFocus(nextFocus?.sectionId != null && nextFocus.itemIndex != null ? nextFocus : null)
       }
     }
 
@@ -49,6 +57,21 @@ function PreviewApp() {
     return () => window.removeEventListener('message', onMessage)
   }, [])
 
+  useEffect(() => {
+    if (!focus) return
+    const key = `${focus.sectionId}:${focus.itemIndex}`
+    const el = document.querySelector<HTMLElement>(`[data-preview-item="${CSS.escape(key)}"]`)
+    if (!el) return
+
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.classList.add('bio-preview-focus')
+    const timer = window.setTimeout(() => el.classList.remove('bio-preview-focus'), 1600)
+    return () => {
+      window.clearTimeout(timer)
+      el.classList.remove('bio-preview-focus')
+    }
+  }, [focus, config])
+
   if (!config) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
@@ -57,7 +80,7 @@ function PreviewApp() {
     )
   }
 
-  return <BioPage config={config} />
+  return <BioPage config={config} previewFocus={focus} />
 }
 
 createRoot(document.getElementById('root')!).render(<PreviewApp />)

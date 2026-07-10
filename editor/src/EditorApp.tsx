@@ -69,7 +69,10 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   const [activeTab, setActiveTab] = useState<Tab>('identity')
   const [activeSection, setActiveSection] = useState(0)
   const [status, setStatus] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null)
+  const [focusItemIndex, setFocusItemIndex] = useState<number | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme())
@@ -80,6 +83,23 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   const [reverting, setReverting] = useState(false)
   const [confirmPublishOpen, setConfirmPublishOpen] = useState(false)
   const statusTimerRef = useRef<number | null>(null)
+  const actionErrorTimerRef = useRef<number | null>(null)
+
+  function markClean(next: BioConfig) {
+    setSavedSnapshot(JSON.stringify(next))
+  }
+
+  const isDirty =
+    !isDemo &&
+    Boolean(config && savedSnapshot !== null && JSON.stringify(config) !== savedSnapshot)
+
+  const previewFocus =
+    config && focusItemIndex !== null && config.sections[activeSection]
+      ? {
+          sectionId: config.sections[activeSection].id,
+          itemIndex: focusItemIndex,
+        }
+      : null
 
   function toggleTheme() {
     const next: Theme = theme === 'dark' ? 'light' : 'dark'
@@ -98,10 +118,11 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     })
   }
 
-  function resetConfig(next: BioConfig) {
+  function resetConfig(next: BioConfig, options?: { clean?: boolean }) {
     setPast([])
     setFuture([])
     setConfig(next)
+    if (options?.clean !== false) markClean(next)
   }
 
   function undo() {
@@ -157,7 +178,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     if (isDemo) {
       loadDemoConfig()
         .then((data) => resetConfig(data))
-        .catch((err: Error) => setError(err.message))
+        .catch((err: Error) => setLoadError(err.message))
       return
     }
     if (!authenticated) return
@@ -170,14 +191,25 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
             : 'Bio publicada carregada',
         )
       })
-      .catch((err: Error) => setError(err.message))
+      .catch((err: Error) => setLoadError(err.message))
   }, [authenticated, isDemo])
 
   useEffect(() => {
     return () => {
       if (statusTimerRef.current) window.clearTimeout(statusTimerRef.current)
+      if (actionErrorTimerRef.current) window.clearTimeout(actionErrorTimerRef.current)
     }
   }, [])
+
+  useEffect(() => {
+    if (!isDirty || isDemo) return
+    function onBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [isDirty, isDemo])
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -222,6 +254,12 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     statusTimerRef.current = window.setTimeout(() => setStatus(null), 3000)
   }
 
+  function showActionError(message: string) {
+    setActionError(message)
+    if (actionErrorTimerRef.current) window.clearTimeout(actionErrorTimerRef.current)
+    actionErrorTimerRef.current = window.setTimeout(() => setActionError(null), 6000)
+  }
+
   async function handleCopy() {
     if (!config) return
     await copyBioConfig(config)
@@ -237,12 +275,13 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   async function handleSave() {
     if (!config || isDemo || saving || publishing) return
     setSaving(true)
-    setError(null)
+    setActionError(null)
     try {
       await saveBioConfig(config)
+      markClean(config)
       showStatus('Rascunho salvo')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar rascunho')
+      showActionError(err instanceof Error ? err.message : 'Erro ao salvar rascunho')
     } finally {
       setSaving(false)
     }
@@ -251,13 +290,14 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   async function handlePublish() {
     if (!config || isDemo || saving || publishing) return
     setPublishing(true)
-    setError(null)
+    setActionError(null)
     try {
       await publishBioConfig(config)
+      markClean(config)
       setConfirmPublishOpen(false)
       showStatus('Bio publicada')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao publicar')
+      showActionError(err instanceof Error ? err.message : 'Erro ao publicar')
     } finally {
       setPublishing(false)
     }
@@ -266,14 +306,15 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   async function handleRevertToPublished() {
     if (isDemo || reverting) return
     setReverting(true)
-    setError(null)
+    setActionError(null)
     try {
       const published = await revertDraftToPublished()
       resetConfig(normalizeBioConfig(published))
       setActiveSection(0)
+      setFocusItemIndex(null)
       showStatus('Rascunho revertido para a bio publicada')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao reverter rascunho')
+      showActionError(err instanceof Error ? err.message : 'Erro ao reverter rascunho')
       throw err
     } finally {
       setReverting(false)
@@ -286,11 +327,12 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     reader.onload = () => {
       try {
         const parsed = JSON.parse(String(reader.result)) as BioConfig
-        resetConfig(normalizeBioConfig(parsed))
+        resetConfig(normalizeBioConfig(parsed), { clean: false })
         setActiveSection(0)
-        showStatus('JSON importado com sucesso')
+        setFocusItemIndex(null)
+        showStatus('JSON importado — salve para gravar o rascunho')
       } catch {
-        setError('Arquivo JSON inválido')
+        showActionError('Arquivo JSON inválido')
       }
     }
     reader.readAsText(file)
@@ -300,6 +342,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     if (!config) return
     commit((prev) => ({ ...prev, sections: [...prev.sections, createSection()] }))
     setActiveSection(config.sections.length)
+    setFocusItemIndex(null)
   }
 
   if (!isDemo && authenticated === null) {
@@ -314,10 +357,10 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     return <LoginScreen onSuccess={() => setAuthenticated(true)} />
   }
 
-  if (error) {
+  if (loadError && !config) {
     return (
       <div className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-sm text-red-400">{error}</p>
+        <p className="text-sm text-red-400">{loadError}</p>
       </div>
     )
   }
@@ -330,12 +373,12 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     )
   }
 
-  const allRailTabs: { id: Tab; label: string; icon: typeof User }[] = [
-    { id: 'identity', label: 'Identidade', icon: User },
-    { id: 'appearance', label: 'Aparência', icon: Palette },
-    { id: 'sections', label: 'Conteúdo', icon: Layers },
-    { id: 'images', label: 'Arquivos', icon: Images },
-    { id: 'advanced', label: 'Configurações', icon: Settings },
+  const allRailTabs: { id: Tab; label: string; shortLabel: string; icon: typeof User }[] = [
+    { id: 'identity', label: 'Identidade', shortLabel: 'Perfil', icon: User },
+    { id: 'appearance', label: 'Aparência', shortLabel: 'Visual', icon: Palette },
+    { id: 'sections', label: 'Conteúdo', shortLabel: 'Cards', icon: Layers },
+    { id: 'images', label: 'Arquivos', shortLabel: 'Mídia', icon: Images },
+    { id: 'advanced', label: 'Configurações', shortLabel: 'Config', icon: Settings },
   ]
 
   const railTabs = isDemo
@@ -404,13 +447,22 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
 
                 <button
                   type="button"
-                  className="topbar-draft"
+                  className={`topbar-draft ${isDirty ? 'topbar-draft--dirty' : ''}`}
                   onClick={handleSave}
                   disabled={saving || publishing}
-                  title="Salvar rascunho (não publica a bio)"
+                  title={
+                    isDirty
+                      ? 'Há alterações não salvas — salvar rascunho (não publica a bio)'
+                      : 'Salvar rascunho (não publica a bio)'
+                  }
                 >
                   <Save className="h-4 w-4" />
-                  <span className="hidden sm:inline">{saving ? 'Salvando…' : 'Salvar'}</span>
+                  <span className="hidden sm:inline">
+                    {saving ? 'Salvando…' : isDirty ? 'Salvar*' : 'Salvar'}
+                  </span>
+                  {isDirty && !saving && (
+                    <span className="dirty-dot sm:hidden" aria-hidden="true" />
+                  )}
                 </button>
 
                 <button
@@ -466,10 +518,41 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
           </div>
         )}
 
+        {actionError && (
+          <div className="pointer-events-none fixed bottom-20 left-4 right-4 z-50 md:bottom-5 md:right-auto md:max-w-md">
+            <div className="pointer-events-auto rounded-lg border border-red-500/35 bg-red-500/10 px-4 py-2 text-sm text-red-300 shadow-lg backdrop-blur">
+              {actionError}
+              <button
+                type="button"
+                className="ml-3 text-xs underline opacity-80 hover:opacity-100"
+                onClick={() => setActionError(null)}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        )}
+
         {status && (
-          <div className="pointer-events-none fixed bottom-20 left-4 z-50 md:bottom-5">
+          <div
+            className={`pointer-events-none fixed left-4 z-50 ${
+              previewOpen ? 'bottom-[min(52vh,28rem)]' : 'bottom-20'
+            } md:bottom-5`}
+          >
             <div className="pointer-events-auto rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-sm text-primary shadow-lg backdrop-blur">
               {status}
+            </div>
+          </div>
+        )}
+
+        {isDirty && !status && !actionError && (
+          <div
+            className={`pointer-events-none fixed left-4 z-40 ${
+              previewOpen ? 'bottom-[min(52vh,28rem)]' : 'bottom-20'
+            } md:bottom-5`}
+          >
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200/95 shadow backdrop-blur">
+              Alterações não salvas
             </div>
           </div>
         )}
@@ -479,7 +562,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
             railExpanded
               ? 'xl:grid-cols-[220px_minmax(0,1fr)_400px]'
               : 'xl:grid-cols-[68px_minmax(0,1fr)_400px]'
-          }`}
+          } ${previewOpen ? 'editor-shell--preview-dock' : ''}`}
         >
           <aside
             className={`editor-rail sticky z-30 border-b border-border md:col-span-2 xl:col-span-1 xl:row-span-1 xl:border-b-0 xl:border-r xl:py-4 ${
@@ -529,6 +612,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                     aria-current={activeTab === tab.id ? 'page' : undefined}
                   >
                     <Icon className="h-5 w-5 shrink-0" />
+                    <span className="rail-btn-label xl:hidden">{tab.shortLabel}</span>
                     {railExpanded && <span className="hidden text-sm xl:inline">{tab.label}</span>}
                   </button>
                 )
@@ -542,6 +626,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                 aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
               >
                 {isDark ? <Sun className="h-5 w-5 shrink-0" /> : <Moon className="h-5 w-5 shrink-0" />}
+                <span className="rail-btn-label xl:hidden">{isDark ? 'Claro' : 'Escuro'}</span>
                 {railExpanded && (
                   <span className="hidden text-sm xl:inline">
                     {isDark ? 'Modo claro' : 'Modo escuro'}
@@ -565,7 +650,10 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                 <SectionMobilePicker
                   sections={config.sections}
                   activeSection={activeSection}
-                  onSelect={setActiveSection}
+                  onSelect={(index) => {
+                    setActiveSection(index)
+                    setFocusItemIndex(null)
+                  }}
                   onAdd={addSection}
                   onReorder={reorderSections}
                 />
@@ -576,7 +664,10 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                       activeSection={activeSection}
                       dragIndex={dragIndex}
                       dropIndex={dropIndex}
-                      onSelect={setActiveSection}
+                      onSelect={(index) => {
+                        setActiveSection(index)
+                        setFocusItemIndex(null)
+                      }}
                       onReorder={reorderSections}
                       onAdd={addSection}
                       onDragStart={setDragIndex}
@@ -604,12 +695,14 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                         return { ...prev, sections }
                       })
                     }}
+                    onFocusItem={setFocusItemIndex}
                     onRemove={() => {
                       commit((prev) => {
                         const sections = prev.sections.filter((_, i) => i !== activeSection)
                         return { ...prev, sections }
                       })
                       setActiveSection(Math.max(0, activeSection - 1))
+                      setFocusItemIndex(null)
                     }}
                   />
                 </div>
@@ -664,21 +757,27 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
             <p className="mb-3 hidden text-[10px] font-semibold uppercase tracking-wider text-muted-foreground xl:block">
               Preview ao vivo
             </p>
-            <PreviewPanel config={config} compact />
+            <PreviewPanel config={config} compact focus={previewFocus} />
           </div>
         </div>
 
         <button
           type="button"
-          className="preview-fab md:hidden"
-          onClick={() => setPreviewOpen(true)}
-          aria-label="Abrir preview da bio"
+          className={`preview-fab md:hidden ${previewOpen ? 'preview-fab--open' : ''}`}
+          onClick={() => setPreviewOpen((open) => !open)}
+          aria-label={previewOpen ? 'Fechar preview da bio' : 'Abrir preview da bio'}
+          aria-pressed={previewOpen}
         >
           <Smartphone className="h-5 w-5" />
-          Preview
+          {previewOpen ? 'Fechar' : 'Preview'}
         </button>
 
-        <PreviewSheet config={config} open={previewOpen} onClose={() => setPreviewOpen(false)} />
+        <PreviewSheet
+          config={config}
+          open={previewOpen}
+          onClose={() => setPreviewOpen(false)}
+          focus={previewFocus}
+        />
 
         <ConfirmDialog
           open={confirmPublishOpen}

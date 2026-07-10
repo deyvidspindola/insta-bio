@@ -41,25 +41,36 @@ check_ports() {
   fi
 }
 
-if [[ ! -d platform-template/_template ]]; then
-  echo "→ Gerando template de cliente (primeira vez)…"
-  npm run build:template
-fi
-
 check_ports
+
+echo ""
+echo "→ Verificando builds do template / clientes…"
+node scripts/ensure-dev-builds.mjs
+
+# Editor em /{slug}/editor/ usa o build estático sincronizado (confiável).
+# Proxy Vite é opt-in e frágil sob subpath: EDITOR_DEV_PROXY=1 make dev-all
+export EDITOR_DEV_PROXY="${EDITOR_DEV_PROXY:-0}"
 
 echo ""
 echo "insta-bio — servidores de desenvolvimento"
 echo ""
 echo "  Bio demo:  http://localhost:5173/"
-echo "  Editor:    http://localhost:5180/  (código ao vivo — use este)"
+echo "  Editor:    http://localhost:5180/  (Vite ao vivo — use este p/ UX)"
 echo "  Demo:      http://localhost:5180/demo.html"
 echo "  Painel:    http://localhost:5175/panel/  (admin@local.dev / admin123)"
-echo "  Cliente:   http://localhost:5175/{slug}/ e .../editor/  (build estático)"
+echo "  Cliente:   http://localhost:5175/{slug}/  (bio estática)"
+echo "             http://localhost:5175/{slug}/editor/  (build estático sync)"
 echo "  Landing:   http://localhost:5190/"
 echo ""
-echo "  No WSL, se localhost falhar no Windows, use o IP Network do Vite (ex.: http://172.x.x.x:5180/)."
-echo "  Após mudar o editor/bio: npm run build:template && npm run sync:clients"
+if [[ "$EDITOR_DEV_PROXY" == "1" ]]; then
+  echo "  Editor do cliente: PROXY Vite (experimental, EDITOR_DEV_PROXY=1)"
+else
+  echo "  Editor do cliente: build estático (atualizado no start se fontes mudaram)"
+fi
+echo "  Pular rebuild: SKIP_DEV_BUILD=1 make dev-all"
+echo "  Forçar rebuild: FORCE_DEV_BUILD=1 make dev-all"
+echo ""
+echo "  No WSL, se localhost falhar no Windows, use o IP Network do Vite."
 echo ""
 echo "Ctrl+C para parar todos"
 echo ""

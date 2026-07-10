@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { AppHero, AppHeroLayout, IconName, SectionItem, WhatsAppHero } from '@bio-types'
 import { APP_HERO_PRESETS } from '@site/lib/appHeroPresets'
+import { parseSpotifyEmbed } from '@site/lib/embedUrls'
 import {
   APP_HERO_PRESET_LIST,
   APP_HERO_LAYOUTS,
@@ -27,6 +28,7 @@ interface ItemEditorProps {
   dragHandle?: ReactNode
   collapsed?: boolean
   onToggleCollapse?: () => void
+  onFocus?: () => void
 }
 
 function Field({
@@ -39,6 +41,15 @@ function Field({
   return (
     <div className="field">
       <label>{label}</label>
+      {children}
+    </div>
+  )
+}
+
+function FieldGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="field-group space-y-3 rounded-lg border border-border/70 bg-muted/15 p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
       {children}
     </div>
   )
@@ -164,6 +175,7 @@ function CardWidthField({
     </Field>
   )
 }
+
 function HeroLayoutFields({
   item,
   isGridSection,
@@ -234,6 +246,13 @@ function HeroLayoutFields({
   )
 }
 
+function normalizeSpotifyInput(raw: string): string {
+  const parsed = parseSpotifyEmbed(raw)
+  if (!parsed) return raw
+  if (raw.includes('<iframe')) return raw.trim()
+  return parsed.src
+}
+
 export function ItemEditor({
   item,
   isGridSection = false,
@@ -243,6 +262,7 @@ export function ItemEditor({
   dragHandle,
   collapsed = false,
   onToggleCollapse,
+  onFocus,
 }: ItemEditorProps) {
   const typeLabel =
     item.type === 'app-hero'
@@ -251,15 +271,23 @@ export function ItemEditor({
         ? 'WhatsApp destaque'
         : CARD_TYPES.find((t) => t.value === item.type)?.label ?? item.type
 
+  function expandAndFocus() {
+    onFocus?.()
+    onToggleCollapse?.()
+  }
+
   return (
-    <div className={`card ${collapsed ? '' : 'space-y-3'}`}>
+    <div
+      className={`card ${collapsed ? '' : 'space-y-3'} ${onFocus ? 'ring-offset-background' : ''}`}
+      onFocusCapture={() => onFocus?.()}
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           {dragHandle}
           {onToggleCollapse && (
             <button
               type="button"
-              onClick={onToggleCollapse}
+              onClick={expandAndFocus}
               className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
               title={collapsed ? 'Expandir' : 'Recolher'}
               aria-expanded={!collapsed}
@@ -269,7 +297,7 @@ export function ItemEditor({
           )}
           <button
             type="button"
-            onClick={onToggleCollapse}
+            onClick={expandAndFocus}
             className="min-w-0 text-left"
             disabled={!onToggleCollapse}
           >
@@ -313,350 +341,441 @@ export function ItemEditor({
 
       {collapsed ? null : (
         <>
-      {'url' in item &&
-        item.type !== 'video' &&
-        item.type !== 'youtube-embed' &&
-        item.type !== 'spotify-embed' && (
-        <Field label="URL (opcional)">
-          <input
-            value={item.url}
-            onChange={(e) => onChange({ ...item, url: e.target.value } as SectionItem)}
-            placeholder="Deixe vazio para card sem link"
-          />
-        </Field>
-      )}
+          {'url' in item &&
+            item.type !== 'video' &&
+            item.type !== 'youtube-embed' &&
+            item.type !== 'spotify-embed' && (
+              <Field label="URL (opcional)">
+                <input
+                  value={item.url}
+                  onChange={(e) => onChange({ ...item, url: e.target.value } as SectionItem)}
+                  placeholder="Deixe vazio para card sem link"
+                />
+              </Field>
+            )}
 
-      {item.type === 'whatsapp-hero' && (
-        <>
-          <HeroLayoutFields
-            item={item}
-            isGridSection={isGridSection}
-            onChange={(updated) => onChange(updated)}
-          />
-        </>
-      )}
+          {item.type === 'whatsapp-hero' && (
+            <HeroLayoutFields
+              item={item}
+              isGridSection={isGridSection}
+              onChange={(updated) => onChange(updated)}
+            />
+          )}
 
-      {item.type === 'app-hero' && (
-        <>
-          <Field label="App">
-            <select
-              value={item.preset}
-              onChange={(e) => {
-                const preset = e.target.value as typeof item.preset
-                const defaults = APP_HERO_PRESETS[preset].defaults
-                onChange({
-                  ...item,
-                  preset,
-                  ...defaults,
-                  layout: item.layout,
-                  ...(preset === 'custom' ? { icon: APP_HERO_PRESETS.custom.defaultIcon } : {}),
-                })
-              }}
-            >
-              {APP_HERO_PRESET_LIST.map((preset) => (
-                <option key={preset.value} value={preset.value}>
-                  {preset.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          {item.preset === 'custom' && (
-            <Field label="Ícone">
-              <IconSelect
-                value={item.icon}
-                onChange={(icon) => onChange({ ...item, icon })}
+          {item.type === 'app-hero' && (
+            <>
+              <Field label="App">
+                <select
+                  value={item.preset}
+                  onChange={(e) => {
+                    const preset = e.target.value as typeof item.preset
+                    const defaults = APP_HERO_PRESETS[preset].defaults
+                    onChange({
+                      ...item,
+                      preset,
+                      ...defaults,
+                      layout: item.layout,
+                      ...(preset === 'custom' ? { icon: APP_HERO_PRESETS.custom.defaultIcon } : {}),
+                    })
+                  }}
+                >
+                  {APP_HERO_PRESET_LIST.map((preset) => (
+                    <option key={preset.value} value={preset.value}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {item.preset === 'custom' && (
+                <Field label="Ícone">
+                  <IconSelect
+                    value={item.icon}
+                    onChange={(icon) => onChange({ ...item, icon })}
+                  />
+                </Field>
+              )}
+              <HeroLayoutFields
+                item={item}
+                isGridSection={isGridSection}
+                onChange={(updated) => onChange(updated)}
               />
-            </Field>
+            </>
           )}
-          <HeroLayoutFields
-            item={item}
-            isGridSection={isGridSection}
-            onChange={(updated) => onChange(updated)}
-          />
-        </>
-      )}
 
-      {item.type === 'feature' && (
-        <>
-          <Field label="Variante">
-            <select
-              value={item.variant ?? 'gradient'}
-              onChange={(e) =>
-                onChange({
-                  ...item,
-                  variant: e.target.value as typeof item.variant,
-                })
-              }
-            >
-              {FEATURE_VARIANTS.map((variant) => (
-                <option key={variant.value} value={variant.value}>
-                  {variant.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <CardWidthField
-            value={item.width}
-            isGridSection={isGridSection}
-            onChange={(width) => onChange({ ...item, width })}
-          />
-          <Field label="Badge">
-            <input value={item.badge ?? ''} onChange={(e) => onChange({ ...item, badge: e.target.value })} />
-          </Field>
-          <Field label="Título">
-            <input value={item.title} onChange={(e) => onChange({ ...item, title: e.target.value })} />
-          </Field>
-          <Field label="Descrição">
-            <textarea rows={2} value={item.description ?? ''} onChange={(e) => onChange({ ...item, description: e.target.value })} />
-          </Field>
-          <Field label="CTA (botão)">
-            <input value={item.cta ?? ''} onChange={(e) => onChange({ ...item, cta: e.target.value })} />
-          </Field>
-          <Field label="Ícone">
-            <IconSelect value={item.icon} onChange={(icon) => onChange({ ...item, icon })} />
-          </Field>
-          <ImageField
-            label="Imagem (portrait/banner)"
-            value={item.image}
-            onChange={(image) => onChange({ ...item, image })}
-          />
-          {['gradient', 'square'].includes(item.variant ?? 'gradient') && (
-            <GradientField
-              label="Cor do card (usada sem imagem)"
-              value={item.gradient}
-              onChange={(gradient) => onChange({ ...item, gradient })}
-            />
+          {item.type === 'feature' && (
+            <>
+              <FieldGroup title="Layout">
+                <Field label="Formato">
+                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                    {FEATURE_VARIANTS.map((variant) => {
+                      const selected = (item.variant ?? 'gradient') === variant.value
+                      return (
+                        <button
+                          key={variant.value}
+                          type="button"
+                          className={`rounded-lg border px-2 py-2 text-left text-[11px] leading-snug transition-colors ${
+                            selected
+                              ? 'border-primary bg-primary/10 font-semibold text-foreground'
+                              : 'border-border bg-background/40 text-muted-foreground hover:border-primary/40'
+                          }`}
+                          onClick={() =>
+                            onChange({
+                              ...item,
+                              variant: variant.value as typeof item.variant,
+                            })
+                          }
+                        >
+                          {variant.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Field>
+                <CardWidthField
+                  value={item.width}
+                  isGridSection={isGridSection}
+                  onChange={(width) => onChange({ ...item, width })}
+                />
+              </FieldGroup>
+
+              <FieldGroup title="Conteúdo">
+                <Field label="Badge">
+                  <input
+                    value={item.badge ?? ''}
+                    onChange={(e) => onChange({ ...item, badge: e.target.value })}
+                  />
+                </Field>
+                <Field label="Título">
+                  <input
+                    value={item.title}
+                    onChange={(e) => onChange({ ...item, title: e.target.value })}
+                  />
+                </Field>
+                <Field label="Descrição">
+                  <textarea
+                    rows={2}
+                    value={item.description ?? ''}
+                    onChange={(e) => onChange({ ...item, description: e.target.value })}
+                  />
+                </Field>
+                <Field label="Texto do botão">
+                  <input
+                    value={item.cta ?? ''}
+                    onChange={(e) => onChange({ ...item, cta: e.target.value })}
+                  />
+                </Field>
+              </FieldGroup>
+
+              <FieldGroup title="Mídia e estilo">
+                <Field label="Ícone">
+                  <IconSelect value={item.icon} onChange={(icon) => onChange({ ...item, icon })} />
+                </Field>
+                <ImageField
+                  label="Imagem (retrato / banner)"
+                  value={item.image}
+                  onChange={(image) => onChange({ ...item, image })}
+                />
+                {['gradient', 'square'].includes(item.variant ?? 'gradient') && (
+                  <GradientField
+                    label="Cor do card (usada sem imagem)"
+                    value={item.gradient}
+                    onChange={(gradient) => onChange({ ...item, gradient })}
+                  />
+                )}
+                {['banner', 'portrait'].includes(item.variant ?? '') && (
+                  <TagsField
+                    value={item.tags ?? []}
+                    onChange={(tags) => onChange({ ...item, tags })}
+                  />
+                )}
+              </FieldGroup>
+            </>
           )}
-          {['banner', 'portrait'].includes(item.variant ?? '') && (
-            <TagsField
-              value={item.tags ?? []}
-              onChange={(tags) => onChange({ ...item, tags })}
-            />
+
+          {item.type === 'link' && (
+            <>
+              <FieldGroup title="Layout">
+                <CardWidthField
+                  value={item.width}
+                  isGridSection={isGridSection}
+                  onChange={(width) => onChange({ ...item, width })}
+                />
+              </FieldGroup>
+              <FieldGroup title="Conteúdo">
+                <Field label="Título">
+                  <input
+                    value={item.title}
+                    onChange={(e) => onChange({ ...item, title: e.target.value })}
+                  />
+                </Field>
+                <Field label="Subtítulo">
+                  <input
+                    value={item.subtitle ?? ''}
+                    onChange={(e) => onChange({ ...item, subtitle: e.target.value })}
+                  />
+                </Field>
+                <Field label="Ícone">
+                  <IconSelect value={item.icon} onChange={(icon) => onChange({ ...item, icon })} />
+                </Field>
+              </FieldGroup>
+            </>
           )}
-        </>
-      )}
 
-      {item.type === 'link' && (
-        <>
-          <Field label="Título">
-            <input value={item.title} onChange={(e) => onChange({ ...item, title: e.target.value })} />
-          </Field>
-          <Field label="Subtítulo">
-            <input value={item.subtitle ?? ''} onChange={(e) => onChange({ ...item, subtitle: e.target.value })} />
-          </Field>
-          <Field label="Ícone">
-            <IconSelect value={item.icon} onChange={(icon) => onChange({ ...item, icon })} />
-          </Field>
-          <CardWidthField
-            value={item.width}
-            isGridSection={isGridSection}
-            onChange={(width) => onChange({ ...item, width })}
-          />
-        </>
-      )}
+          {item.type === 'video' && (
+            <>
+              <FieldGroup title="Mídia">
+                <VideoField
+                  label="Vídeo"
+                  value={item.video}
+                  onChange={(video) => onChange({ ...item, video: video ?? '' })}
+                  hint="MP4 recomendado. Tamanho máximo ~25 MB."
+                />
+                <ImageField
+                  label="Capa (opcional)"
+                  value={item.poster}
+                  onChange={(poster) => onChange({ ...item, poster })}
+                  hint="Imagem exibida antes do vídeo carregar."
+                />
+                <Field label="Formato">
+                  <select
+                    value={item.variant ?? 'portrait'}
+                    onChange={(e) =>
+                      onChange({
+                        ...item,
+                        variant: e.target.value as typeof item.variant,
+                      })
+                    }
+                  >
+                    {MEDIA_CARD_VARIANTS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </FieldGroup>
+              <FieldGroup title="Conteúdo">
+                <Field label="Título (opcional)">
+                  <input
+                    value={item.title ?? ''}
+                    onChange={(e) => onChange({ ...item, title: e.target.value })}
+                  />
+                </Field>
+                <Field label="Descrição (opcional)">
+                  <textarea
+                    rows={2}
+                    value={item.description ?? ''}
+                    onChange={(e) => onChange({ ...item, description: e.target.value })}
+                  />
+                </Field>
+                <Field label="Link ao clicar (opcional)">
+                  <input
+                    value={item.url ?? ''}
+                    onChange={(e) => onChange({ ...item, url: e.target.value || undefined })}
+                    placeholder="https://"
+                  />
+                </Field>
+              </FieldGroup>
+            </>
+          )}
 
-      {item.type === 'video' && (
-        <>
-          <VideoField
-            label="Vídeo"
-            value={item.video}
-            onChange={(video) => onChange({ ...item, video: video ?? '' })}
-            hint="MP4 recomendado. Tamanho máximo ~25 MB."
-          />
-          <ImageField
-            label="Capa (opcional)"
-            value={item.poster}
-            onChange={(poster) => onChange({ ...item, poster })}
-            hint="Imagem exibida antes do vídeo carregar."
-          />
-          <Field label="Tamanho / formato">
-            <select
-              value={item.variant ?? 'portrait'}
-              onChange={(e) =>
-                onChange({
-                  ...item,
-                  variant: e.target.value as typeof item.variant,
-                })
-              }
-            >
-              {MEDIA_CARD_VARIANTS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Título (opcional)">
-            <input
-              value={item.title ?? ''}
-              onChange={(e) => onChange({ ...item, title: e.target.value })}
-            />
-          </Field>
-          <Field label="Descrição (opcional)">
-            <textarea
-              rows={2}
-              value={item.description ?? ''}
-              onChange={(e) => onChange({ ...item, description: e.target.value })}
-            />
-          </Field>
-          <Field label="Link ao clicar (opcional)">
-            <input
-              value={item.url ?? ''}
-              onChange={(e) => onChange({ ...item, url: e.target.value || undefined })}
-              placeholder="https://"
-            />
-          </Field>
-        </>
-      )}
+          {item.type === 'slide' && (
+            <>
+              <FieldGroup title="Layout">
+                <Field label="Formato">
+                  <select
+                    value={item.variant ?? 'portrait'}
+                    onChange={(e) =>
+                      onChange({
+                        ...item,
+                        variant: e.target.value as typeof item.variant,
+                      })
+                    }
+                  >
+                    {MEDIA_CARD_VARIANTS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Avançar automaticamente">
+                  <select
+                    value={item.autoplay === false ? 'false' : 'true'}
+                    onChange={(e) => onChange({ ...item, autoplay: e.target.value === 'true' })}
+                  >
+                    <option value="true">Sim</option>
+                    <option value="false">Não — apenas ao tocar</option>
+                  </select>
+                </Field>
+              </FieldGroup>
+              <FieldGroup title="Conteúdo">
+                <Field label="Título do conjunto (opcional)">
+                  <input
+                    value={item.title ?? ''}
+                    onChange={(e) => onChange({ ...item, title: e.target.value })}
+                    placeholder="Ex.: Destaques"
+                  />
+                </Field>
+                <SlidesField
+                  slides={item.slides}
+                  onChange={(slides) => onChange({ ...item, slides })}
+                />
+              </FieldGroup>
+            </>
+          )}
 
-      {item.type === 'slide' && (
-        <>
-          <Field label="Tamanho / formato">
-            <select
-              value={item.variant ?? 'portrait'}
-              onChange={(e) =>
-                onChange({
-                  ...item,
-                  variant: e.target.value as typeof item.variant,
-                })
-              }
-            >
-              {MEDIA_CARD_VARIANTS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Título do conjunto (opcional)">
-            <input
-              value={item.title ?? ''}
-              onChange={(e) => onChange({ ...item, title: e.target.value })}
-              placeholder="Ex.: Destaques"
-            />
-          </Field>
-          <Field label="Avançar automaticamente">
-            <select
-              value={item.autoplay === false ? 'false' : 'true'}
-              onChange={(e) => onChange({ ...item, autoplay: e.target.value === 'true' })}
-            >
-              <option value="true">Sim</option>
-              <option value="false">Não — apenas ao tocar</option>
-            </select>
-          </Field>
-          <SlidesField
-            slides={item.slides}
-            onChange={(slides) => onChange({ ...item, slides })}
-          />
-        </>
-      )}
+          {item.type === 'products' && (
+            <>
+              <Field label="Título da galeria (opcional)">
+                <input
+                  value={item.title ?? ''}
+                  onChange={(e) => onChange({ ...item, title: e.target.value })}
+                  placeholder="Ex.: Nossa loja"
+                />
+              </Field>
+              <ProductsField
+                products={item.products}
+                onChange={(products) => onChange({ ...item, products })}
+              />
+            </>
+          )}
 
-      {item.type === 'products' && (
-        <>
-          <Field label="Título da galeria (opcional)">
-            <input
-              value={item.title ?? ''}
-              onChange={(e) => onChange({ ...item, title: e.target.value })}
-              placeholder="Ex.: Nossa loja"
-            />
-          </Field>
-          <ProductsField
-            products={item.products}
-            onChange={(products) => onChange({ ...item, products })}
-          />
-        </>
-      )}
+          {item.type === 'youtube-embed' && (
+            <>
+              <Field label="Link do vídeo no YouTube">
+                <input
+                  value={item.url}
+                  onChange={(e) => onChange({ ...item, url: e.target.value })}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                />
+              </Field>
+              <Field label="Título (opcional)">
+                <input
+                  value={item.title ?? ''}
+                  onChange={(e) => onChange({ ...item, title: e.target.value })}
+                />
+              </Field>
+              <p className="text-[10px] text-muted-foreground/75">
+                Aceita links de vídeo, Shorts ou youtu.be. O player aparece embutido na bio.
+              </p>
+            </>
+          )}
 
-      {item.type === 'youtube-embed' && (
-        <>
-          <Field label="Link do vídeo no YouTube">
-            <input
-              value={item.url}
-              onChange={(e) => onChange({ ...item, url: e.target.value })}
-              placeholder="https://www.youtube.com/watch?v=..."
-            />
-          </Field>
-          <Field label="Título (opcional)">
-            <input
-              value={item.title ?? ''}
-              onChange={(e) => onChange({ ...item, title: e.target.value })}
-            />
-          </Field>
-          <p className="text-[10px] text-muted-foreground/75">
-            Aceita links de vídeo, Shorts ou youtu.be. O player aparece embutido na bio.
-          </p>
-        </>
-      )}
+          {item.type === 'spotify-embed' && (
+            <>
+              <Field label="Link do Spotify">
+                <input
+                  value={
+                    (item.embed ?? item.url ?? '').includes('<iframe')
+                      ? ''
+                      : (item.embed ?? item.url ?? '')
+                  }
+                  onChange={(e) =>
+                    onChange({
+                      ...item,
+                      embed: normalizeSpotifyInput(e.target.value),
+                      url: undefined,
+                      theme: undefined,
+                      size: undefined,
+                    })
+                  }
+                  placeholder="https://open.spotify.com/playlist/..."
+                />
+              </Field>
+              <details className="rounded-lg border border-border/70 bg-muted/10 px-3 py-2">
+                <summary className="cursor-pointer text-[11px] font-medium text-muted-foreground">
+                  Ou cole o código de incorporação (iframe)
+                </summary>
+                <div className="mt-2 space-y-2">
+                  <textarea
+                    value={item.embed ?? item.url ?? ''}
+                    onChange={(e) =>
+                      onChange({
+                        ...item,
+                        embed: e.target.value,
+                        url: undefined,
+                        theme: undefined,
+                        size: undefined,
+                      })
+                    }
+                    rows={4}
+                    placeholder={'<iframe ... src="https://open.spotify.com/embed/..." ...></iframe>'}
+                    className="font-mono text-xs"
+                  />
+                  <p className="text-[10px] text-muted-foreground/75">
+                    No Spotify: Compartilhar → Incorporar → copie o iframe. Playlist, álbum, artista
+                    ou música.
+                  </p>
+                </div>
+              </details>
+              <Field label="Título (opcional)">
+                <input
+                  value={item.title ?? ''}
+                  onChange={(e) => onChange({ ...item, title: e.target.value })}
+                />
+              </Field>
+              <p className="text-[10px] text-muted-foreground/75">
+                Cole o link público da playlist, álbum ou música — o player aparece embutido na bio.
+              </p>
+            </>
+          )}
 
-      {item.type === 'spotify-embed' && (
-        <>
-          <Field label="Código de incorporação (iframe)">
-            <textarea
-              value={item.embed ?? item.url ?? ''}
-              onChange={(e) =>
-                onChange({
-                  ...item,
-                  embed: e.target.value,
-                  url: undefined,
-                  theme: undefined,
-                  size: undefined,
-                })
-              }
-              rows={5}
-              placeholder={'<iframe ... src="https://open.spotify.com/embed/..." ...></iframe>'}
-              className="font-mono text-xs"
-            />
-          </Field>
-          <Field label="Título (opcional)">
-            <input
-              value={item.title ?? ''}
-              onChange={(e) => onChange({ ...item, title: e.target.value })}
-            />
-          </Field>
-          <p className="text-[10px] text-muted-foreground/75">
-            No Spotify: Compartilhar → Incorporar → copie o iframe e cole aqui. Playlist, álbum,
-            artista ou música.
-          </p>
-        </>
-      )}
+          {item.type === 'grid' && (
+            <>
+              <Field label="Badge">
+                <input
+                  value={item.badge ?? ''}
+                  onChange={(e) => onChange({ ...item, badge: e.target.value })}
+                />
+              </Field>
+              <Field label="Título">
+                <input
+                  value={item.title}
+                  onChange={(e) => onChange({ ...item, title: e.target.value })}
+                />
+              </Field>
+              <Field label="Subtítulo">
+                <input
+                  value={item.subtitle ?? ''}
+                  onChange={(e) => onChange({ ...item, subtitle: e.target.value })}
+                />
+              </Field>
+              <ImageField
+                label="Imagem"
+                value={item.image}
+                onChange={(image) => onChange({ ...item, image })}
+              />
+              <GradientField
+                label="Cor do card (usada sem imagem)"
+                value={item.gradient}
+                onChange={(gradient) => onChange({ ...item, gradient })}
+              />
+            </>
+          )}
 
-      {item.type === 'grid' && (
-        <>
-          <Field label="Badge">
-            <input value={item.badge ?? ''} onChange={(e) => onChange({ ...item, badge: e.target.value })} />
-          </Field>
-          <Field label="Título">
-            <input value={item.title} onChange={(e) => onChange({ ...item, title: e.target.value })} />
-          </Field>
-          <Field label="Subtítulo">
-            <input value={item.subtitle ?? ''} onChange={(e) => onChange({ ...item, subtitle: e.target.value })} />
-          </Field>
-          <ImageField
-            label="Imagem"
-            value={item.image}
-            onChange={(image) => onChange({ ...item, image })}
-          />
-          <GradientField
-            label="Cor do card (usada sem imagem)"
-            value={item.gradient}
-            onChange={(gradient) => onChange({ ...item, gradient })}
-          />
-        </>
-      )}
-
-      {item.type === 'location' && (
-        <>
-          <Field label="Título">
-            <input value={item.title} onChange={(e) => onChange({ ...item, title: e.target.value })} />
-          </Field>
-          <Field label="Endereço">
-            <input value={item.address} onChange={(e) => onChange({ ...item, address: e.target.value })} />
-          </Field>
-          <Field label="URL do mapa">
-            <input value={item.mapUrl} onChange={(e) => onChange({ ...item, mapUrl: e.target.value })} />
-          </Field>
-        </>
-      )}
+          {item.type === 'location' && (
+            <>
+              <Field label="Título">
+                <input
+                  value={item.title}
+                  onChange={(e) => onChange({ ...item, title: e.target.value })}
+                />
+              </Field>
+              <Field label="Endereço">
+                <input
+                  value={item.address}
+                  onChange={(e) => onChange({ ...item, address: e.target.value })}
+                />
+              </Field>
+              <Field label="URL do mapa">
+                <input
+                  value={item.mapUrl}
+                  onChange={(e) => onChange({ ...item, mapUrl: e.target.value })}
+                />
+              </Field>
+            </>
+          )}
         </>
       )}
     </div>

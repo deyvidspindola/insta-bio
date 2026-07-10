@@ -258,7 +258,11 @@ export function AppearanceForm({ brand, onChange }: AppearanceFormProps) {
               </div>
             )}
           </div>
+        </div>
+      )}
 
+      {tab === 'colors' && (
+        <div className="space-y-4">
           <div className="card">
             <h3 className="mb-2 text-sm font-semibold">Paletas por perfil</h3>
             <p className="mb-3 text-[10px] text-muted-foreground">
@@ -287,46 +291,44 @@ export function AppearanceForm({ brand, onChange }: AppearanceFormProps) {
               ))}
             </div>
           </div>
-        </div>
-      )}
 
-      {tab === 'colors' && (
-        <div className="card">
-          <h3 className="mb-1 text-sm font-semibold">Cores do tema</h3>
-          <p className="mb-4 text-xs text-muted-foreground">
-            Primária, secundária e brilho usados nos botões, títulos e destaques da bio.
-          </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <ColorField
-              label="Cor primária"
-              value={brand.theme.primary}
-              onChange={(primary) =>
-                onChange({ ...brand, theme: { ...brand.theme, primary } })
-              }
-              hint="Botões, destaques e títulos de seção"
-            />
-            <ColorField
-              label="Cor secundária"
-              value={brand.theme.secondary ?? ''}
-              onChange={(secondary) =>
-                onChange({
-                  ...brand,
-                  theme: { ...brand.theme, secondary: secondary || undefined },
-                })
-              }
-              hint="Tagline, subtítulos e textos de apoio"
-            />
-            <div className="sm:col-span-2">
-              <GlowColorField
-                label="Brilho de fundo"
-                value={brand.theme.glow ?? ''}
-                onChange={(glow) =>
+          <div className="card">
+            <h3 className="mb-1 text-sm font-semibold">Cores do tema</h3>
+            <p className="mb-4 text-xs text-muted-foreground">
+              Primária, secundária e brilho usados nos botões, títulos e destaques da bio.
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <ColorField
+                label="Cor primária"
+                value={brand.theme.primary}
+                onChange={(primary) =>
+                  onChange({ ...brand, theme: { ...brand.theme, primary } })
+                }
+                hint="Botões, destaques e títulos de seção"
+              />
+              <ColorField
+                label="Cor secundária"
+                value={brand.theme.secondary ?? ''}
+                onChange={(secondary) =>
                   onChange({
                     ...brand,
-                    theme: { ...brand.theme, glow: glow || undefined },
+                    theme: { ...brand.theme, secondary: secondary || undefined },
                   })
                 }
+                hint="Tagline, subtítulos e textos de apoio"
               />
+              <div className="sm:col-span-2">
+                <GlowColorField
+                  label="Brilho de fundo"
+                  value={brand.theme.glow ?? ''}
+                  onChange={(glow) =>
+                    onChange({
+                      ...brand,
+                      theme: { ...brand.theme, glow: glow || undefined },
+                    })
+                  }
+                />
+              </div>
             </div>
           </div>
         </div>

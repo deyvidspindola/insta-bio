@@ -837,8 +837,8 @@ function serveSuspendedPage(res, clientRoot) {
 }
 
 const EDITOR_DEV_PORT = Number(process.env.EDITOR_DEV_PORT || 5180)
-// Proxy Vite é frágil (paths /@vite, /node_modules, /@fs). Em dev o padrão é o
-// build estático sincronizado. Para forçar proxy ao vivo: EDITOR_DEV_PROXY=1
+// Proxy Vite sob /{slug}/editor/ é frágil (imports absolutos /@vite, /src, /node_modules).
+// Padrão: build estático sincronizado por ensure-dev-builds. Opt-in: EDITOR_DEV_PROXY=1
 const EDITOR_DEV_PROXY = process.env.EDITOR_DEV_PROXY === '1'
 
 const EDITOR_LOCAL_FILES = new Set([
@@ -879,12 +879,13 @@ function proxyToEditorDev(req, res, targetPathname) {
     { method: req.method, headers },
     (proxyRes) => {
       const contentType = String(proxyRes.headers['content-type'] ?? '')
+      // Só reescreve documentos HTML reais — nunca /@vite/client, /src/*, etc.
       const looksLikeHtmlDoc =
         contentType.includes('text/html') &&
         (targetPathname === '/' ||
-          targetPathname.endsWith('.html') ||
           targetPathname === '' ||
-          !targetPathname.includes('.'))
+          targetPathname.endsWith('.html') ||
+          targetPathname.endsWith('/'))
 
       if (!looksLikeHtmlDoc) {
         res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers)

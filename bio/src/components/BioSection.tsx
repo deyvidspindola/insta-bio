@@ -38,10 +38,20 @@ function itemUsesGridLayout(item: SectionItem, sectionGrid: boolean): boolean {
   return false
 }
 
-function renderItem(item: SectionItem, index: number, grid: boolean) {
+function renderItem(
+  item: SectionItem,
+  index: number,
+  grid: boolean,
+  sectionId: string,
+  focused: boolean,
+) {
   const delay = { animationDelay: `${index * 60}ms` }
   const inGrid = itemUsesGridLayout(item, grid)
   const spanClass = grid && itemSpansFullInGrid(item) ? 'col-span-2' : ''
+  const focusClass = focused ? 'bio-preview-focus' : ''
+  const previewAttrs = {
+    'data-preview-item': `${sectionId}:${index}`,
+  }
 
   switch (item.type) {
     case 'whatsapp-hero':
@@ -49,63 +59,109 @@ function renderItem(item: SectionItem, index: number, grid: boolean) {
       return (
         <div
           key={`${item.type}-${item.title}-${index}`}
-          className={`animate-fade-up h-full ${spanClass}`}
+          className={`animate-fade-up h-full ${spanClass} ${focusClass}`}
           style={delay}
+          {...previewAttrs}
         >
           <AppHeroCard item={item} grid={grid} />
         </div>
       )
     case 'feature':
       return (
-        <div key={`feature-${item.title}-${index}`} className={`animate-fade-up h-full ${spanClass}`} style={delay}>
+        <div
+          key={`feature-${item.title}-${index}`}
+          className={`animate-fade-up h-full ${spanClass} ${focusClass}`}
+          style={delay}
+          {...previewAttrs}
+        >
           <FeatureCard item={item} grid={inGrid} />
         </div>
       )
     case 'link':
       return (
-        <div key={`link-${item.title}-${index}`} className={`animate-fade-up h-full ${spanClass}`} style={delay}>
+        <div
+          key={`link-${item.title}-${index}`}
+          className={`animate-fade-up h-full ${spanClass} ${focusClass}`}
+          style={delay}
+          {...previewAttrs}
+        >
           <LinkCard item={item} grid={inGrid} />
         </div>
       )
     case 'grid':
       return (
-        <div key={`grid-${item.title}-${index}`} className={`animate-fade-up h-full ${spanClass}`} style={delay}>
+        <div
+          key={`grid-${item.title}-${index}`}
+          className={`animate-fade-up h-full ${spanClass} ${focusClass}`}
+          style={delay}
+          {...previewAttrs}
+        >
           <GridCard item={item} />
         </div>
       )
     case 'location':
       return (
-        <div key={`location-${item.title}-${index}`} className={`animate-fade-up ${spanClass}`} style={delay}>
+        <div
+          key={`location-${item.title}-${index}`}
+          className={`animate-fade-up ${spanClass} ${focusClass}`}
+          style={delay}
+          {...previewAttrs}
+        >
           <LocationCard item={item} />
         </div>
       )
     case 'video':
       return (
-        <div key={`video-${item.video}-${index}`} className={`animate-fade-up ${spanClass}`} style={delay}>
+        <div
+          key={`video-${item.video}-${index}`}
+          className={`animate-fade-up ${spanClass} ${focusClass}`}
+          style={delay}
+          {...previewAttrs}
+        >
           <VideoCard item={item} />
         </div>
       )
     case 'slide':
       return (
-        <div key={`slide-${index}-${item.slides.length}`} className={`animate-fade-up ${spanClass}`} style={delay}>
+        <div
+          key={`slide-${index}-${item.slides.length}`}
+          className={`animate-fade-up ${spanClass} ${focusClass}`}
+          style={delay}
+          {...previewAttrs}
+        >
           <SlideCard item={item} />
         </div>
       )
     case 'products':
       return (
-        <div key={`products-${index}-${item.products.length}`} className={`animate-fade-up col-span-2`} style={delay}>
+        <div
+          key={`products-${index}-${item.products.length}`}
+          className={`animate-fade-up col-span-2 ${focusClass}`}
+          style={delay}
+          {...previewAttrs}
+        >
           <ProductsCard item={item} />
         </div>
       )
     case 'youtube-embed':
       return (
-        <div key={`youtube-${item.url}-${index}`} className={`animate-fade-up col-span-2`} style={delay}>
+        <div
+          key={`youtube-${item.url}-${index}`}
+          className={`animate-fade-up col-span-2 ${focusClass}`}
+          style={delay}
+          {...previewAttrs}
+        >
           <YoutubeEmbedCard item={item} />
         </div>
       )
     case 'spotify-embed':
       return (
-        <div key={`spotify-${item.embed ?? item.url ?? index}-${index}`} className={`animate-fade-up col-span-2`} style={delay}>
+        <div
+          key={`spotify-${item.embed ?? item.url ?? index}-${index}`}
+          className={`animate-fade-up col-span-2 ${focusClass}`}
+          style={delay}
+          {...previewAttrs}
+        >
           <SpotifyEmbedCard item={item} />
         </div>
       )
@@ -114,7 +170,13 @@ function renderItem(item: SectionItem, index: number, grid: boolean) {
   }
 }
 
-export function BioSectionBlock({ section }: { section: BioSection }) {
+export function BioSectionBlock({
+  section,
+  focusItemIndex = null,
+}: {
+  section: BioSection
+  focusItemIndex?: number | null
+}) {
   const isGrid = section.layout === 'grid-2'
 
   return (
@@ -122,15 +184,24 @@ export function BioSectionBlock({ section }: { section: BioSection }) {
       <SectionTitle title={section.title} subtitle={section.subtitle} />
       {isGrid ? (
         <div className="mb-3 grid grid-cols-2 items-stretch gap-3">
-          {section.items.map((item, index) => renderItem(item, index, true))}
+          {section.items.map((item, index) =>
+            renderItem(item, index, true, section.id, focusItemIndex === index),
+          )}
         </div>
       ) : (
         <div className="mb-3 space-y-3">
           {groupStackSectionItems(section.items).map((row, rowIndex) => {
             if (row.length === 1 && itemUsesGridLayout(row[0], false)) {
+              const itemIndex = section.items.indexOf(row[0])
               return (
                 <div key={`row-${rowIndex}`} className="grid grid-cols-2 items-stretch gap-3">
-                  {renderItem(row[0], rowIndex, false)}
+                  {renderItem(
+                    row[0],
+                    itemIndex >= 0 ? itemIndex : rowIndex,
+                    false,
+                    section.id,
+                    focusItemIndex === itemIndex,
+                  )}
                 </div>
               )
             }
@@ -138,12 +209,28 @@ export function BioSectionBlock({ section }: { section: BioSection }) {
             if (row.length > 1) {
               return (
                 <div key={`row-${rowIndex}`} className="grid grid-cols-2 items-stretch gap-3">
-                  {row.map((item, cellIndex) => renderItem(item, rowIndex * 2 + cellIndex, false))}
+                  {row.map((item) => {
+                    const itemIndex = section.items.indexOf(item)
+                    return renderItem(
+                      item,
+                      itemIndex >= 0 ? itemIndex : 0,
+                      false,
+                      section.id,
+                      focusItemIndex === itemIndex,
+                    )
+                  })}
                 </div>
               )
             }
 
-            return renderItem(row[0], rowIndex, false)
+            const itemIndex = section.items.indexOf(row[0])
+            return renderItem(
+              row[0],
+              itemIndex >= 0 ? itemIndex : rowIndex,
+              false,
+              section.id,
+              focusItemIndex === itemIndex,
+            )
           })}
         </div>
       )}

@@ -2,10 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BioConfig } from '@bio-types'
 import { getBioJsonRelativePath } from '@site/lib/publicUrl'
 
+export interface PreviewFocus {
+  sectionId: string
+  itemIndex: number
+}
+
 interface PreviewPanelProps {
   config: BioConfig
   /** Layout mais compacto para sheet mobile ou coluna estreita */
   compact?: boolean
+  /** Destaca e rola até o card sendo editado */
+  focus?: PreviewFocus | null
 }
 
 /** URL do iframe de preview — demo na raiz usa /preview; editor do cliente usa ./preview.html */
@@ -28,7 +35,7 @@ function previewIframeSrc(): string {
   return `${base}preview.html`
 }
 
-export function PreviewPanel({ config, compact = false }: PreviewPanelProps) {
+export function PreviewPanel({ config, compact = false, focus = null }: PreviewPanelProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [ready, setReady] = useState(false)
   const previewSrc = useMemo(() => previewIframeSrc(), [])
@@ -54,6 +61,7 @@ export function PreviewPanel({ config, compact = false }: PreviewPanelProps) {
         {
           type: 'bio-preview',
           config,
+          focus,
           bioJsonPath: getBioJsonRelativePath(),
         },
         '*',
@@ -61,7 +69,7 @@ export function PreviewPanel({ config, compact = false }: PreviewPanelProps) {
     })
 
     return () => cancelAnimationFrame(frame)
-  }, [config, ready])
+  }, [config, focus, ready])
 
   return (
     <div

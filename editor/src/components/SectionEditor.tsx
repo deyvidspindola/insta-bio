@@ -11,24 +11,35 @@ import {
   LAYOUT_OPTIONS,
   newHeroItemForSection,
 } from '../lib/bio'
+import { ConfirmDialog } from './ConfirmDialog'
 import { ItemEditor } from './ItemEditor'
 
 interface SectionEditorProps {
   section: BioSection
   onChange: (section: BioSection) => void
   onRemove: () => void
+  onFocusItem?: (index: number | null) => void
 }
 
-export function SectionEditor({ section, onChange, onRemove }: SectionEditorProps) {
+export function SectionEditor({ section, onChange, onRemove, onFocusItem }: SectionEditorProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
-  const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
+  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set(section.items.map((_, i) => i)))
+  const [confirmRemoveSection, setConfirmRemoveSection] = useState(false)
+  const [confirmRemoveItem, setConfirmRemoveItem] = useState<number | null>(null)
 
   const isGridSection = (section.layout ?? 'stack') === 'grid-2'
 
   function patchSection(next: BioSection) {
     onChange(ensureGridHeroLayouts(next))
   }
+
+  useEffect(() => {
+    setCollapsed(new Set(section.items.map((_, i) => i)))
+    onFocusItem?.(null)
+    // Ao trocar de seção, recolhe todos os cards.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section.id])
 
   useEffect(() => {
     const fixed = ensureGridHeroLayouts(section)
@@ -41,14 +52,19 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
   function toggleCollapse(index: number) {
     setCollapsed((prev) => {
       const next = new Set(prev)
-      if (next.has(index)) next.delete(index)
-      else next.add(index)
+      if (next.has(index)) {
+        next.delete(index)
+        onFocusItem?.(index)
+      } else {
+        next.add(index)
+      }
       return next
     })
   }
 
   function collapseAll() {
     setCollapsed(new Set(section.items.map((_, i) => i)))
+    onFocusItem?.(null)
   }
 
   function expandAll() {
@@ -59,10 +75,21 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
     const items = [...section.items]
     items[index] = item
     patchSection({ ...section, items })
+    onFocusItem?.(index)
   }
 
   function removeItem(index: number) {
     patchSection({ ...section, items: section.items.filter((_, i) => i !== index) })
+    setCollapsed((prev) => {
+      const next = new Set<number>()
+      for (const i of prev) {
+        if (i < index) next.add(i)
+        else if (i > index) next.add(i - 1)
+      }
+      return next
+    })
+    onFocusItem?.(null)
+    setConfirmRemoveItem(null)
   }
 
   function moveItem(from: number, to: number) {
@@ -71,12 +98,29 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
     const [moved] = items.splice(from, 1)
     items.splice(to, 0, moved)
     patchSection({ ...section, items })
+    setCollapsed((prev) => {
+      const flags = section.items.map((_, i) => prev.has(i))
+      const [moved] = flags.splice(from, 1)
+      flags.splice(to, 0, moved)
+      return new Set(flags.flatMap((collapsedFlag, i) => (collapsedFlag ? [i] : [])))
+    })
+    onFocusItem?.(to)
   }
 
   function duplicateItem(index: number) {
     const items = [...section.items]
     items.splice(index + 1, 0, cloneItem(section.items[index]))
     patchSection({ ...section, items })
+    setCollapsed((prev) => {
+      const next = new Set<number>()
+      for (const i of prev) {
+        if (i <= index) next.add(i)
+        else next.add(i + 1)
+      }
+      // novo card expandido
+      return next
+    })
+    onFocusItem?.(index + 1)
   }
 
   function addItem(type: SectionItem['type']) {
@@ -85,32 +129,44 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
       item.type === 'whatsapp-hero' || item.type === 'app-hero'
         ? newHeroItemForSection(section, item)
         : item
+    const newIndex = section.items.length
     patchSection({ ...section, items: [...section.items, normalized] })
+    setCollapsed(new Set(section.items.map((_, i) => i)))
+    onFocusItem?.(newIndex)
   }
 
   function addAppHero(preset: AppHeroPreset) {
     const hero = newHeroItemForSection(section, createAppHero(preset))
+    const newIndex = section.items.length
     patchSection({ ...section, items: [...section.items, hero] })
+    setCollapsed(new Set(section.items.map((_, i) => i)))
+    onFocusItem?.(newIndex)
   }
+
+  const pendingItem =
+    confirmRemoveItem !== null ? section.items[confirmRemoveItem] : null
+  const pendingItemTitle =
+    pendingItem && 'title' in pendingItem && pendingItem.title
+      ? pendingItem.title
+      : pendingItem
+        ? 'este card'
+        : ''
 
   return (
     <div className="space-y-4">
       <div className="card">
         <div className="mb-4 flex items-start justify-between gap-3">
           <h3 className="text-sm font-semibold">Configuração da seção</h3>
-          <button type="button" className="btn-danger px-3 py-1.5 text-xs" onClick={onRemove}>
+          <button
+            type="button"
+            className="btn-danger px-3 py-1.5 text-xs"
+            onClick={() => setConfirmRemoveSection(true)}
+          >
             Excluir seção
           </button>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="field">
-            <label>ID interno</label>
-            <input
-              value={section.id}
-              onChange={(e) => patchSection({ ...section, id: e.target.value })}
-            />
-          </div>
           <div className="field">
             <label>Layout</label>
             <select
@@ -130,7 +186,7 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
             </select>
             {isGridSection && (
               <p className="mt-1 text-[10px] text-muted-foreground/75">
-                Cards destaque usam layout compacto ou condensado — completo fica desativado.
+                Em grade, destaques de app usam layout compacto — o completo fica desativado.
               </p>
             )}
           </div>
@@ -139,7 +195,7 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
             <input
               value={section.title}
               onChange={(e) => patchSection({ ...section, title: e.target.value })}
-              placeholder='Deixe vazio para ocultar: ""'
+              placeholder="Deixe vazio para ocultar o título na bio"
             />
           </div>
           <div className="field sm:col-span-2">
@@ -150,6 +206,22 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
             />
           </div>
         </div>
+
+        <details className="mt-3 rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
+          <summary className="cursor-pointer text-[11px] font-medium text-muted-foreground">
+            Avançado
+          </summary>
+          <div className="field mt-2">
+            <label>ID interno</label>
+            <input
+              value={section.id}
+              onChange={(e) => patchSection({ ...section, id: e.target.value })}
+            />
+            <p className="mt-1 text-[10px] text-muted-foreground/75">
+              Usado só internamente. Prefira alterar o título acima.
+            </p>
+          </div>
+        </details>
       </div>
 
       {section.items.length > 1 && (
@@ -184,10 +256,11 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
               item={item}
               isGridSection={isGridSection}
               onChange={(updated) => updateItem(index, updated)}
-              onRemove={() => removeItem(index)}
+              onRemove={() => setConfirmRemoveItem(index)}
               onDuplicate={() => duplicateItem(index)}
               collapsed={collapsed.has(index)}
               onToggleCollapse={() => toggleCollapse(index)}
+              onFocus={() => onFocusItem?.(index)}
               dragHandle={
                 <div className="flex shrink-0 items-center gap-0.5">
                   <div className="flex flex-col">
@@ -232,7 +305,10 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
 
       <div className="card space-y-4">
         <div>
-          <p className="mb-3 text-sm font-medium">Destaque de app</p>
+          <p className="mb-1 text-sm font-medium">Destaque de app</p>
+          <p className="mb-3 text-[10px] text-muted-foreground">
+            Atalhos prontos (WhatsApp, Instagram, etc.) com visual de destaque.
+          </p>
           <div className="flex flex-wrap gap-2">
             {APP_HERO_PRESET_LIST.map((preset) => (
               <button
@@ -248,13 +324,18 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
         </div>
 
         <div>
-          <p className="mb-3 text-sm font-medium">Outros cards</p>
+          <p className="mb-1 text-sm font-medium">Outros cards</p>
+          <p className="mb-3 text-[10px] text-muted-foreground">
+            <strong className="font-medium text-foreground/85">Destaque</strong> = card visual.{' '}
+            <strong className="font-medium text-foreground/85">Link simples</strong> = botão clássico.
+          </p>
           <div className="flex flex-wrap gap-2">
             {CARD_TYPES.map((type) => (
               <button
                 key={type.value}
                 type="button"
                 className="btn-secondary px-3 py-1.5 text-xs"
+                title={type.hint}
                 onClick={() => addItem(type.value)}
               >
                 + {type.label}
@@ -263,6 +344,42 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmRemoveSection}
+        title="Excluir esta seção?"
+        description={
+          <>
+            Todos os cards desta seção serão removidos do editor. Você ainda precisa{' '}
+            <span className="font-medium text-foreground">Salvar</span> ou{' '}
+            <span className="font-medium text-foreground">Publicar</span> para gravar a alteração.
+          </>
+        }
+        confirmLabel="Excluir seção"
+        variant="danger"
+        onConfirm={() => {
+          setConfirmRemoveSection(false)
+          onRemove()
+        }}
+        onCancel={() => setConfirmRemoveSection(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmRemoveItem !== null}
+        title="Remover card?"
+        description={
+          <>
+            Remover <span className="font-medium text-foreground">{pendingItemTitle}</span> desta
+            seção? A alteração só fica permanente após salvar ou publicar.
+          </>
+        }
+        confirmLabel="Remover"
+        variant="danger"
+        onConfirm={() => {
+          if (confirmRemoveItem !== null) removeItem(confirmRemoveItem)
+        }}
+        onCancel={() => setConfirmRemoveItem(null)}
+      />
     </div>
   )
 }

@@ -93,25 +93,64 @@ export const CARD_WIDTH_OPTIONS = [
 ] as const
 
 export const CARD_TYPES = [
-  { value: 'feature', label: 'Card' },
-  { value: 'video', label: 'Vídeo' },
-  { value: 'youtube-embed', label: 'YouTube' },
-  { value: 'spotify-embed', label: 'Spotify' },
-  { value: 'slide', label: 'Slides (Stories)' },
-  { value: 'products', label: 'Produtos' },
-  { value: 'link', label: 'Link simples' },
-  { value: 'location', label: 'Localização' },
+  {
+    value: 'feature',
+    label: 'Destaque',
+    hint: 'Card visual com cor, imagem ou gradiente — o mais versátil.',
+  },
+  {
+    value: 'video',
+    label: 'Vídeo',
+    hint: 'Vídeo próprio (MP4) com capa opcional.',
+  },
+  {
+    value: 'youtube-embed',
+    label: 'YouTube',
+    hint: 'Player embutido a partir do link do vídeo.',
+  },
+  {
+    value: 'spotify-embed',
+    label: 'Spotify',
+    hint: 'Playlist, álbum ou música embutidos.',
+  },
+  {
+    value: 'slide',
+    label: 'Slides (Stories)',
+    hint: 'Carrossel de imagens no estilo stories.',
+  },
+  {
+    value: 'products',
+    label: 'Produtos',
+    hint: 'Galeria de produtos com link e botão.',
+  },
+  {
+    value: 'link',
+    label: 'Link simples',
+    hint: 'Botão clássico de link na bio (estilo da aba Aparência).',
+  },
+  {
+    value: 'location',
+    label: 'Localização',
+    hint: 'Endereço com link para o mapa.',
+  },
 ] as const
 
 export { MEDIA_CARD_VARIANTS } from '@site/lib/mediaCardLayout'
 
 export const FEATURE_VARIANTS = [
-  { value: 'gradient', label: 'Gradiente' },
-  { value: 'square', label: 'Quadrado (grade 2 colunas)' },
-  { value: 'compact', label: 'Compacto (ideal em 2 colunas)' },
-  { value: 'portrait', label: 'Retrato com imagem' },
-  { value: 'banner', label: 'Banner com imagem' },
+  { value: 'gradient', label: 'Gradiente colorido' },
+  { value: 'square', label: 'Quadrado' },
+  { value: 'compact', label: 'Compacto' },
+  { value: 'portrait', label: 'Retrato (imagem)' },
+  { value: 'banner', label: 'Banner (imagem)' },
 ] as const
+
+/** Nome legível para listas/selects — evita mostrar IDs técnicos. */
+export function sectionDisplayName(section: BioSection, index: number): string {
+  const title = section.title?.trim()
+  if (title) return title
+  return `Seção ${index + 1}`
+}
 
 export const LAYOUT_OPTIONS = [
   { value: 'stack', label: 'Empilhado' },

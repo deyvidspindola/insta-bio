@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronUp, X } from 'lucide-react'
 import type { BioSection } from '@bio-types'
+import { sectionDisplayName } from '../lib/bio'
 
 interface SectionOrderSheetProps {
   sections: BioSection[]
@@ -53,7 +54,7 @@ export function SectionOrderSheet({
                   className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
                   disabled={index === 0}
                   onClick={() => onReorder(index, index - 1)}
-                  aria-label={`Mover ${section.title || section.id} para cima`}
+                  aria-label={`Mover ${sectionDisplayName(section, index)} para cima`}
                 >
                   <ChevronUp className="h-4 w-4" />
                 </button>
@@ -62,7 +63,7 @@ export function SectionOrderSheet({
                   className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
                   disabled={index === sections.length - 1}
                   onClick={() => onReorder(index, index + 1)}
-                  aria-label={`Mover ${section.title || section.id} para baixo`}
+                  aria-label={`Mover ${sectionDisplayName(section, index)} para baixo`}
                 >
                   <ChevronDown className="h-4 w-4" />
                 </button>
@@ -76,7 +77,7 @@ export function SectionOrderSheet({
                   onClose()
                 }}
               >
-                <span className="font-medium">{section.title || section.id}</span>
+                <span className="font-medium">{sectionDisplayName(section, index)}</span>
                 {section.items.length > 0 && (
                   <span className="mt-0.5 block text-[10px] text-muted-foreground">
                     {section.items.length} {section.items.length === 1 ? 'card' : 'cards'}

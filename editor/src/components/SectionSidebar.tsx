@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react'
 import type { BioSection } from '@bio-types'
+import { sectionDisplayName } from '../lib/bio'
 import { SectionOrderSheet } from './SectionOrderSheet'
 
 interface SectionMobilePickerProps {
@@ -54,13 +55,19 @@ export function SectionMobilePicker({
           >
             {sections.map((section, index) => (
               <option key={section.id} value={index}>
-                {section.title || section.id}
+                {sectionDisplayName(section, index)}
               </option>
             ))}
           </select>
 
-          <button type="button" className="btn-secondary shrink-0 px-2 py-1.5 text-xs" onClick={onAdd}>
-            +
+          <button
+            type="button"
+            className="btn-secondary shrink-0 px-2.5 py-1.5 text-xs"
+            onClick={onAdd}
+            title="Nova seção"
+            aria-label="Nova seção"
+          >
+            + Seção
           </button>
         </div>
 
@@ -176,7 +183,7 @@ export function SectionSidebar({
             className="min-w-0 flex-1 truncate py-1.5 text-left"
             onClick={() => onSelect(index)}
           >
-            {section.title || section.id}
+            {sectionDisplayName(section, index)}
           </button>
         </div>
       ))}

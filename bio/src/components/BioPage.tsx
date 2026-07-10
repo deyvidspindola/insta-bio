@@ -12,9 +12,11 @@ import { BioSectionBlock } from './BioSection'
 
 interface BioPageProps {
   config: BioConfig
+  /** Destaque do card ativo no preview do editor (opcional). */
+  previewFocus?: { sectionId: string; itemIndex: number } | null
 }
 
-export function BioPage({ config }: BioPageProps) {
+export function BioPage({ config, previewFocus = null }: BioPageProps) {
   const { brand, sections } = config
   const template = resolveBioTemplate(brand.template)
   const bgPreset = resolveBackgroundPreset(brand.theme.backgroundPreset)
@@ -114,7 +116,13 @@ export function BioPage({ config }: BioPageProps) {
         <BioHeader brand={brand} />
 
         {sections.map((section) => (
-          <BioSectionBlock key={section.id} section={section} />
+          <BioSectionBlock
+            key={section.id}
+            section={section}
+            focusItemIndex={
+              previewFocus?.sectionId === section.id ? previewFocus.itemIndex : null
+            }
+          />
         ))}
 
         <footer className="mt-10 text-center space-y-1.5">

@@ -16,3 +16,9 @@ html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   display: none;
 }
+
+.bio-preview-focus {
+  outline: 2px solid color-mix(in oklch, var(--color-primary) 85%, white);
+  outline-offset: 3px;
+  border-radius: calc(var(--bio-card-radius, 1rem) + 2px);
+}
