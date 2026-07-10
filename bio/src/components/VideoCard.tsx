@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Volume2, VolumeX } from 'lucide-react'
 import type { VideoCard as VideoCardType } from '../types/bio'
+import { hasClickableUrl } from '../lib/cardLink'
 import {
   mediaCardAspectClass,
   mediaCardMaxWidthClass,
@@ -74,10 +75,10 @@ function VideoMedia({ item }: { item: VideoCardType }) {
 export function VideoCard({ item }: { item: VideoCardType }) {
   const media = <VideoMedia item={item} />
 
-  if (item.url) {
+  if (hasClickableUrl(item.url)) {
     return (
       <a
-        href={item.url}
+        href={item.url!.trim().includes('://') ? item.url!.trim() : `https://${item.url!.trim()}`}
         target="_blank"
         rel="noopener noreferrer"
         className="bio-card bio-card--media bio-card--video group relative block w-full"

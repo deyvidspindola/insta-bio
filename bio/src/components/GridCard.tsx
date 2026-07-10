@@ -1,13 +1,14 @@
 import type { GridCard as GridCardType } from '../types/bio'
+import { CardLink, hasClickableUrl } from '../lib/cardLink'
 import { resolvePublicUrl } from '../lib/publicUrl'
 import { ArrowIcon } from './icons'
 
 export function GridCard({ item }: { item: GridCardType }) {
+  const clickable = hasClickableUrl(item.url)
+
   return (
-    <a
-      href={item.url}
-      target="_blank"
-      rel="noopener noreferrer"
+    <CardLink
+      url={item.url}
       className="bio-card bio-card--media group relative block aspect-square"
     >
       {item.image ? (
@@ -30,12 +31,14 @@ export function GridCard({ item }: { item: GridCardType }) {
         </span>
       )}
 
-      <ArrowIcon className="absolute right-2 top-2 h-4 w-4 text-white/90 drop-shadow" />
+      {clickable && (
+        <ArrowIcon className="absolute right-2 top-2 h-4 w-4 text-white/90 drop-shadow" />
+      )}
 
       <div className="absolute inset-x-0 bottom-0 p-3">
         <h3 className="text-base font-bold leading-tight text-white">{item.title}</h3>
         {item.subtitle && <p className="mt-0.5 text-[10px] text-white/85">{item.subtitle}</p>}
       </div>
-    </a>
+    </CardLink>
   )
 }

@@ -23,7 +23,7 @@ delete auth.password
 fs.writeFileSync(authPath, `${JSON.stringify(auth, null, 2)}\n`)
 console.log('auth.json atualizado com passwordHash (dev/Node).')
 console.log('')
-console.log('Para a HostGator (PHP), cole este hash em admin/php/auth.config.php:')
+console.log('Para a HostGator (PHP), cole este hash em editor/php/auth.config.php:')
 console.log('')
 console.log(`  define('AUTH_PASSWORD_HASH', '${hash}');`)
 console.log('')

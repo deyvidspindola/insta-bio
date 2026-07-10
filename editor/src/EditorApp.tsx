@@ -1,43 +1,50 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   ArrowUpRight,
-  Copy,
-  Download,
+  Globe,
   Images,
   Layers,
   LogOut,
   Moon,
   Palette,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Redo2,
   Save,
   Settings,
   Smartphone,
   Sun,
   Undo2,
-  Upload,
   User,
-  Redo2,
-  PanelLeftClose,
-  PanelLeftOpen,
 } from 'lucide-react'
 import type { BioConfig } from '@bio-types'
 import { AdvancedPanel } from './components/AdvancedPanel'
 import { AppearanceForm } from './components/AppearanceForm'
+import { ConfirmDialog } from './components/ConfirmDialog'
 import { IdentityForm } from './components/IdentityForm'
 import { ImagesGallery } from './components/ImagesGallery'
 import { LoginScreen } from './components/LoginScreen'
 import { PreviewPanel } from './components/PreviewPanel'
 import { PreviewSheet } from './components/PreviewSheet'
+import { fetchEditorPaths } from './lib/paths'
+import { setBioJsonRelativePath } from '@site/lib/publicUrl'
 import { SectionEditor } from './components/SectionEditor'
 import { SectionMobilePicker, SectionSidebar } from './components/SectionSidebar'
 import { DemoModeProvider } from './context/DemoModeContext'
-import { fetchSession, logout, saveBioConfig } from './lib/auth'
+import {
+  fetchSession,
+  loadEditorConfig,
+  logout,
+  publishBioConfig,
+  revertDraftToPublished,
+  saveBioConfig,
+} from './lib/auth'
 import { BRAND_LOGO_URL, BRAND_NAME } from './lib/brand'
 import {
   copyBioConfig,
   createDefaultConfig,
   createSection,
   downloadBioConfig,
-  loadBioConfig,
   normalizeBioConfig,
 } from './lib/bio'
 import { DEMO_WHATSAPP_URL, loadDemoConfig } from './lib/demo'
@@ -68,6 +75,10 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme())
   const [railExpanded, setRailExpanded] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [publishing, setPublishing] = useState(false)
+  const [reverting, setReverting] = useState(false)
+  const [confirmPublishOpen, setConfirmPublishOpen] = useState(false)
   const statusTimerRef = useRef<number | null>(null)
 
   function toggleTheme() {
@@ -131,6 +142,18 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   }, [isDemo])
 
   useEffect(() => {
+    if (isDemo || !authenticated) return
+    fetchEditorPaths()
+      .then((paths) => {
+        const relative = paths.publicBioUrl?.trim() || 'bio.json'
+        setBioJsonRelativePath(relative)
+      })
+      .catch(() => {
+        setBioJsonRelativePath('bio.json')
+      })
+  }, [authenticated, isDemo])
+
+  useEffect(() => {
     if (isDemo) {
       loadDemoConfig()
         .then((data) => resetConfig(data))
@@ -138,10 +161,14 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
       return
     }
     if (!authenticated) return
-    loadBioConfig()
+    loadEditorConfig()
       .then((data) => {
-        resetConfig(data)
-        showStatus('Configuração carregada')
+        resetConfig(normalizeBioConfig(data.config))
+        showStatus(
+          data.source === 'draft'
+            ? 'Rascunho carregado'
+            : 'Bio publicada carregada',
+        )
       })
       .catch((err: Error) => setError(err.message))
   }, [authenticated, isDemo])
@@ -150,6 +177,37 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     return () => {
       if (statusTimerRef.current) window.clearTimeout(statusTimerRef.current)
     }
+  }, [])
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return
+      }
+
+      const mod = event.metaKey || event.ctrlKey
+      if (!mod) return
+
+      if (event.key === 'z' && !event.shiftKey) {
+        event.preventDefault()
+        undo()
+        return
+      }
+      if (event.key === 'y' || (event.key === 'z' && event.shiftKey)) {
+        event.preventDefault()
+        redo()
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
   async function handleLogout() {
@@ -177,12 +235,48 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   }
 
   async function handleSave() {
-    if (!config || isDemo) return
+    if (!config || isDemo || saving || publishing) return
+    setSaving(true)
+    setError(null)
     try {
       await saveBioConfig(config)
-      showStatus('bio.json salvo no servidor')
+      showStatus('Rascunho salvo')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar')
+      setError(err instanceof Error ? err.message : 'Erro ao salvar rascunho')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handlePublish() {
+    if (!config || isDemo || saving || publishing) return
+    setPublishing(true)
+    setError(null)
+    try {
+      await publishBioConfig(config)
+      setConfirmPublishOpen(false)
+      showStatus('Bio publicada')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao publicar')
+    } finally {
+      setPublishing(false)
+    }
+  }
+
+  async function handleRevertToPublished() {
+    if (isDemo || reverting) return
+    setReverting(true)
+    setError(null)
+    try {
+      const published = await revertDraftToPublished()
+      resetConfig(normalizeBioConfig(published))
+      setActiveSection(0)
+      showStatus('Rascunho revertido para a bio publicada')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao reverter rascunho')
+      throw err
+    } finally {
+      setReverting(false)
     }
   }
 
@@ -240,8 +334,8 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     { id: 'identity', label: 'Identidade', icon: User },
     { id: 'appearance', label: 'Aparência', icon: Palette },
     { id: 'sections', label: 'Conteúdo', icon: Layers },
-    { id: 'images', label: 'Imagens', icon: Images },
-    { id: 'advanced', label: 'Avançado', icon: Settings },
+    { id: 'images', label: 'Arquivos', icon: Images },
+    { id: 'advanced', label: 'Configurações', icon: Settings },
   ]
 
   const railTabs = isDemo
@@ -306,46 +400,28 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
 
             {!isDemo && (
               <>
-                <span className="mx-0.5 hidden h-5 w-px bg-white/25 md:block" aria-hidden="true" />
-
-                <div className="hidden items-center gap-1.5 md:flex">
-                  <label className="topbar-btn cursor-pointer" title="Importar bio.json">
-                    <Upload className="h-4 w-4" />
-                    <span className="hidden lg:inline">Importar</span>
-                    <input
-                      type="file"
-                      accept="application/json,.json"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) handleImport(file)
-                        e.currentTarget.value = ''
-                      }}
-                    />
-                  </label>
-                  <button type="button" className="topbar-btn" onClick={handleCopy} title="Copiar JSON">
-                    <Copy className="h-4 w-4" />
-                    <span className="hidden lg:inline">Copiar</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="topbar-btn"
-                    onClick={handleDownload}
-                    title="Baixar bio.json"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span className="hidden lg:inline">Baixar</span>
-                  </button>
-                </div>
+                <span className="mx-0.5 hidden h-5 w-px bg-white/25 sm:block" aria-hidden="true" />
 
                 <button
                   type="button"
-                  className="topbar-save"
+                  className="topbar-draft"
                   onClick={handleSave}
-                  title="Salvar no servidor"
+                  disabled={saving || publishing}
+                  title="Salvar rascunho (não publica a bio)"
                 >
                   <Save className="h-4 w-4" />
-                  <span className="hidden sm:inline">Salvar</span>
+                  <span className="hidden sm:inline">{saving ? 'Salvando…' : 'Salvar'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="topbar-publish"
+                  onClick={() => setConfirmPublishOpen(true)}
+                  disabled={saving || publishing}
+                  title="Salvar rascunho e publicar na bio ao vivo"
+                >
+                  <Globe className="h-4 w-4" />
+                  <span className="hidden sm:inline">{publishing ? 'Publicando…' : 'Publicar'}</span>
                 </button>
 
                 <button
@@ -365,7 +441,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                 href={DEMO_WHATSAPP_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="topbar-save hidden sm:inline-flex"
+                className="topbar-publish hidden sm:inline-flex"
               >
                 <span>Quero minha bio</span>
                 <ArrowUpRight className="h-4 w-4" />
@@ -467,7 +543,9 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
               >
                 {isDark ? <Sun className="h-5 w-5 shrink-0" /> : <Moon className="h-5 w-5 shrink-0" />}
                 {railExpanded && (
-                  <span className="hidden text-sm xl:inline">{isDark ? 'Modo claro' : 'Modo escuro'}</span>
+                  <span className="hidden text-sm xl:inline">
+                    {isDark ? 'Modo claro' : 'Modo escuro'}
+                  </span>
                 )}
               </button>
             </nav>
@@ -555,6 +633,17 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                 onImport={handleImport}
                 onCopy={handleCopy}
                 onDownload={handleDownload}
+                reverting={reverting}
+                onRevertToPublished={handleRevertToPublished}
+                onPathsSaved={async () => {
+                  const data = await loadEditorConfig()
+                  resetConfig(normalizeBioConfig(data.config))
+                  const paths = await fetchEditorPaths().catch(() => null)
+                  if (paths?.publicBioUrl) {
+                    setBioJsonRelativePath(paths.publicBioUrl)
+                  }
+                  showStatus('Bio recarregada com o novo caminho')
+                }}
                 onRestoreDefault={() => {
                   const fresh = createDefaultConfig()
                   fresh.brand.name = config.brand.name
@@ -590,6 +679,26 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
         </button>
 
         <PreviewSheet config={config} open={previewOpen} onClose={() => setPreviewOpen(false)} />
+
+        <ConfirmDialog
+          open={confirmPublishOpen}
+          title="Publicar bio?"
+          description={
+            <>
+              As alterações atuais serão salvas no rascunho e enviadas para a{' '}
+              <span className="font-medium text-foreground">bio pública</span>. Visitantes verão o
+              conteúdo novo ao recarregar a página.
+            </>
+          }
+          confirmLabel="Publicar"
+          cancelLabel="Cancelar"
+          variant="default"
+          loading={publishing}
+          onConfirm={() => void handlePublish()}
+          onCancel={() => {
+            if (!publishing) setConfirmPublishOpen(false)
+          }}
+        />
       </div>
     </DemoModeProvider>
   )

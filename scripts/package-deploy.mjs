@@ -47,21 +47,21 @@ console.log('')
 const env = { ...process.env, BASE_PATH: publicBase }
 
 console.log('→ Build do site da bio…')
-execSync('npm run build', { cwd: ROOT, env, stdio: 'inherit' })
+execSync('npm run build', { cwd: path.join(ROOT, 'bio'), env, stdio: 'inherit' })
 
 console.log('→ Build do editor + PHP…')
-execSync('npm run build:hostgator', { cwd: path.join(ROOT, 'admin'), env, stdio: 'inherit' })
+execSync('npm run build:hostgator', { cwd: path.join(ROOT, 'editor'), env, stdio: 'inherit' })
 
 const siteDist = path.join(ROOT, 'dist')
-const adminDist = path.join(ROOT, 'admin', 'dist')
+const editorDist = path.join(ROOT, 'editor', 'dist')
 const editorOut = path.join(RELEASE, 'editor')
 
 if (!fs.existsSync(siteDist)) {
   console.error('dist/ não encontrado após o build do site.')
   process.exit(1)
 }
-if (!fs.existsSync(adminDist)) {
-  console.error('admin/dist/ não encontrado após o build do editor.')
+if (!fs.existsSync(editorDist)) {
+  console.error('editor/dist/ não encontrado após o build do editor.')
   process.exit(1)
 }
 
@@ -70,7 +70,7 @@ fs.rmSync(RELEASE, { recursive: true, force: true })
 fs.mkdirSync(RELEASE, { recursive: true })
 
 copyDir(siteDist, RELEASE)
-copyDir(adminDist, editorOut)
+copyDir(editorDist, editorOut)
 
 const exampleUrl =
   publicBase === '/'

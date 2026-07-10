@@ -11,7 +11,7 @@ if (!isset($_SESSION['user'])) {
   exit;
 }
 
-$allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+$allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mov'];
 $files = [];
 
 if (is_dir(ASSETS_DIR)) {

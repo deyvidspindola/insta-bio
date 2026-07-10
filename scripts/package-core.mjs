@@ -34,7 +34,7 @@ console.log('')
 execSync('node scripts/package-template.mjs', { cwd: ROOT, stdio: 'inherit' })
 
 console.log('→ Build do editor demo…')
-execSync('npm run build', { cwd: path.join(ROOT, 'admin'), stdio: 'inherit' })
+execSync('npm run build', { cwd: path.join(ROOT, 'editor'), stdio: 'inherit' })
 
 if (fs.existsSync(path.join(ROOT, 'panel', 'composer.json'))) {
   console.log('→ Composer do painel (Sentry)…')
@@ -48,9 +48,9 @@ console.log('→ Build do painel…')
 execSync('npm run build:hostgator', { cwd: path.join(ROOT, 'panel'), stdio: 'inherit' })
 
 const panelDist = path.join(ROOT, 'panel', 'dist')
-const adminDist = path.join(ROOT, 'admin', 'dist')
+const editorDist = path.join(ROOT, 'editor', 'dist')
 const templateSrc = path.join(ROOT, 'platform-template', '_template')
-const publicAssets = path.join(ROOT, 'public', 'assets')
+const publicAssets = path.join(ROOT, 'bio', 'public', 'assets')
 
 if (!fs.existsSync(panelDist) || !fs.existsSync(templateSrc)) {
   console.error('Faltam artefatos de build.')
@@ -76,34 +76,34 @@ console.log(`  _template/assets: ${bundles.join(', ')}`)
 
 mergeDir(publicAssets, path.join(OUT, 'assets'))
 
-if (fs.existsSync(adminDist)) {
+if (fs.existsSync(editorDist)) {
   const editorOut = path.join(OUT, 'editor')
   const editorAssetsOut = path.join(editorOut, 'assets')
-  const adminAssets = path.join(adminDist, 'assets')
+  const editorAssets = path.join(editorDist, 'assets')
 
-  if (fs.existsSync(path.join(adminDist, 'demo.html'))) {
-    fs.copyFileSync(path.join(adminDist, 'demo.html'), path.join(OUT, 'demo.html'))
+  if (fs.existsSync(path.join(editorDist, 'demo.html'))) {
+    fs.copyFileSync(path.join(editorDist, 'demo.html'), path.join(OUT, 'demo.html'))
   }
-  if (fs.existsSync(path.join(adminDist, 'preview.html'))) {
-    fs.copyFileSync(path.join(adminDist, 'preview.html'), path.join(OUT, 'preview.html'))
+  if (fs.existsSync(path.join(editorDist, 'preview.html'))) {
+    fs.copyFileSync(path.join(editorDist, 'preview.html'), path.join(OUT, 'preview.html'))
     fs.mkdirSync(editorOut, { recursive: true })
-    fs.copyFileSync(path.join(adminDist, 'preview.html'), path.join(editorOut, 'preview.html'))
+    fs.copyFileSync(path.join(editorDist, 'preview.html'), path.join(editorOut, 'preview.html'))
   }
 
-  if (fs.existsSync(adminAssets)) {
-    copyDir(adminAssets, editorAssetsOut)
-    mergeDir(adminAssets, path.join(OUT, 'assets'))
+  if (fs.existsSync(editorAssets)) {
+    copyDir(editorAssets, editorAssetsOut)
+    mergeDir(editorAssets, path.join(OUT, 'assets'))
   }
 
   for (const name of ['icons.svg', 'favicon.svg']) {
-    const src = path.join(adminDist, name)
+    const src = path.join(editorDist, name)
     if (fs.existsSync(src)) {
       fs.mkdirSync(editorOut, { recursive: true })
       fs.copyFileSync(src, path.join(editorOut, name))
     }
   }
 
-  const demoBio = path.join(ROOT, 'admin', 'public', 'demo-bio.json')
+  const demoBio = path.join(ROOT, 'editor', 'public', 'demo-bio.json')
   if (fs.existsSync(demoBio)) {
     fs.copyFileSync(demoBio, path.join(OUT, 'demo-bio.json'))
     fs.mkdirSync(editorOut, { recursive: true })

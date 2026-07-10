@@ -1,10 +1,11 @@
 import fs from 'node:fs'
+import http from 'node:http'
 import path from 'node:path'
-import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import bcrypt from 'bcryptjs'
 import crypto from 'node:crypto'
 import { applyInstagramToClient, fetchInstagramProfile } from './instagram.mjs'
+import { zipDirectoryToBuffer } from './zip-buffer.mjs'
 
 const PANEL_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const GATE_DIR = path.join(PANEL_ROOT, 'php', 'client-gate')
@@ -220,29 +221,302 @@ function generateLicenseToken() {
   return crypto.randomBytes(24).toString('hex')
 }
 
-function writeLicenseConfig(clientDir, slug, token, selfhost = false) {
+function normalizeLicenseHost(host) {
+  let value = String(host ?? '').trim().toLowerCase()
+  if (!value) return ''
+  if (value.includes('://')) {
+    try {
+      value = new URL(value).hostname.toLowerCase()
+    } catch {
+      return ''
+    }
+  }
+  value = value.replace(/\/$/, '')
+  if (value.includes(':')) value = value.split(':', 1)[0]
+  if (value.startsWith('www.')) value = value.slice(4)
+  return value
+}
+
+function validateLicenseHost(host) {
+  const normalized = normalizeLicenseHost(host)
+  if (!normalized) return 'Informe o domínio (ex.: cliente.com.br)'
+  if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(normalized)) return 'Domínio inválido'
+  return null
+}
+
+function normalizeDeployPath(path) {
+  let value = String(path ?? '').trim().toLowerCase()
+  if (!value || value === '/' || value === '.' || value === 'raiz' || value === 'root') return ''
+  value = value.replace(/^\/+|\/+$/g, '')
+  if (!value) return ''
+  return normalizeSlug(value)
+}
+
+function deployPathLabel(path) {
+  const normalized = normalizeDeployPath(path ?? '')
+  return normalized === '' ? '/' : normalized
+}
+
+function validateDeployPath(path) {
+  const raw = String(path ?? '').trim()
+  if (!raw) return 'Informe a pasta no domínio (use / para a raiz)'
+  const normalized = normalizeDeployPath(raw)
+  if (normalized === '' && !['/', '.', 'raiz', 'root'].includes(raw.toLowerCase())) {
+    return 'Pasta inválida — use letras, números e hífens (ou / para raiz)'
+  }
+  return null
+}
+
+function resolveClientHostingInput(selfHosted, allowedHostInput, deployPathInput) {
+  if (!selfHosted) {
+    return { self_hosted: false, allowed_host: null, deploy_path: null }
+  }
+
+  const allowedHost = normalizeLicenseHost(allowedHostInput)
+  if (!allowedHost) {
+    throw new Error('Informe o domínio autorizado para hospedagem própria')
+  }
+  const hostError = validateLicenseHost(allowedHost)
+  if (hostError) throw new Error(hostError)
+
+  const pathError = validateDeployPath(deployPathInput)
+  if (pathError) throw new Error(pathError)
+
+  return {
+    self_hosted: true,
+    allowed_host: allowedHost,
+    deploy_path: normalizeDeployPath(deployPathInput),
+  }
+}
+
+const ROOT_FOLDER_NAMES = new Set(['public_html', 'htdocs', 'www', 'httpdocs', 'html'])
+
+function deployPathMatchesRequest(expectedPath, requestDeploy) {
+  const expected = normalizeDeployPath(expectedPath ?? '')
+  const request = normalizeSlug(requestDeploy ?? '')
+  if (!expected) {
+    if (!request) return true
+    return ROOT_FOLDER_NAMES.has(request)
+  }
+  return request !== '' && request === expected
+}
+
+function buildLicenseConfigContent(slug, token, { selfhost = false, allowedHost = '', deployPath = '' } = {}) {
   const api = 'http://localhost:5175/panel/api/license/check'
-  const content = `<?php
+  const allowed = normalizeLicenseHost(allowedHost)
+  const allowedLine = allowed ? `define('LICENSE_ALLOWED_HOST', '${allowed.replace(/'/g, "\\'")}');\n` : ''
+  const deploy = normalizeDeployPath(deployPath)
+  const deployLine = selfhost
+    ? `define('LICENSE_DEPLOY_PATH', '${deploy.replace(/'/g, "\\'")}');\n`
+    : ''
+  return `<?php
 // Gerado pelo painel — não remova. Sem este arquivo a bio não carrega.
 define('LICENSE_SLUG', '${slug.replace(/'/g, "\\'")}');
 define('LICENSE_TOKEN', '${token.replace(/'/g, "\\'")}');
 define('LICENSE_SELFHOST', ${selfhost ? 'true' : 'false'});
-define('LICENSE_API', '${api.replace(/'/g, "\\'")}');
+${allowedLine}${deployLine}define('LICENSE_API', '${api.replace(/'/g, "\\'")}');
 `
+}
+
+function writeLicenseConfig(clientDir, slug, token, options = {}) {
+  const content = buildLicenseConfigContent(slug, token, options)
   fs.writeFileSync(path.join(clientDir, 'license.config.php'), content)
 }
 
-function licenseConfigForSelfhostExport(content) {
-  if (content.includes('LICENSE_SELFHOST')) {
-    return content.replace(
-      /define\('LICENSE_SELFHOST',\s*(?:true|false)\);/,
-      "define('LICENSE_SELFHOST', true);",
+function selfHostHtaccess() {
+  return `# Links na Bio — hospedagem própria do cliente
+Options -Indexes -MultiViews
+DirectoryIndex index.php index.html
+
+<Files "license.config.php">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+</Files>
+
+<Files ".license-cache.json">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+</Files>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  RewriteCond %{REQUEST_URI} !/suspended\\.html$ [NC]
+  RewriteCond .suspended -f
+  RewriteRule ^ suspended.html [L]
+
+  RewriteRule ^editor$ editor/ [R=301,L]
+  RewriteRule ^index\\.html$ index.php [L]
+</IfModule>
+
+<Files "bio.draft.json">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+</Files>
+`
+}
+
+function exportReadme(slug, allowedHost, deployPath, bioSource = 'published') {
+  const folder = deployPathLabel(deployPath)
+  const bioNote =
+    bioSource === 'draft'
+      ? '9. Atenção: a bio publicada estava vazia — o ZIP incluiu o rascunho do editor.\n'
+      : `9. O ZIP inclui a bio publicada (a mesma exibida em /${slug}/ na plataforma).\n`
+
+  return `Links na Bio — pacote para hospedagem própria
+
+1. Extraia na pasta autorizada do domínio cadastrado.
+2. Domínio autorizado: ${allowedHost}
+3. Pasta no domínio: ${folder}
+4. Abra verificar-ambiente.php para testar servidor, domínio, pasta e API de licença.
+5. Não remova license.config.php nem index.php.
+
+Slug no painel: ${slug}
+${bioNote}`
+}
+
+function readBioJson(filePath) {
+  if (!fs.existsSync(filePath)) return null
+  try {
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'))
+    return data && typeof data === 'object' ? data : null
+  } catch {
+    return null
+  }
+}
+
+function bioHasContent(data) {
+  if (!data || typeof data !== 'object') return false
+  if (Array.isArray(data.sections) && data.sections.length > 0) return true
+  const brand = data.brand ?? {}
+  return Boolean(brand.logo || brand.tagline || brand.location || brand.coverImage)
+}
+
+function resolveClientExportBio(clientDir) {
+  const published = readBioJson(path.join(clientDir, 'bio.json'))
+  const draft = readBioJson(path.join(clientDir, 'bio.draft.json'))
+
+  let chosen
+  let source
+  if (bioHasContent(published)) {
+    chosen = published
+    source = 'published'
+  } else if (bioHasContent(draft)) {
+    chosen = draft
+    source = 'draft'
+  } else if (published) {
+    chosen = published
+    source = 'published'
+  } else if (draft) {
+    chosen = draft
+    source = 'draft'
+  } else {
+    throw new Error(
+      'Nenhuma configuração da bio encontrada. Edite e publique a bio no editor antes de exportar.',
     )
   }
-  return content.replace(
-    "define('LICENSE_API'",
-    "define('LICENSE_SELFHOST', true);\ndefine('LICENSE_API'",
+
+  return {
+    content: `${JSON.stringify(chosen, null, 2)}\n`,
+    source,
+  }
+}
+
+function createZipBuffer(clientDir, client) {
+  const slug = client.slug
+  if (!client.self_hosted) {
+    throw new Error(
+      'Este cliente está configurado só na plataforma. Ative "Hospedagem própria" para exportar o ZIP.',
+    )
+  }
+
+  const allowedHost = normalizeLicenseHost(client.allowed_host ?? '')
+  if (!allowedHost) {
+    throw new Error('Configure o domínio autorizado do cliente antes de exportar o ZIP.')
+  }
+  if (client.deploy_path === null || client.deploy_path === undefined) {
+    throw new Error('Configure a pasta no domínio antes de exportar o ZIP.')
+  }
+
+  const deployPath = normalizeDeployPath(client.deploy_path ?? '')
+  const exportBio = resolveClientExportBio(clientDir)
+
+  const tmp = fs.mkdtempSync(path.join(DATA_DIR, 'export-'))
+  const staging = path.join(tmp, 'site')
+  fs.cpSync(clientDir, staging, { recursive: true })
+  fs.writeFileSync(path.join(staging, 'bio.json'), exportBio.content)
+  const draftPath = path.join(staging, 'bio.draft.json')
+  if (fs.existsSync(draftPath)) fs.unlinkSync(draftPath)
+  const editorAuth = path.join(staging, 'editor', 'auth.config.php')
+  if (fs.existsSync(path.dirname(editorAuth))) {
+    const editorDir = path.join(staging, 'editor')
+    writeAuthConfig(editorDir)
+    writePlatformApiJson(editorDir, slug, client.license_token)
+    const editorHtaccess = path.join(PANEL_ROOT, '..', 'deploy', 'apache', 'editor.htaccess')
+    if (fs.existsSync(editorHtaccess)) {
+      fs.copyFileSync(editorHtaccess, path.join(editorDir, '.htaccess'))
+    }
+  }
+  fs.writeFileSync(
+    path.join(staging, 'license.config.php'),
+    buildLicenseConfigContent(slug, client.license_token, {
+      selfhost: true,
+      allowedHost,
+      deployPath,
+    }),
   )
+  fs.writeFileSync(path.join(staging, 'LEIA-ME.txt'), exportReadme(slug, allowedHost, deployPath, exportBio.source))
+  fs.writeFileSync(path.join(staging, '.htaccess'), selfHostHtaccess())
+  const verify = path.join(GATE_DIR, 'verificar-ambiente.php')
+  if (fs.existsSync(verify)) {
+    fs.copyFileSync(verify, path.join(staging, 'verificar-ambiente.php'))
+  }
+
+  const buffer = zipDirectoryToBuffer(staging)
+  fs.rmSync(tmp, { recursive: true, force: true })
+  return buffer
+}
+
+function syncClientLicense(db, client) {
+  if (!client.license_token) {
+    client.license_token = generateLicenseToken()
+  }
+  const clientDir = path.join(PLATFORM_ROOT, client.slug)
+  if (!fs.existsSync(clientDir)) return
+  writeLicenseConfig(clientDir, client.slug, client.license_token, {
+    selfhost: Boolean(client.self_hosted),
+    allowedHost: client.self_hosted ? client.allowed_host ?? '' : '',
+    deployPath: client.self_hosted ? client.deploy_path ?? '' : '',
+  })
+  installGateFiles(clientDir)
+  const editorDir = path.join(clientDir, 'editor')
+  if (fs.existsSync(editorDir)) {
+    writeAuthConfig(editorDir)
+    writePlatformApiJson(editorDir, client.slug, client.license_token)
+  }
+  writeDb(db)
+}
+
+function lookupClientLicense(db, slug, token, deploy = '', requestHost = '') {
+  const client = db.clients.find((c) => c.slug === slug && c.license_token === token)
+  if (!client) return null
+
+  if (client.self_hosted) {
+    const allowedHost = normalizeLicenseHost(client.allowed_host ?? '')
+    if (allowedHost) {
+      const host = normalizeLicenseHost(requestHost)
+      if (!host || host !== allowedHost) return null
+    }
+    if (!deployPathMatchesRequest(client.deploy_path ?? '', deploy)) return null
+  } else {
+    const deploySlug = normalizeSlug(deploy)
+    if (deploySlug && deploySlug !== client.slug) return null
+  }
+
+  return client
 }
 
 function installGateFiles(clientDir) {
@@ -257,6 +531,14 @@ function installGateFiles(clientDir) {
   if (fs.existsSync(guard) && fs.existsSync(editorDir)) {
     fs.copyFileSync(guard, path.join(editorDir, 'client-guard.php'))
   }
+  const verify = path.join(GATE_DIR, 'verificar-ambiente.php')
+  if (fs.existsSync(verify)) {
+    fs.copyFileSync(verify, path.join(clientDir, 'verificar-ambiente.php'))
+  }
+  const bioJson = path.join(GATE_DIR, 'bio-json.php')
+  if (fs.existsSync(bioJson)) {
+    fs.copyFileSync(bioJson, path.join(clientDir, 'bio-json.php'))
+  }
 }
 
 function clientLicenseActive(db, slug) {
@@ -266,58 +548,81 @@ function clientLicenseActive(db, slug) {
   return client.status === 'active'
 }
 
-function selfHostHtaccess() {
-  return `# Links na Bio — hospedagem própria do cliente
-Options -Indexes -MultiViews
-DirectoryIndex index.php index.html
-`
-}
-
-function exportReadme(slug) {
-  return `Links na Bio — pacote para hospedagem própria
-
-Extraia na raiz do domínio. Não remova license.config.php nem index.php.
-Slug: ${slug}
-`
-}
-
-function createZipBuffer(clientDir, slug) {
-  const tmp = fs.mkdtempSync(path.join(DATA_DIR, 'export-'))
-  const staging = path.join(tmp, 'site')
-  fs.cpSync(clientDir, staging, { recursive: true })
-  const licensePath = path.join(staging, 'license.config.php')
-  if (fs.existsSync(licensePath)) {
-    const licenseContent = fs.readFileSync(licensePath, 'utf8')
-    fs.writeFileSync(licensePath, licenseConfigForSelfhostExport(licenseContent))
-  }
-  fs.writeFileSync(path.join(staging, 'LEIA-ME.txt'), exportReadme(slug))
-  fs.writeFileSync(path.join(staging, '.htaccess'), selfHostHtaccess())
-  const zipPath = path.join(tmp, `bio-${slug}.zip`)
-  execSync(`zip -rq ${JSON.stringify(zipPath)} .`, { cwd: staging, stdio: 'pipe' })
-  const buffer = fs.readFileSync(zipPath)
-  fs.rmSync(tmp, { recursive: true, force: true })
-  return buffer
-}
-
-function syncClientLicense(db, client) {
-  if (!client.license_token) {
-    client.license_token = generateLicenseToken()
-  }
-  const clientDir = path.join(PLATFORM_ROOT, client.slug)
-  if (!fs.existsSync(clientDir)) return
-  writeLicenseConfig(clientDir, client.slug, client.license_token)
-  installGateFiles(clientDir)
-  writeDb(db)
-}
-
-function writeAuthConfig(editorDir, email, passwordHash) {
+function writeAuthConfig(editorDir) {
   const content = `<?php
-define('AUTH_USERNAME', '${email.replace(/'/g, "\\'")}');
-define('AUTH_PASSWORD_HASH', '${passwordHash.replace(/'/g, "\\'")}');
+// Caminhos do editor — credenciais vêm do painel via API.
 define('BIO_JSON_PATH', __DIR__ . '/../bio.json');
 define('ASSETS_DIR', __DIR__ . '/../assets');
 `
   fs.writeFileSync(path.join(editorDir, 'auth.config.php'), content)
+}
+
+function devPlatformPublicUrl() {
+  return `http://localhost:${process.env.PORT || 5175}`
+}
+
+function writePlatformApiJson(editorDir, slug, token, platformBaseUrl = devPlatformPublicUrl()) {
+  const apiBase = `${String(platformBaseUrl).replace(/\/$/, '')}/panel/api`
+  const payload = {
+    remoteAuth: true,
+    loginUrl: `${apiBase}/editor/login`,
+    sessionUrl: `${apiBase}/editor/session`,
+    slug,
+    token,
+  }
+  fs.writeFileSync(
+    path.join(editorDir, 'platform-api.json'),
+    `${JSON.stringify(payload, null, 2)}\n`,
+  )
+}
+
+function lookupClientEditor(db, slug, token, email, password = '') {
+  const client = db.clients.find((c) => c.slug === slug && c.license_token === token)
+  if (!client || client.status !== 'active') return null
+  if (client.email.toLowerCase() !== String(email).toLowerCase().trim()) return null
+  if (password && !bcrypt.compareSync(password, client.password_hash)) return null
+  return client
+}
+
+function createEditorHandshake(token, email, slug) {
+  const nonce = crypto.randomBytes(16).toString('hex')
+  const normalizedEmail = String(email).toLowerCase().trim()
+  const sig = crypto
+    .createHmac('sha256', token)
+    .update(`${nonce}|${normalizedEmail}|${slug}`)
+    .digest('hex')
+  return { nonce, sig }
+}
+
+function verifyEditorHandshake(token, email, slug, nonce, sig) {
+  if (!nonce || !sig) return false
+  const normalizedEmail = String(email).toLowerCase().trim()
+  const expected = crypto
+    .createHmac('sha256', token)
+    .update(`${nonce}|${normalizedEmail}|${slug}`)
+    .digest('hex')
+  try {
+    return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(sig, 'hex'))
+  } catch {
+    return false
+  }
+}
+
+function readClientLicenseConfig(clientRoot) {
+  const licensePath = path.join(clientRoot, 'license.config.php')
+  if (!fs.existsSync(licensePath)) return null
+  const content = fs.readFileSync(licensePath, 'utf8')
+  const slugMatch = content.match(/define\('LICENSE_SLUG',\s*'([^']+)'\)/)
+  const tokenMatch = content.match(/define\('LICENSE_TOKEN',\s*'([^']+)'\)/)
+  const apiMatch = content.match(/define\('LICENSE_API',\s*'([^']+)'\)/)
+  const selfhost = /define\('LICENSE_SELFHOST',\s*true\)/.test(content)
+  if (!slugMatch || !tokenMatch || !apiMatch) return null
+  return {
+    slug: slugMatch[1],
+    token: tokenMatch[1],
+    api: apiMatch[1],
+    selfhost,
+  }
 }
 
 function customizeBio(bioPath, name) {
@@ -413,6 +718,8 @@ function readBody(req) {
 }
 
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'])
+const VIDEO_EXT = new Set(['.mp4', '.webm', '.mov'])
+const MEDIA_EXT = new Set([...IMAGE_EXT, ...VIDEO_EXT])
 
 function sanitizeFilename(name) {
   const parsed = path.parse(name)
@@ -440,7 +747,7 @@ function uniqueFilename(dir, filename) {
 }
 
 function isValidAssetName(name) {
-  return /^[a-z0-9][a-z0-9._-]*\.(jpg|jpeg|png|gif|webp|svg)$/i.test(name)
+  return /^[a-z0-9][a-z0-9._-]*\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|mov)$/i.test(name)
 }
 
 function bioUsesAsset(bioPath, filename) {
@@ -449,13 +756,20 @@ function bioUsesAsset(bioPath, filename) {
   return [`assets/${filename}`, `/assets/${filename}`, filename].some((n) => jsonText.includes(n))
 }
 
+function clientBioUsesAsset(clientRoot, filename) {
+  return (
+    bioUsesAsset(path.join(clientRoot, 'bio.json'), filename) ||
+    bioUsesAsset(path.join(clientRoot, 'bio.draft.json'), filename)
+  )
+}
+
 function listAssetFiles(assetsDir) {
   if (!fs.existsSync(assetsDir)) return []
   return fs
     .readdirSync(assetsDir)
     .filter((name) => {
       const full = path.join(assetsDir, name)
-      return fs.statSync(full).isFile() && IMAGE_EXT.has(path.extname(name).toLowerCase())
+      return fs.statSync(full).isFile() && MEDIA_EXT.has(path.extname(name).toLowerCase())
     })
     .map((name) => {
       const full = path.join(assetsDir, name)
@@ -511,6 +825,43 @@ function serveSuspendedPage(res, clientRoot) {
   return true
 }
 
+const EDITOR_DEV_PORT = Number(process.env.EDITOR_DEV_PORT || 5180)
+const EDITOR_DEV_PROXY = process.env.EDITOR_DEV_PROXY !== '0'
+
+const EDITOR_LOCAL_FILES = new Set([
+  'platform-api.json',
+  'auth.config.php',
+  'client-guard.php',
+])
+
+function proxyEditorDevRequest(req, res, editorRel) {
+  const url = new URL(req.url ?? '/', 'http://localhost')
+  const targetPath = editorRel ? `/${editorRel}` : '/'
+  const target = new URL(targetPath + url.search, `http://127.0.0.1:${EDITOR_DEV_PORT}`)
+
+  const headers = { ...req.headers, host: `127.0.0.1:${EDITOR_DEV_PORT}` }
+  delete headers['accept-encoding']
+
+  const proxyReq = http.request(
+    target,
+    { method: req.method, headers },
+    (proxyRes) => {
+      res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers)
+      proxyRes.pipe(res)
+    },
+  )
+  proxyReq.on('error', () => {
+    if (!res.headersSent) {
+      res.statusCode = 502
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+      res.end(
+        `Editor dev (porta ${EDITOR_DEV_PORT}) não está rodando.\nRode: npm run editor ou make dev-all`,
+      )
+    }
+  })
+  req.pipe(proxyReq)
+}
+
 export function platformDevPlugin() {
   return {
     name: 'platform-dev',
@@ -549,11 +900,12 @@ export function platformDevPlugin() {
             const slug = normalizeSlug(String(body.slug ?? ''))
             const token = String(body.token ?? '').trim()
             const deploy = normalizeSlug(String(body.deploy ?? ''))
+            const host = normalizeLicenseHost(String(body.host ?? ''))
             if (!slug || !token) {
               return json(res, 400, { ok: false, error: 'slug e token são obrigatórios' })
             }
-            const client = db.clients.find((c) => c.slug === slug && c.license_token === token)
-            if (!client || (deploy && deploy !== client.slug)) {
+            const client = lookupClientLicense(db, slug, token, deploy, host)
+            if (!client) {
               return json(res, 401, { ok: false, error: 'Licença inválida para esta instalação' })
             }
             return json(res, 200, {
@@ -562,6 +914,44 @@ export function platformDevPlugin() {
               status: client.status,
               slug: client.slug,
             })
+          }
+
+          if (apiPath === '/api/editor/login' && req.method === 'POST') {
+            const body = await readBody(req)
+            const slug = normalizeSlug(String(body.slug ?? ''))
+            const token = String(body.token ?? '').trim()
+            const email = String(body.email ?? body.username ?? '')
+              .toLowerCase()
+              .trim()
+            const password = String(body.password ?? '')
+            if (!slug || !token || !email || !password) {
+              return json(res, 400, { ok: false, error: 'slug, token, e-mail e senha são obrigatórios' })
+            }
+            const client = lookupClientEditor(db, slug, token, email, password)
+            if (!client) {
+              return json(res, 401, { ok: false, error: 'E-mail ou senha inválidos' })
+            }
+            const handshake = createEditorHandshake(token, client.email, client.slug)
+            return json(res, 200, {
+              ok: true,
+              user: client.email,
+              slug: client.slug,
+              ...handshake,
+            })
+          }
+
+          if (apiPath === '/api/editor/session' && req.method === 'POST') {
+            const body = await readBody(req)
+            const slug = normalizeSlug(String(body.slug ?? ''))
+            const token = String(body.token ?? '').trim()
+            const email = String(body.email ?? body.username ?? '')
+              .toLowerCase()
+              .trim()
+            if (!slug || !token || !email) {
+              return json(res, 400, { ok: false, valid: false, error: 'Campos obrigatórios' })
+            }
+            const client = lookupClientEditor(db, slug, token, email)
+            return json(res, 200, { ok: true, valid: Boolean(client), user: client?.email ?? null })
           }
 
           if (apiPath === '/api/auth/session' && req.method === 'GET') {
@@ -644,11 +1034,26 @@ export function platformDevPlugin() {
             const plainPassword = provided !== '' ? provided : generatePassword()
             const passwordHash = bcrypt.hashSync(plainPassword, 10)
 
+            let hosting
+            try {
+              hosting = resolveClientHostingInput(
+                Boolean(body.self_hosted),
+                String(body.allowed_host ?? ''),
+                String(body.deploy_path ?? ''),
+              )
+            } catch (e) {
+              return json(res, 400, { error: e instanceof Error ? e.message : String(e) })
+            }
+
             copyDir(TEMPLATE_DIR, clientDir)
             writeAuthConfig(path.join(clientDir, 'editor'), email, passwordHash)
             customizeBio(path.join(clientDir, 'bio.json'), name)
             const licenseToken = generateLicenseToken()
-            writeLicenseConfig(clientDir, slug, licenseToken)
+            writeLicenseConfig(clientDir, slug, licenseToken, {
+              selfhost: hosting.self_hosted,
+              allowedHost: hosting.allowed_host ?? '',
+              deployPath: hosting.deploy_path ?? '',
+            })
             installGateFiles(clientDir)
 
             const instagramHandle = String(body.instagram_handle ?? '').trim()
@@ -672,6 +1077,9 @@ export function platformDevPlugin() {
               password_hash: passwordHash,
               password_enc: appEncrypt(plainPassword),
               license_token: licenseToken,
+              self_hosted: hosting.self_hosted,
+              allowed_host: hosting.allowed_host,
+              deploy_path: hosting.deploy_path,
               status: 'active',
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
@@ -722,6 +1130,17 @@ export function platformDevPlugin() {
             const slugError = validateSlug(slug)
             if (slugError) return json(res, 400, { error: slugError })
 
+            let hosting
+            try {
+              hosting = resolveClientHostingInput(
+                Boolean(body.self_hosted),
+                String(body.allowed_host ?? ''),
+                String(body.deploy_path ?? ''),
+              )
+            } catch (e) {
+              return json(res, 400, { error: e instanceof Error ? e.message : String(e) })
+            }
+
             const client = db.clients.find((c) => c.id === id)
             if (!client) return json(res, 404, { error: 'Cliente não encontrado' })
 
@@ -758,6 +1177,9 @@ export function platformDevPlugin() {
             client.slug = slug
             client.name = name
             client.email = email
+            client.allowed_host = hosting.allowed_host
+            client.deploy_path = hosting.deploy_path
+            client.self_hosted = hosting.self_hosted
             client.updated_at = new Date().toISOString()
             syncClientLicense(db, client)
             writeDb(db)
@@ -770,6 +1192,9 @@ export function platformDevPlugin() {
                 name: client.name,
                 email: client.email,
                 status: client.status,
+                self_hosted: client.self_hosted,
+                allowed_host: client.allowed_host,
+                deploy_path: client.deploy_path,
                 slug_changed: slugChanged,
                 bio_url: `/${slug}/`,
                 editor_url: `/${slug}/editor/`,
@@ -832,7 +1257,7 @@ export function platformDevPlugin() {
               return json(res, 404, { error: 'Pasta do cliente não encontrada' })
             }
             syncClientLicense(db, client)
-            const zip = createZipBuffer(clientDir, client.slug)
+            const zip = createZipBuffer(clientDir, client)
             res.statusCode = 200
             res.setHeader('Content-Type', 'application/zip')
             res.setHeader(
@@ -861,8 +1286,24 @@ export function platformDevPlugin() {
         }
       })
 
-      // Emula os endpoints PHP do editor de cada cliente em dev:
-      // /{slug}/editor/{session,login,logout,save,upload,list-images,delete-image}.php
+      // Emula os endpoints do editor de cada cliente em dev:
+      // /{slug}/editor/api/... (rotas amigáveis) e /{slug}/editor/*.php (legado)
+      const EDITOR_API_ROUTES = {
+        'api/auth/session': 'session.php',
+        'api/auth/platform-config': 'platform-config.php',
+        'api/auth/login': 'login.php',
+        'api/auth/establish': 'establish-session.php',
+        'api/auth/logout': 'logout.php',
+        'api/bio/load': 'load.php',
+        'api/bio/save': 'save.php',
+        'api/bio/publish': 'publish.php',
+        'api/bio/revert': 'revert.php',
+        'api/bio/paths': 'paths.php',
+        'api/assets/upload': 'upload.php',
+        'api/assets/list': 'list-images.php',
+        'api/assets/delete': 'delete-image.php',
+      }
+
       server.middlewares.use(async (req, res, next) => {
         const url = new URL(req.url ?? '/', 'http://localhost')
         const parts = url.pathname.split('/').filter(Boolean)
@@ -871,13 +1312,19 @@ export function platformDevPlugin() {
         const slug = parts[0]
         if (RESERVED_SLUGS.has(slug) || slug === 'api' || slug === 'panel') return next()
 
-        const file = parts[parts.length - 1]
-        if (!file.endsWith('.php')) return next()
+        const editorRel = parts.slice(2).join('/')
+        let file = EDITOR_API_ROUTES[editorRel] ?? null
+        if (!file) {
+          const last = parts[parts.length - 1]
+          if (last?.endsWith('.php')) file = last
+        }
+        if (!file) return next()
 
         const clientRoot = path.join(PLATFORM_ROOT, slug)
         if (!fs.existsSync(clientRoot)) return next()
 
         const bioPath = path.join(clientRoot, 'bio.json')
+        const draftPath = path.join(clientRoot, 'bio.draft.json')
         const assetsDir = path.join(clientRoot, 'assets')
 
         try {
@@ -897,8 +1344,60 @@ export function platformDevPlugin() {
 
           db.editor_sessions ??= {}
 
+          if (file === 'platform-config.php' && req.method === 'GET') {
+            const license = readClientLicenseConfig(clientRoot)
+            if (!license) {
+              return json(res, 200, { remoteAuth: false })
+            }
+            const base = license.api.replace(/\/license\/check$/, '')
+            return json(res, 200, {
+              remoteAuth: true,
+              loginUrl: `${base}/editor/login`,
+              sessionUrl: `${base}/editor/session`,
+              slug: license.slug,
+              token: license.token,
+            })
+          }
+
+          if (file === 'establish-session.php' && req.method === 'POST') {
+            const body = await readBody(req)
+            const email = String(body.email ?? '').toLowerCase().trim()
+            const license = readClientLicenseConfig(clientRoot)
+            if (
+              !license ||
+              !verifyEditorHandshake(
+                license.token,
+                email,
+                license.slug,
+                String(body.nonce ?? ''),
+                String(body.sig ?? ''),
+              )
+            ) {
+              return json(res, 401, { error: 'Autenticação remota inválida' })
+            }
+            const token = crypto.randomBytes(24).toString('hex')
+            db.editor_sessions[token] = { slug, email }
+            writeDb(db)
+            res.setHeader(
+              'Set-Cookie',
+              `${editorCookieName(slug)}=${token}; Path=/${slug}/editor/; HttpOnly; SameSite=Lax; Max-Age=604800`,
+            )
+            return json(res, 200, { ok: true, user: email })
+          }
+
           if (file === 'session.php' && req.method === 'GET') {
             const sess = getEditorSession(req, db, slug)
+            const license = readClientLicenseConfig(clientRoot)
+            if (sess && !license?.selfhost) {
+              const registered = findClient(db, slug)
+              const client =
+                registered?.license_token
+                  ? lookupClientEditor(db, slug, registered.license_token, sess.email)
+                  : null
+              if (!client) {
+                return json(res, 200, { authenticated: false, user: null })
+              }
+            }
             return json(res, 200, { authenticated: Boolean(sess), user: sess?.email ?? null })
           }
 
@@ -942,10 +1441,47 @@ export function platformDevPlugin() {
             return json(res, 401, { error: 'Não autenticado' })
           }
 
+          if (file === 'load.php' && req.method === 'GET') {
+            if (fs.existsSync(draftPath)) {
+              return json(res, 200, {
+                ok: true,
+                config: JSON.parse(fs.readFileSync(draftPath, 'utf-8')),
+                source: 'draft',
+                hasDraft: true,
+              })
+            }
+            if (fs.existsSync(bioPath)) {
+              return json(res, 200, {
+                ok: true,
+                config: JSON.parse(fs.readFileSync(bioPath, 'utf-8')),
+                source: 'published',
+                hasDraft: false,
+              })
+            }
+            return json(res, 404, { error: 'Nenhuma configuração encontrada' })
+          }
+
           if (file === 'save.php' && req.method === 'POST') {
             const body = await readBody(req)
-            fs.writeFileSync(bioPath, `${JSON.stringify(body, null, 2)}\n`, 'utf-8')
-            return json(res, 200, { ok: true })
+            fs.writeFileSync(draftPath, `${JSON.stringify(body, null, 2)}\n`, 'utf-8')
+            return json(res, 200, { ok: true, saved: 'draft' })
+          }
+
+          if (file === 'publish.php' && req.method === 'POST') {
+            const body = await readBody(req)
+            const content = `${JSON.stringify(body, null, 2)}\n`
+            fs.writeFileSync(draftPath, content, 'utf-8')
+            fs.writeFileSync(bioPath, content, 'utf-8')
+            return json(res, 200, { ok: true, saved: 'published' })
+          }
+
+          if (file === 'revert.php' && req.method === 'POST') {
+            if (!fs.existsSync(bioPath)) {
+              return json(res, 404, { error: 'Bio publicada não encontrada' })
+            }
+            const published = JSON.parse(fs.readFileSync(bioPath, 'utf-8'))
+            fs.writeFileSync(draftPath, `${JSON.stringify(published, null, 2)}\n`, 'utf-8')
+            return json(res, 200, { ok: true, config: published })
           }
 
           if (file === 'upload.php' && req.method === 'POST') {
@@ -975,9 +1511,10 @@ export function platformDevPlugin() {
             }
             const full = path.join(assetsDir, filename)
             if (!fs.existsSync(full)) return json(res, 404, { error: 'Arquivo não encontrado' })
-            if (bioUsesAsset(bioPath, filename)) {
+            if (clientBioUsesAsset(clientRoot, filename)) {
               return json(res, 409, {
-                error: 'Imagem em uso na bio. Remova das seções antes de excluir.',
+                error:
+                  'Imagem em uso na bio (publicada ou rascunho). Remova das seções antes de excluir.',
               })
             }
             fs.unlinkSync(full)
@@ -990,6 +1527,29 @@ export function platformDevPlugin() {
         }
       })
 
+      // Em dev, o editor do cliente usa o Vite (:5180) — código sempre atualizado.
+      // API PHP e platform-api.json continuam locais na pasta do cliente.
+      if (EDITOR_DEV_PROXY) {
+        console.log(
+          `[panel dev] Editor de clientes → proxy http://127.0.0.1:${EDITOR_DEV_PORT} (/{slug}/editor/)`,
+        )
+        server.middlewares.use((req, res, next) => {
+          const url = new URL(req.url ?? '/', 'http://localhost')
+          const parts = url.pathname.split('/').filter(Boolean)
+          if (parts.length < 2 || parts[1] !== 'editor') return next()
+
+          const slug = parts[0]
+          if (RESERVED_SLUGS.has(slug) || slug === 'api' || slug === 'panel') return next()
+          if (!fs.existsSync(path.join(PLATFORM_ROOT, slug))) return next()
+
+          const editorRel = parts.slice(2).join('/')
+          if (editorRel.startsWith('api/')) return next()
+          if (EDITOR_LOCAL_FILES.has(editorRel) || editorRel.endsWith('.php')) return next()
+
+          proxyEditorDevRequest(req, res, editorRel)
+        })
+      }
+
       // Servir tenants criados em dev em /{slug}/ e /{slug}/editor/
       server.middlewares.use((req, res, next) => {
         const url = new URL(req.url ?? '/', 'http://localhost')
@@ -1001,6 +1561,14 @@ export function platformDevPlugin() {
 
         const clientRoot = path.join(PLATFORM_ROOT, slug)
         if (!fs.existsSync(clientRoot)) return next()
+
+        // Rascunho nunca é público — só via API autenticada do editor
+        if (parts[parts.length - 1] === 'bio.draft.json') {
+          res.statusCode = 403
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Forbidden' }))
+          return
+        }
 
         const db = readDb()
         const relParts = parts.slice(1)

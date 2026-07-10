@@ -118,7 +118,7 @@ export default function App() {
       !window.confirm(
         'Atualizar todos os sites com o template _template/ mais recente?\n\n' +
           'Serão atualizados: HTML, JS/CSS, editor, licença e .htaccess.\n' +
-          'Preservados: bio.json, imagens e senha do editor.',
+          'Preservados: bio.json, bio.draft.json, imagens e senha do editor.',
       )
     ) {
       return

@@ -10,6 +10,9 @@ $input = platform_json_input();
 $name = isset($input['name']) ? trim((string) $input['name']) : '';
 $slug = isset($input['slug']) ? (string) $input['slug'] : '';
 $email = isset($input['email']) ? strtolower(trim((string) $input['email'])) : '';
+$selfHosted = !empty($input['self_hosted']);
+$allowedHost = isset($input['allowed_host']) ? trim((string) $input['allowed_host']) : '';
+$deployPath = isset($input['deploy_path']) ? trim((string) $input['deploy_path']) : '';
 
 if ($name === '' || $slug === '' || $email === '') {
   http_response_code(400);
@@ -41,6 +44,9 @@ if ($providedPassword !== '' && strlen($providedPassword) < 6) {
 try {
   platform_load_config();
   $pdo = platform_db();
+  platform_ensure_license_column($pdo);
+
+  $hosting = resolve_client_hosting_input($selfHosted, $allowedHost, $deployPath);
 
   $check = $pdo->prepare('SELECT id FROM clients WHERE slug = ? OR email = ? LIMIT 1');
   $check->execute([$slug, $email]);
@@ -79,18 +85,43 @@ try {
   }
 
   $insert = $pdo->prepare(
-    'INSERT INTO clients (slug, name, email, password_hash, password_enc, status, license_token) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO clients (slug, name, email, password_hash, password_enc, status, license_token, allowed_host, self_hosted, deploy_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
   );
-  $insert->execute([$slug, $name, $email, $passwordHash, $passwordEnc, 'active', $licenseToken]);
+  $insert->execute([
+    $slug,
+    $name,
+    $email,
+    $passwordHash,
+    $passwordEnc,
+    'active',
+    $licenseToken,
+    $hosting['allowed_host'],
+    $hosting['self_hosted'] ? 1 : 0,
+    $hosting['deploy_path'],
+  ]);
+
+  $clientId = (int) $pdo->lastInsertId();
+
+  sync_client_license_files($pdo, PLATFORM_ROOT, [
+    'id' => $clientId,
+    'slug' => $slug,
+    'license_token' => $licenseToken,
+    'allowed_host' => $hosting['allowed_host'],
+    'self_hosted' => $hosting['self_hosted'],
+    'deploy_path' => $hosting['deploy_path'],
+  ]);
 
   echo json_encode([
     'ok' => true,
     'client' => [
-      'id' => (int) $pdo->lastInsertId(),
+      'id' => $clientId,
       'slug' => $slug,
       'name' => $name,
       'email' => $email,
       'status' => 'active',
+      'self_hosted' => $hosting['self_hosted'],
+      'allowed_host' => $hosting['allowed_host'],
+      'deploy_path' => $hosting['deploy_path'],
       'bio_url' => $provision['bio_url'],
       'editor_url' => $provision['editor_url'],
       'password' => $plainPassword,

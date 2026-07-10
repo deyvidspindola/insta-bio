@@ -1,14 +1,12 @@
 import type { LocationCard as LocationCardType } from '../types/bio'
+import { CardLink, hasClickableUrl } from '../lib/cardLink'
 import { MapPin } from 'lucide-react'
 
 export function LocationCard({ item }: { item: LocationCardType }) {
+  const clickable = hasClickableUrl(item.mapUrl)
+
   return (
-    <a
-      href={item.mapUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="bio-card bio-location-card group relative block"
-    >
+    <CardLink url={item.mapUrl} className="bio-card bio-location-card group relative block">
       <div className="relative overflow-hidden">
         <div
           aria-hidden="true"
@@ -26,12 +24,14 @@ export function LocationCard({ item }: { item: LocationCardType }) {
           <div className="min-w-0 flex-1">
             <h3 className="font-semibold text-foreground">{item.title}</h3>
             <p className="bio-text-secondary text-xs">{item.address}</p>
-            <span className="mt-1 inline-block text-[11px] font-medium text-primary">
-              Abrir no mapa →
-            </span>
+            {clickable && (
+              <span className="mt-1 inline-block text-[11px] font-medium text-primary">
+                Abrir no mapa →
+              </span>
+            )}
           </div>
         </div>
       </div>
-    </a>
+    </CardLink>
   )
 }

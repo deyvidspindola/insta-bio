@@ -35,7 +35,7 @@ export function youtubeEmbedUrl(input: string): string | null {
   return `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1`
 }
 
-/** Converte URL pública do Spotify em URL de embed oficial (limpa, sem params extras). */
+/** Converte URL pública do Spotify em URL de embed oficial (legado). */
 export function spotifyEmbedUrl(
   input: string,
   options?: { theme?: 'dark' | 'light' },
@@ -73,8 +73,61 @@ export function spotifyEmbedUrl(
   }
 }
 
-/** Player compacto Spotify — capa à esquerda + faixas (153px). */
-export const SPOTIFY_COMPACT_HEIGHT = 153
+export interface SpotifyEmbedParsed {
+  src: string
+  height: number
+}
+
+const SPOTIFY_EMBED_DEFAULT_HEIGHT = 152
+
+/** Aceita iframe exportado pelo Spotify, URL de embed ou link público (legado). */
+export function parseSpotifyEmbed(input: string): SpotifyEmbedParsed | null {
+  const raw = input.trim()
+  if (!raw) return null
+
+  const iframeTag = raw.match(/<iframe[\s\S]*?>/i)?.[0]
+  if (iframeTag) {
+    const src = iframeTag.match(/\bsrc=["']([^"']+)["']/i)?.[1]?.trim()
+    if (!src || !isSpotifyEmbedSrc(src)) return null
+
+    const heightRaw = iframeTag.match(/\bheight=["']?(\d+)["']?/i)?.[1]
+    const height = heightRaw ? Number.parseInt(heightRaw, 10) : SPOTIFY_EMBED_DEFAULT_HEIGHT
+
+    return {
+      src,
+      height: Number.isFinite(height) && height > 0 ? height : SPOTIFY_EMBED_DEFAULT_HEIGHT,
+    }
+  }
+
+  if (raw.includes('open.spotify.com/embed/')) {
+    try {
+      const src = new URL(raw.startsWith('http') ? raw : `https://${raw}`).toString()
+      if (!isSpotifyEmbedSrc(src)) return null
+      return { src, height: SPOTIFY_EMBED_DEFAULT_HEIGHT }
+    } catch {
+      return null
+    }
+  }
+
+  const legacy = spotifyEmbedUrl(raw)
+  if (legacy) {
+    return { src: legacy, height: SPOTIFY_COMPACT_HEIGHT }
+  }
+
+  return null
+}
+
+function isSpotifyEmbedSrc(src: string): boolean {
+  try {
+    const url = new URL(src)
+    return url.hostname.replace(/^www\./, '') === 'open.spotify.com' && url.pathname.startsWith('/embed/')
+  } catch {
+    return false
+  }
+}
+
+/** Player compacto Spotify — altura padrão do embed exportado. */
+export const SPOTIFY_COMPACT_HEIGHT = 152
 
 export function spotifyEmbedHeight(_mode?: 'compact' | 'default'): number {
   return SPOTIFY_COMPACT_HEIGHT

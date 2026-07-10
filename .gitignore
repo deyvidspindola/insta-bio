@@ -12,21 +12,23 @@ node_modules
 dist
 dist-ssr
 release
-admin/dist
+editor/dist
 panel/dist
 site/dist
+bio/dist
 platform-release/
 platform-template/
 
 # Dados de runtime do cliente (dev local / produção)
-public/bio.json
-public/assets/*
-!public/assets/.gitkeep
-!public/assets/logo-instabio.svg
-!public/assets/exemplo-criativo.jpg
-!public/assets/exemplo-kids.jpg
-!public/assets/download.png
-!public/assets/download-1.png
+bio/public/bio.json
+bio/public/bio.draft.json
+bio/public/assets/*
+!bio/public/assets/.gitkeep
+!bio/public/assets/logo-instabio.svg
+!bio/public/assets/exemplo-criativo.jpg
+!bio/public/assets/exemplo-kids.jpg
+!bio/public/assets/download.png
+!bio/public/assets/download-1.png
 
 # Painel multi-tenant
 panel/data/
@@ -39,9 +41,9 @@ panel/composer.lock
 .probe-write
 
 # Credenciais e config local (nunca commitar)
-admin/auth.json
-admin/.auth-secret
-admin/php/auth.config.php
+editor/auth.json
+editor/.auth-secret
+editor/php/auth.config.php
 deploy.config.json
 panel/php/db.config.php
 .env
@@ -66,3 +68,7 @@ Thumbs.db
 # Pacotes
 *.zip
 *.local
+
+# Temporários locais
+tmp/
+Untitled

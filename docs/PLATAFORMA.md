@@ -41,7 +41,7 @@ public_html/                          ← linksnabio.app.br
 │   ├── bio.default.json
 │   ├── assets/
 │   ├── .htaccess
-│   └── editor/                       ← editor do cliente (admin/dist copiado)
+│   └── editor/                       ← editor do cliente (editor/dist copiado)
 │       ├── index.html
 │       ├── login.php
 │       └── …
@@ -231,26 +231,25 @@ Arquivo gerado no provisionamento:
 
 ---
 
-## Monorepo — organização prevista
+## Monorepo — organização
 
 ```
 insta-bio/
-├── site/              ← landing (raiz do domínio)
-├── admin/             ← editor do cliente (vai dentro de cada {slug}/editor/)
-├── panel/             ← NOVO: super-admin (/panel/)
-├── scripts/
-│   ├── package-deploy.mjs      ← deploy single-tenant (atual)
-│   └── package-template.mjs    ← NOVO: gera _template/ para a plataforma
+├── bio/               ← bio pública (build → dist/ na raiz)
+├── editor/            ← editor do cliente (→ {slug}/editor/)
+├── panel/             ← super-admin (/panel/)
+├── site/              ← landing comercial (/)
+├── scripts/           ← package-deploy, package-template, package-platform
+├── deploy/            ← .htaccess de referência
 └── docs/
-    └── PLATAFORMA.md           ← este arquivo
 ```
 
 | App | URL em produção | Quem usa |
 |-----|-----------------|----------|
 | `site/` | `/` | Visitantes, marketing |
-| `panel/` | `/panel/` | Você (operador da plataforma) |
-| `admin/` | `/{slug}/editor/` | Cliente final |
-| bio pública | `/{slug}/` | Seguidores do Instagram |
+| `panel/` | `/panel/` | Operador da plataforma |
+| `bio/` (build) | `/{slug}/` | Seguidores |
+| `editor/` (build) | `/{slug}/editor/` | Cliente final |
 
 ---
 
@@ -286,13 +285,13 @@ Por isso fica como **pacote premium** (você configura manualmente ou automatiza
 
 | # | Entrega | Status |
 |---|---------|--------|
-| 1 | `basePath` em runtime (bio + editor) | ✅ `src/lib/publicUrl.ts` |
+| 1 | `basePath` em runtime (bio + editor) | ✅ `bio/src/lib/publicUrl.ts` |
 | 2 | Script `package-template.mjs` → `_template/` | ✅ `npm run build:template` |
 | 3 | App `panel/` — login super-admin | ✅ `/panel/` |
 | 4 | CRUD clientes: criar, listar, credenciais | ✅ |
 | 5 | API PHP: slug, copiar template, auth + bio | ✅ |
 | 6 | MySQL: schema `clients` + `platform_admins` | ✅ `panel/schema.sql` |
-| 7 | Slugs reservados | ✅ `src/lib/reservedSlugs.ts` |
+| 7 | Slugs reservados | ✅ `bio/src/lib/reservedSlugs.ts` |
 | 8 | Build plataforma | ✅ `npm run build:platform` → `platform-release/` |
 
 ### Comandos
@@ -341,7 +340,7 @@ Ver [panel/README.md](../panel/README.md) para deploy na HostGator.
 Build local (seu computador):
 
 ```bash
-npm run build:platform   # (a criar) — landing + panel + _template
+npm run build:platform   # landing + panel + _template → platform-release/
 ```
 
 Upload FTP para `public_html/`:
@@ -351,7 +350,7 @@ Upload FTP para `public_html/`:
 - `_template/` (ou fora do public_html)
 - **Não** subir pastas de clientes manualmente — o `/panel/` cria via PHP
 
-Atualizar o template: novo build → substituir `_template/` → clientes antigos **não** mudam automaticamente (atualização por cliente ou script de migração futuro).
+Atualizar o template: novo build → substituir `_template/` → use **Atualizar sites** no painel para propagar HTML/JS/CSS/editor aos clientes (preserva `bio.json`, `assets/` e `auth.config.php`). Equivalente CLI: `npm run sync:clients`.
 
 ---
 
@@ -372,6 +371,6 @@ Atualizar o template: novo build → substituir `_template/` → clientes antigo
 
 - [PROJETO.md](./PROJETO.md) — arquitetura atual
 - [HOSTGATOR.md](./HOSTGATOR.md) — deploy single-tenant (base)
-- [ADMIN.md](./ADMIN.md) — editor do cliente
+- [EDITOR.md](./EDITOR.md) — editor do cliente
 - [MELHORIAS.md](./MELHORIAS.md) — roadmap geral
-- [COMERCIALIZACAO.md](./COMERCIALIZACAO.md) — modelo de venda (atualizar quando plataforma existir)
+- [COMERCIALIZACAO.md](./COMERCIALIZACAO.md) — modelo single-tenant; plataforma em [PLATAFORMA.md](./PLATAFORMA.md)

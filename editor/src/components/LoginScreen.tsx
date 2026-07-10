@@ -62,7 +62,7 @@ export function LoginScreen({ onSuccess }: Props) {
           </div>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">
-              insta-bio admin
+              links na bio · editor
             </p>
             <h1 className="text-xl font-semibold leading-tight">Entrar</h1>
           </div>
@@ -74,14 +74,14 @@ export function LoginScreen({ onSuccess }: Props) {
 
         <div className="space-y-5">
           <div className="field mb-0">
-            <label htmlFor="login-username">Usuário</label>
+            <label htmlFor="login-username">E-mail</label>
             <input
               id="login-username"
-              type="text"
+              type="email"
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="seu-usuario"
+              placeholder="cliente@email.com"
               required
             />
           </div>

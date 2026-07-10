@@ -15,9 +15,15 @@ Options -Indexes -MultiViews
 
   # API amigável → PHP
   RewriteRule ^api/auth/session$ session.php [L,QSA]
+  RewriteRule ^api/auth/platform-config$ platform-config.php [L,QSA]
   RewriteRule ^api/auth/login$ login.php [L,QSA]
+  RewriteRule ^api/auth/establish$ establish-session.php [L,QSA]
   RewriteRule ^api/auth/logout$ logout.php [L,QSA]
   RewriteRule ^api/bio/save$ save.php [L,QSA]
+  RewriteRule ^api/bio/publish$ publish.php [L,QSA]
+  RewriteRule ^api/bio/revert$ revert.php [L,QSA]
+  RewriteRule ^api/bio/load$ load.php [L,QSA]
+  RewriteRule ^api/bio/paths$ paths.php [L,QSA]
   RewriteRule ^api/assets/upload$ upload.php [L,QSA]
   RewriteRule ^api/assets/list$ list-images.php [L,QSA]
   RewriteRule ^api/assets/delete$ delete-image.php [L,QSA]

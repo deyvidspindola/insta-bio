@@ -162,21 +162,56 @@ function platform_provision_check(string $platformRoot, string $templateDir): ar
   return $result;
 }
 
-function write_client_auth_config(string $editorDir, string $email, string $passwordHash): void
+function write_editor_paths_config(string $editorDir): void
 {
-  $emailEsc = addslashes($email);
-  $hashEsc = addslashes($passwordHash);
-  $content = <<<PHP
+  if (file_put_contents($editorDir . DIRECTORY_SEPARATOR . 'auth.config.php', editor_paths_config_content()) === false) {
+    throw new RuntimeException('Não foi possível gravar auth.config.php');
+  }
+
+  require_once __DIR__ . '/bio-path.php';
+  $clientRoot = dirname($editorDir);
+  write_bio_path_json($clientRoot, $clientRoot . DIRECTORY_SEPARATOR . 'bio.json');
+}
+
+function editor_paths_config_content(): string
+{
+  return <<<'PHP'
 <?php
-define('AUTH_USERNAME', '{$emailEsc}');
-define('AUTH_PASSWORD_HASH', '{$hashEsc}');
+// Caminhos do editor — credenciais vêm do painel via API.
 define('BIO_JSON_PATH', __DIR__ . '/../bio.json');
 define('ASSETS_DIR', __DIR__ . '/../assets');
 
 PHP;
-  if (file_put_contents($editorDir . '/auth.config.php', $content) === false) {
-    throw new RuntimeException('Não foi possível gravar auth.config.php');
+}
+
+function platform_parse_auth_bio_json_path(string $authFile): ?string
+{
+  if (!is_file($authFile)) {
+    return null;
   }
+
+  $content = file_get_contents($authFile);
+  if ($content === false) {
+    return null;
+  }
+
+  if (preg_match("/define\\('BIO_JSON_PATH',\\s*__DIR__\\s*\\.\\s*'([^']+)'\\)/", $content, $matches)) {
+    $path = dirname($authFile) . $matches[1];
+    $real = realpath($path);
+    return $real !== false ? $real : $path;
+  }
+
+  if (preg_match("/define\\('BIO_JSON_PATH',\\s*'([^']+)'\\)/", $content, $matches)) {
+    return $matches[1];
+  }
+
+  return null;
+}
+
+/** @deprecated Credenciais agora vêm da API do painel; grava só os caminhos. */
+function write_client_auth_config(string $editorDir, string $email = '', string $passwordHash = ''): void
+{
+  write_editor_paths_config($editorDir);
 }
 
 function update_client_password(string $platformRoot, string $slug, string $email, string $passwordHash): void
@@ -185,7 +220,8 @@ function update_client_password(string $platformRoot, string $slug, string $emai
   if (!is_dir($editorDir)) {
     throw new RuntimeException('Pasta do editor não encontrada para este cliente');
   }
-  write_client_auth_config($editorDir, $email, $passwordHash);
+
+  write_editor_paths_config($editorDir);
 }
 
 function write_client_htaccess(string $clientDir): void
@@ -217,14 +253,24 @@ DirectoryIndex index.php index.html
 
   # /editor sem barra → /editor/
   RewriteRule ^editor$ editor/ [R=301,L]
+
+  # Bio pública sempre passa pelo gate de licença
+  RewriteRule ^index\.html$ index.php [L]
 </IfModule>
 
-# bio.json sempre fresco após salvar no editor
+# bio.json sempre fresco após publicar no editor
 <Files "bio.json">
   <IfModule mod_headers.c>
     Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
     Header set Pragma "no-cache"
     Header set Expires "0"
+  </IfModule>
+</Files>
+
+# Rascunho só pelo editor autenticado — não expor publicamente
+<Files "bio.draft.json">
+  <IfModule mod_authz_core.c>
+    Require all denied
   </IfModule>
 </Files>
 HTACCESS;
@@ -252,6 +298,88 @@ function sync_client_status(string $platformRoot, string $slug, string $status):
   if (file_exists($flag)) {
     unlink($flag);
   }
+}
+
+function client_read_bio_file(string $path): ?array
+{
+  if (!is_file($path)) {
+    return null;
+  }
+
+  $raw = file_get_contents($path);
+  if ($raw === false || $raw === '') {
+    return null;
+  }
+
+  $data = json_decode($raw, true);
+  return is_array($data) ? $data : null;
+}
+
+function client_bio_has_content(?array $data): bool
+{
+  if ($data === null) {
+    return false;
+  }
+
+  if (!empty($data['sections']) && is_array($data['sections']) && count($data['sections']) > 0) {
+    return true;
+  }
+
+  $brand = $data['brand'] ?? [];
+  if (!is_array($brand)) {
+    return false;
+  }
+
+  foreach (['logo', 'tagline', 'location', 'coverImage'] as $key) {
+    if (!empty($brand[$key])) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * @return array{content: string, source: 'published'|'draft'}
+ */
+function client_resolve_export_bio(string $clientDir): array
+{
+  $publishedPath = rtrim($clientDir, '/\\') . DIRECTORY_SEPARATOR . 'bio.json';
+  $draftPath = rtrim($clientDir, '/\\') . DIRECTORY_SEPARATOR . 'bio.draft.json';
+
+  $published = client_read_bio_file($publishedPath);
+  $draft = client_read_bio_file($draftPath);
+
+  if (client_bio_has_content($published)) {
+    $chosen = $published;
+    $source = 'published';
+  } elseif (client_bio_has_content($draft)) {
+    $chosen = $draft;
+    $source = 'draft';
+  } elseif ($published !== null) {
+    $chosen = $published;
+    $source = 'published';
+  } elseif ($draft !== null) {
+    $chosen = $draft;
+    $source = 'draft';
+  } else {
+    throw new RuntimeException(
+      'Nenhuma configuração da bio encontrada. Edite e publique a bio no editor antes de exportar.',
+    );
+  }
+
+  $json = json_encode(
+    $chosen,
+    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+  );
+  if ($json === false) {
+    throw new RuntimeException('Não foi possível serializar a bio para exportação.');
+  }
+
+  return [
+    'content' => $json . "\n",
+    'source' => $source,
+  ];
 }
 
 function customize_bio_json(string $bioPath, string $clientName, string $slug): void
@@ -570,10 +698,6 @@ function provision_client(
 
   $editorDir = $clientDir . DIRECTORY_SEPARATOR . 'editor';
   write_client_auth_config($editorDir, $email, $passwordHash);
-  customize_bio_json($clientDir . DIRECTORY_SEPARATOR . 'bio.json', $name, $slug);
-
-  require_once __DIR__ . '/license.php';
-  write_client_license_config($clientDir, $slug, $licenseToken, $platformBaseUrl);
   install_client_license_gate_files($clientDir);
 
   return [
@@ -591,6 +715,9 @@ function update_client(
   string $name,
   string $email,
   string $slugInput,
+  bool $selfHosted = false,
+  string $allowedHostInput = '',
+  string $deployPathInput = '',
 ): array {
   $name = trim($name);
   $email = strtolower(trim($email));
@@ -604,6 +731,9 @@ function update_client(
   if ($slugError !== null) {
     throw new InvalidArgumentException($slugError);
   }
+
+  require_once __DIR__ . '/license.php';
+  $hosting = resolve_client_hosting_input($selfHosted, $allowedHostInput, $deployPathInput);
 
   $stmt = $pdo->prepare('SELECT * FROM clients WHERE id = ? LIMIT 1');
   $stmt->execute([$id]);
@@ -654,14 +784,24 @@ function update_client(
   $editorDir = $clientDir . DIRECTORY_SEPARATOR . 'editor';
   write_client_auth_config($editorDir, $email, $client['password_hash']);
 
-  require_once __DIR__ . '/license.php';
   $client['slug'] = $newSlug;
+  $client['self_hosted'] = $hosting['self_hosted'] ? 1 : 0;
+  $client['allowed_host'] = $hosting['allowed_host'];
+  $client['deploy_path'] = $hosting['deploy_path'];
   sync_client_license_files($pdo, $platformRoot, $client);
 
   $update = $pdo->prepare(
-    'UPDATE clients SET slug = ?, name = ?, email = ?, updated_at = NOW() WHERE id = ?',
+    'UPDATE clients SET slug = ?, name = ?, email = ?, self_hosted = ?, allowed_host = ?, deploy_path = ?, updated_at = NOW() WHERE id = ?',
   );
-  $update->execute([$newSlug, $name, $email, $id]);
+  $update->execute([
+    $newSlug,
+    $name,
+    $email,
+    $hosting['self_hosted'] ? 1 : 0,
+    $hosting['allowed_host'],
+    $hosting['deploy_path'],
+    $id,
+  ]);
 
   return [
     'id' => $id,
@@ -669,6 +809,9 @@ function update_client(
     'name' => $name,
     'email' => $email,
     'status' => $client['status'],
+    'self_hosted' => $hosting['self_hosted'],
+    'allowed_host' => $hosting['allowed_host'],
+    'deploy_path' => $hosting['deploy_path'],
     'slug_changed' => $newSlug !== $oldSlug,
     'bio_url' => '/' . $newSlug . '/',
     'editor_url' => '/' . $newSlug . '/editor/',

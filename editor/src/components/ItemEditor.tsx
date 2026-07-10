@@ -5,7 +5,9 @@ import {
   APP_HERO_PRESET_LIST,
   APP_HERO_LAYOUTS,
   CARD_TYPES,
+  CARD_WIDTH_OPTIONS,
   FEATURE_VARIANTS,
+  ICON_LABELS,
   ICON_OPTIONS,
   MEDIA_CARD_VARIANTS,
   resolveHeroLayout,
@@ -21,6 +23,7 @@ interface ItemEditorProps {
   isGridSection?: boolean
   onChange: (item: SectionItem) => void
   onRemove: () => void
+  onDuplicate?: () => void
   dragHandle?: ReactNode
   collapsed?: boolean
   onToggleCollapse?: () => void
@@ -56,7 +59,7 @@ function IconSelect({
       <option value="">Sem ícone</option>
       {ICON_OPTIONS.map((icon) => (
         <option key={icon} value={icon}>
-          {icon}
+          {ICON_LABELS[icon] ?? icon}
         </option>
       ))}
     </select>
@@ -132,6 +135,35 @@ function TagsField({
   )
 }
 
+function CardWidthField({
+  value,
+  onChange,
+  isGridSection,
+}: {
+  value?: 'full' | 'half'
+  onChange: (width: 'full' | 'half') => void
+  isGridSection: boolean
+}) {
+  return (
+    <Field label="Largura do card">
+      <select
+        value={value ?? 'full'}
+        onChange={(e) => onChange(e.target.value as 'full' | 'half')}
+      >
+        {CARD_WIDTH_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <p className="mt-1 text-[10px] text-muted-foreground/75">
+        {isGridSection
+          ? 'Na grade da seção, “largura total” ocupa as 2 colunas.'
+          : '“Metade” coloca 2 cards lado a lado na mesma linha.'}
+      </p>
+    </Field>
+  )
+}
 function HeroLayoutFields({
   item,
   isGridSection,
@@ -207,6 +239,7 @@ export function ItemEditor({
   isGridSection = false,
   onChange,
   onRemove,
+  onDuplicate,
   dragHandle,
   collapsed = false,
   onToggleCollapse,
@@ -258,13 +291,24 @@ export function ItemEditor({
             </p>
           </button>
         </div>
-        <button
-          type="button"
-          className="btn-danger shrink-0 px-3 py-1.5 text-xs"
-          onClick={onRemove}
-        >
-          Remover
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          {onDuplicate && (
+            <button
+              type="button"
+              className="btn-secondary px-3 py-1.5 text-xs"
+              onClick={onDuplicate}
+            >
+              Clonar
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn-danger shrink-0 px-3 py-1.5 text-xs"
+            onClick={onRemove}
+          >
+            Remover
+          </button>
+        </div>
       </div>
 
       {collapsed ? null : (
@@ -273,10 +317,11 @@ export function ItemEditor({
         item.type !== 'video' &&
         item.type !== 'youtube-embed' &&
         item.type !== 'spotify-embed' && (
-        <Field label="URL">
+        <Field label="URL (opcional)">
           <input
             value={item.url}
             onChange={(e) => onChange({ ...item, url: e.target.value } as SectionItem)}
+            placeholder="Deixe vazio para card sem link"
           />
         </Field>
       )}
@@ -383,6 +428,30 @@ export function ItemEditor({
               onChange={(tags) => onChange({ ...item, tags })}
             />
           )}
+          <CardWidthField
+            value={item.width}
+            isGridSection={isGridSection}
+            onChange={(width) => onChange({ ...item, width })}
+          />
+        </>
+      )}
+
+      {item.type === 'link' && (
+        <>
+          <Field label="Título">
+            <input value={item.title} onChange={(e) => onChange({ ...item, title: e.target.value })} />
+          </Field>
+          <Field label="Subtítulo">
+            <input value={item.subtitle ?? ''} onChange={(e) => onChange({ ...item, subtitle: e.target.value })} />
+          </Field>
+          <Field label="Ícone">
+            <IconSelect value={item.icon} onChange={(icon) => onChange({ ...item, icon })} />
+          </Field>
+          <CardWidthField
+            value={item.width}
+            isGridSection={isGridSection}
+            onChange={(width) => onChange({ ...item, width })}
+          />
         </>
       )}
 
@@ -521,11 +590,21 @@ export function ItemEditor({
 
       {item.type === 'spotify-embed' && (
         <>
-          <Field label="Link do Spotify">
-            <input
-              value={item.url}
-              onChange={(e) => onChange({ ...item, url: e.target.value, size: 'compact' })}
-              placeholder="https://open.spotify.com/playlist/..."
+          <Field label="Código de incorporação (iframe)">
+            <textarea
+              value={item.embed ?? item.url ?? ''}
+              onChange={(e) =>
+                onChange({
+                  ...item,
+                  embed: e.target.value,
+                  url: undefined,
+                  theme: undefined,
+                  size: undefined,
+                })
+              }
+              rows={5}
+              placeholder={'<iframe ... src="https://open.spotify.com/embed/..." ...></iframe>'}
+              className="font-mono text-xs"
             />
           </Field>
           <Field label="Título (opcional)">
@@ -534,38 +613,10 @@ export function ItemEditor({
               onChange={(e) => onChange({ ...item, title: e.target.value })}
             />
           </Field>
-          <Field label="Cor do player">
-            <select
-              value={item.theme ?? 'dark'}
-              onChange={(e) =>
-                onChange({
-                  ...item,
-                  theme: e.target.value as 'dark' | 'light',
-                })
-              }
-            >
-              <option value="dark">Escuro</option>
-              <option value="light">Claro</option>
-            </select>
-          </Field>
           <p className="text-[10px] text-muted-foreground/75">
-            Player compacto com capa, lista de faixas e controles — igual ao embed oficial do
-            Spotify. Playlist, álbum, artista ou música.
+            No Spotify: Compartilhar → Incorporar → copie o iframe e cole aqui. Playlist, álbum,
+            artista ou música.
           </p>
-        </>
-      )}
-
-      {item.type === 'link' && (
-        <>
-          <Field label="Título">
-            <input value={item.title} onChange={(e) => onChange({ ...item, title: e.target.value })} />
-          </Field>
-          <Field label="Subtítulo">
-            <input value={item.subtitle ?? ''} onChange={(e) => onChange({ ...item, subtitle: e.target.value })} />
-          </Field>
-          <Field label="Ícone">
-            <IconSelect value={item.icon} onChange={(icon) => onChange({ ...item, icon })} />
-          </Field>
         </>
       )}
 

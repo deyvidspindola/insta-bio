@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Copy, RefreshCw, Trash2, Upload } from 'lucide-react'
+import { Copy, Film, RefreshCw, Trash2, Upload } from 'lucide-react'
 import type { BioConfig } from '@bio-types'
 import { resolvePublicUrl } from '@site/lib/publicUrl'
-import { deleteAsset, formatFileSize, listAssets, type AssetFile } from '../lib/assets'
+import {
+  deleteAsset,
+  formatFileSize,
+  isVideoAsset,
+  listAssets,
+  type AssetFile,
+} from '../lib/assets'
 import { ENDPOINTS } from '../lib/endpoints'
 import { collectUsedAssetFilenames, isAssetInUse } from '../lib/imageUsage'
+import { AssetPreviewModal } from './AssetPreviewModal'
 import { ConfirmDialog } from './ConfirmDialog'
 
 type Filter = 'all' | 'used' | 'unused'
@@ -29,6 +36,7 @@ export function ImagesGallery({ config }: ImagesGalleryProps) {
   const [filter, setFilter] = useState<Filter>('all')
   const [deleting, setDeleting] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<AssetFile | null>(null)
+  const [previewFile, setPreviewFile] = useState<AssetFile | null>(null)
   const [uploading, setUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -40,7 +48,7 @@ export function ImagesGallery({ config }: ImagesGalleryProps) {
     try {
       setFiles(await listAssets())
     } catch {
-      setError('Não foi possível carregar as imagens.')
+      setError('Não foi possível carregar os arquivos.')
     } finally {
       setLoading(false)
     }
@@ -95,10 +103,14 @@ export function ImagesGallery({ config }: ImagesGalleryProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: file.name, data }),
       })
-      if (!response.ok) throw new Error('Falha no upload')
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null
+        throw new Error(payload?.error ?? 'Falha no upload')
+      }
       await load()
-    } catch {
-      setError('Não foi possível enviar a imagem.')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Não foi possível enviar o arquivo.'
+      setError(message)
     } finally {
       setUploading(false)
     }
@@ -109,7 +121,7 @@ export function ImagesGallery({ config }: ImagesGalleryProps) {
   }
 
   const filters: { id: Filter; label: string; count: number }[] = [
-    { id: 'all', label: 'Todas', count: counts.total },
+    { id: 'all', label: 'Todos', count: counts.total },
     { id: 'used', label: 'Em uso', count: counts.used },
     { id: 'unused', label: 'Livres', count: counts.unused },
   ]
@@ -119,9 +131,10 @@ export function ImagesGallery({ config }: ImagesGalleryProps) {
       <div className="card">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold">Galeria de imagens</h2>
+            <h2 className="text-base font-semibold">Galeria de arquivos</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Arquivos em <code className="text-xs">assets/</code>. Imagens em uso na bio não podem ser excluídas.
+              Imagens e vídeos em <code className="text-xs">assets/</code>. Arquivos em uso na bio
+              não podem ser excluídos.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -141,7 +154,7 @@ export function ImagesGallery({ config }: ImagesGalleryProps) {
               onClick={() => inputRef.current?.click()}
             >
               <Upload className="h-3.5 w-3.5" />
-              {uploading ? 'Enviando…' : 'Enviar imagem'}
+              {uploading ? 'Enviando…' : 'Enviar arquivo'}
             </button>
           </div>
         </div>
@@ -175,31 +188,50 @@ export function ImagesGallery({ config }: ImagesGalleryProps) {
           Carregando galeria…
         </div>
       ) : filtered.length === 0 ? (
-        <div className="card text-center py-16">
+        <div className="card py-16 text-center">
           <p className="text-sm text-muted-foreground">
             {files.length === 0
-              ? 'Nenhuma imagem em assets/ ainda.'
-              : 'Nenhuma imagem neste filtro.'}
+              ? 'Nenhum arquivo em assets/ ainda.'
+              : 'Nenhum arquivo neste filtro.'}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
           {filtered.map((file) => {
             const inUse = usedFilenames.has(file.name.toLowerCase())
+            const isVideo = isVideoAsset(file.name)
             return (
               <article
                 key={file.name}
                 className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
               >
                 <div className="relative aspect-square bg-muted/40">
-                  <img
-                    src={resolvePublicUrl(file.path)}
-                    alt={file.name}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
+                  <button
+                    type="button"
+                    className="gallery-thumb-btn"
+                    onClick={() => setPreviewFile(file)}
+                    title="Visualizar arquivo"
+                    aria-label={`Visualizar ${file.name}`}
+                  >
+                    {isVideo ? (
+                      <video
+                        src={resolvePublicUrl(file.path)}
+                        className="pointer-events-none h-full w-full object-cover"
+                        muted
+                        playsInline
+                        preload="metadata"
+                      />
+                    ) : (
+                      <img
+                        src={resolvePublicUrl(file.path)}
+                        alt={file.name}
+                        className="pointer-events-none h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    )}
+                  </button>
                   <span
-                    className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                    className={`absolute left-2 top-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                       inUse
                         ? 'bg-emerald-500/90 text-white'
                         : 'bg-black/50 text-white/90 backdrop-blur-sm'
@@ -207,6 +239,12 @@ export function ImagesGallery({ config }: ImagesGalleryProps) {
                   >
                     {inUse ? 'Em uso' : 'Livre'}
                   </span>
+                  {isVideo && (
+                    <span className="absolute bottom-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                      <Film className="h-3 w-3" />
+                      Vídeo
+                    </span>
+                  )}
                 </div>
 
                 <div className="space-y-2 p-3">
@@ -248,7 +286,7 @@ export function ImagesGallery({ config }: ImagesGalleryProps) {
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0]
@@ -257,12 +295,18 @@ export function ImagesGallery({ config }: ImagesGalleryProps) {
         }}
       />
 
+      <AssetPreviewModal
+        file={previewFile}
+        onClose={() => setPreviewFile(null)}
+        onCopyPath={copyPath}
+      />
+
       <ConfirmDialog
         open={pendingDelete !== null}
-        title="Excluir imagem?"
+        title="Excluir arquivo?"
         description={
           <>
-            <span className="font-medium text-foreground">{pendingDelete?.name}</span> será removida
+            <span className="font-medium text-foreground">{pendingDelete?.name}</span> será removido
             permanentemente do servidor. Esta ação não pode ser desfeita.
           </>
         }

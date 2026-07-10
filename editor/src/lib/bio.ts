@@ -1,31 +1,96 @@
 import type { BioConfig, BioSection, IconName, SectionItem, AppHeroPreset, AppHeroLayout } from '@bio-types'
 import { bioJsonUrl } from '@site/lib/publicUrl'
 import { normalizeBrandSocial } from '@site/lib/socialLinks'
-import defaultBio from '../../../public/bio.default.json'
+import defaultBio from '../../../bio/public/bio.default.json'
 import { APP_HERO_PRESET_LIST, createAppHero } from '@site/lib/appHeroPresets'
 
 export { APP_HERO_PRESET_LIST, createAppHero }
 export type { AppHeroPreset }
 
+export const ICON_LABELS: Record<IconName, string> = {
+  whatsapp: 'WhatsApp',
+  compass: 'Bússola',
+  droplets: 'Água / Batismo',
+  'map-pin': 'Localização',
+  heart: 'Coração',
+  gift: 'Presente',
+  'hand-heart': 'Voluntariado',
+  sparkles: 'Brilho',
+  zap: 'Raio / Energia',
+  baby: 'Bebê / Kids',
+  users: 'Pessoas / Grupo',
+  calendar: 'Calendário / Evento',
+  form: 'Formulário',
+  youtube: 'YouTube',
+  pray: 'Oração / Igreja',
+  coffee: 'Café',
+  message: 'Mensagem',
+  star: 'Estrela',
+  phone: 'Telefone',
+  mail: 'E-mail',
+  globe: 'Site / Web',
+  link: 'Link',
+  music: 'Música',
+  mic: 'Microfone / Podcast',
+  book: 'Livro / Bíblia',
+  camera: 'Câmera / Foto',
+  home: 'Casa / Início',
+  share: 'Compartilhar',
+  headphones: 'Áudio',
+  sun: 'Sol',
+  moon: 'Lua',
+  church: 'Igreja',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  facebook: 'Facebook',
+  telegram: 'Telegram',
+  spotify: 'Spotify',
+}
+
 export const ICON_OPTIONS: IconName[] = [
   'whatsapp',
+  'instagram',
+  'youtube',
+  'tiktok',
+  'facebook',
+  'telegram',
+  'spotify',
+  'message',
+  'phone',
+  'mail',
+  'globe',
+  'link',
   'compass',
-  'droplets',
   'map-pin',
   'heart',
   'gift',
   'hand-heart',
   'sparkles',
+  'star',
   'zap',
   'baby',
   'users',
   'calendar',
   'form',
-  'youtube',
   'pray',
+  'church',
   'coffee',
-  'message',
+  'music',
+  'mic',
+  'book',
+  'camera',
+  'home',
+  'share',
+  'headphones',
+  'sun',
+  'moon',
+  'droplets',
 ]
+
+export const CARD_WIDTH_OPTIONS = [
+  { value: 'full', label: 'Largura total' },
+  { value: 'half', label: 'Metade (2 por linha)' },
+] as const
 
 export const CARD_TYPES = [
   { value: 'feature', label: 'Card' },
@@ -43,7 +108,7 @@ export { MEDIA_CARD_VARIANTS } from '@site/lib/mediaCardLayout'
 export const FEATURE_VARIANTS = [
   { value: 'gradient', label: 'Gradiente' },
   { value: 'square', label: 'Quadrado (grade 2 colunas)' },
-  { value: 'compact', label: 'Compacto' },
+  { value: 'compact', label: 'Compacto (ideal em 2 colunas)' },
   { value: 'portrait', label: 'Retrato com imagem' },
   { value: 'banner', label: 'Banner com imagem' },
 ] as const
@@ -120,6 +185,10 @@ export function createSection(): BioSection {
     title: 'Nova seção',
     items: [],
   }
+}
+
+export function cloneItem(item: SectionItem): SectionItem {
+  return JSON.parse(JSON.stringify(item)) as SectionItem
 }
 
 export function createItem(type: SectionItem['type']): SectionItem {
@@ -199,9 +268,7 @@ export function createItem(type: SectionItem['type']): SectionItem {
       return {
         type,
         title: '',
-        url: 'https://open.spotify.com/playlist/',
-        theme: 'dark',
-        size: 'compact',
+        embed: '',
       }
     default:
       return {

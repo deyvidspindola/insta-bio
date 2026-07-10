@@ -16,6 +16,7 @@ Antes de listar o que falta, vale registrar o que **não precisa ser refeito**:
 | **Editor** | Preview ao vivo, undo/redo, drag-and-drop, upload de imagens, salvar no servidor, importar/exportar JSON |
 | **Deploy** | Build + PHP na HostGator, sem banco, documentação de comercialização e FTP |
 | **Landing** | Página comercial completa (hero, FAQ, pacote, CTAs) |
+| **Plataforma** | Painel `/panel/`, provisionamento `/{slug}/`, sync de template |
 | **Conteúdo** | `bio.json` editável sem rebuild, modelo padrão, docs de campos e ícones |
 
 O produto **já é vendável** no modelo atual: 1 cliente = 1 deploy. As melhorias abaixo acrescentam valor, reduzem suporte ou abrem novos pacotes — não são pré-requisitos para vender.
@@ -55,13 +56,13 @@ Se a resposta for “só deixa o código mais bonito”, pode esperar. A simplic
 
 | Melhoria | Por quê | Esforço |
 |----------|---------|---------|
-| Tema claro na bio pública | Admin já tem; visitante sempre vê escuro | Médio |
+| Tema claro na bio pública | Editor já tem; visitante sempre vê escuro | Médio |
 | Embeds (YouTube, Spotify, formulário) | Aumenta complexidade; links externos resolvem 90% dos casos | Alto |
 | Múltiplas páginas / senha / agendamento | Muda o modelo de produto; foge da simplicidade atual | Alto |
 
 ---
 
-## 2. Editor (admin)
+## 2. Editor
 
 ### Alta prioridade — menos suporte, mais confiança
 
@@ -79,7 +80,7 @@ Se a resposta for “só deixa o código mais bonito”, pode esperar. A simplic
 | Melhoria | Por quê | Esforço |
 |----------|---------|---------|
 | **JSON editável na aba JSON** | Hoje é só leitura; quem mexe em JSON precisa copiar para editor externo | Médio |
-| **Validação com schema (Zod)** compartilhado entre admin e save | Um único lugar define o que é JSON válido | Médio |
+| **Validação com schema (Zod)** compartilhado entre editor e save | Um único lugar define o que é JSON válido | Médio |
 | **Templates por nicho** | `bio.igreja.json`, `bio.empresa.json`, `bio.criador.json` — acelera onboarding de novo cliente | Baixo |
 | **Tour guiado (3 passos)** | “Edite a marca → Adicione seção → Salve” — reduz curva para cliente não técnico | Médio |
 | **Seletor visual de ícones** | Mostrar o desenho do ícone, não só o nome (`zap`, `form`) | Baixo |
@@ -101,7 +102,7 @@ Se a resposta for “só deixa o código mais bonito”, pode esperar. A simplic
 | Melhoria | Por quê | Esforço |
 |----------|---------|---------|
 | **WhatsApp real** | Número placeholder (`5519999999999`) ainda no HTML; `site/src/config.ts` existe mas **não está ligado** ao template | Baixo |
-| **Link para demo ao vivo** | Apontar da landing para a bio demo (`/bio` ou URL fixa) — prova o produto | Baixo |
+| **Link para demo ao vivo** | Apontar da landing para `http://localhost:5180/demo.html` (dev) ou demo publicada em produção | Baixo |
 | **Depoimentos / casos reais** | Template ainda usa placeholders genéricos; trocar quando tiver clientes | Baixo |
 | **Preço ou faixa de investimento** | FAQ fala “sob consulta”; mesmo uma faixa (“a partir de R$ X”) filtra lead | Baixo |
 
@@ -124,10 +125,10 @@ Se a resposta for “só deixa o código mais bonito”, pode esperar. A simplic
 |----------|---------|---------|
 | **CI básico** (`make lint` + `make build` no GitHub Actions) | Evita quebrar build ao evoluir | Baixo |
 | **Testes unitários** em funções críticas | `createItem`, `loadBioConfig`, render de cards — regressão segura | Médio |
-| **Remover legado `grid`** | Admin não cria mais; docs já recomendam `feature/square` | Baixo |
-| **Monorepo com workspaces** | Três `package.json` independentes; `make install` manual funciona, mas workspaces simplificam | Baixo |
-| **`admin/README.md`** alinhado ao `docs/ADMIN.md` | Hoje é boilerplate do Vite | Baixo |
-| **Versão semântica** | Três `package.json` em `0.0.0` — útil ao entregar changelog para clientes | Baixo |
+| **Remover legado `grid`** | Editor não cria mais; docs recomendam `feature/square` | Baixo |
+| **Monorepo com workspaces** | Quatro pacotes (`bio`, `editor`, `panel`, `site`); `make install` funciona | Baixo |
+| **Atualização remota (estilo WordPress)** | Clientes em domínio próprio atualizam código pelo editor; plataforma continua via painel | Alto — ver [ATUALIZACOES-REMOTAS.md](./ATUALIZACOES-REMOTAS.md) |
+| **Versão semântica** | Quatro `package.json` em `0.0.0`; versão de release única para ZIP de update | Médio |
 
 ### Dívida técnica conhecida (não urgente)
 
@@ -161,17 +162,20 @@ Decisão de naming para o produto comercial. Detalhes completos em [PROJETO.md �
 
 ---
 
-Só faz sentido **depois** de alguns clientes pagantes no modelo atual (1 deploy = 1 cliente):
+## 5. Plataforma e escala
+
+O **painel multi-cliente** (`/panel/`) já está implementado — ver [PLATAFORMA.md](./PLATAFORMA.md) e [panel/README.md](../panel/README.md). Use quando quiser vários clientes no mesmo domínio (`linksnabio.app.br/{slug}/`) sem uma conta HostGator por cliente.
+
+Para quem ainda opera no modelo **1 deploy = 1 cliente**, as iniciativas abaixo continuam relevantes como evolução:
 
 | Iniciativa | Valor | Complexidade |
 |------------|-------|--------------|
-| **Painel multi-cliente** | Um servidor, várias bios (`cliente1/`, `cliente2/`) | Alta |
 | **SaaS com subdomínios** | `igreja.linksnabio.app.br` — receita recorrente | Muito alta |
 | **White-label do editor** | Agências revendem com sua marca | Alta |
 | **Relatório mensal de cliques** | PDF automático no plano de manutenção | Média |
 | **Domínio + SSL no pacote premium** | Você configura tudo; cliente só paga | Média (operacional) |
 
-**Recomendação:** não antecipar SaaS. O modelo HostGator + editor PHP é o diferencial (custo baixo, sem mensalidade de VPS). Escale operacionalmente antes de escalar arquitetura.
+**Recomendação:** comece com single-tenant ou plataforma por pasta; subdomínio por cliente e SaaS completo só com demanda recorrente clara.
 
 ---
 
@@ -218,7 +222,7 @@ Foco: o que igrejas e empresas pedem na referência.
 
 ### Fase D — “Novo modelo de negócio” (só com demanda)
 
-Multi-tenant, SaaS, white-label — avaliar após N clientes recorrentes.
+Subdomínios por cliente, self-service de cadastro, white-label — avaliar após N clientes recorrentes na plataforma ou no modelo single-tenant.
 
 ---
 
@@ -255,8 +259,9 @@ Com o que **já existe**, dá para empacotar sem código novo:
 |--------|---------|
 | Comercialização | [COMERCIALIZACAO.md](./COMERCIALIZACAO.md) |
 | Deploy HostGator | [HOSTGATOR.md](./HOSTGATOR.md) |
-| Editor | [ADMIN.md](./ADMIN.md) |
+| Editor | [EDITOR.md](./EDITOR.md) |
 | Schema e cards | [BIO-JSON.md](./BIO-JSON.md) |
 | Arquitetura | [PROJETO.md](./PROJETO.md) |
 | Plataforma multi-cliente | [PLATAFORMA.md](./PLATAFORMA.md) |
+| Atualizações remotas (planejado) | [ATUALIZACOES-REMOTAS.md](./ATUALIZACOES-REMOTAS.md) |
 | Landing | [../site/README.md](../site/README.md) |

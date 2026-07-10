@@ -7,9 +7,16 @@ export type AssetFile = {
   modified: number
 }
 
+const VIDEO_EXT = new Set(['mp4', 'webm', 'mov'])
+
+export function isVideoAsset(name: string): boolean {
+  const ext = name.split('.').pop()?.toLowerCase() ?? ''
+  return VIDEO_EXT.has(ext)
+}
+
 export async function listAssets(): Promise<AssetFile[]> {
   const res = await fetch(ENDPOINTS.listAssets, { credentials: 'include' })
-  if (!res.ok) throw new Error('Não foi possível listar as imagens')
+  if (!res.ok) throw new Error('Não foi possível listar os arquivos')
   const data = (await res.json()) as { files: AssetFile[] }
   return data.files
 }
@@ -24,7 +31,7 @@ export async function deleteAsset(name: string): Promise<void> {
 
   if (!res.ok) {
     const data = (await res.json().catch(() => null)) as { error?: string } | null
-    throw new Error(data?.error ?? 'Não foi possível excluir a imagem')
+    throw new Error(data?.error ?? 'Não foi possível excluir o arquivo')
   }
 }
 

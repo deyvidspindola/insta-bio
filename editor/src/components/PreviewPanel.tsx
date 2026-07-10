@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BioConfig } from '@bio-types'
+import { getBioJsonRelativePath } from '@site/lib/publicUrl'
 
 interface PreviewPanelProps {
   config: BioConfig
@@ -43,7 +44,14 @@ export function PreviewPanel({ config, compact = false }: PreviewPanelProps) {
     // Coalescamos atualizações em rajada (ex.: arrastar o seletor de cor) em um
     // único envio por frame, evitando saturar a thread com re-renders do iframe.
     const frame = requestAnimationFrame(() => {
-      iframeRef.current?.contentWindow?.postMessage({ type: 'bio-preview', config }, '*')
+      iframeRef.current?.contentWindow?.postMessage(
+        {
+          type: 'bio-preview',
+          config,
+          bioJsonPath: getBioJsonRelativePath(),
+        },
+        '*',
+      )
     })
 
     return () => cancelAnimationFrame(frame)

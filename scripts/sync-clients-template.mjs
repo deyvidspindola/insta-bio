@@ -130,7 +130,7 @@ console.log('')
 console.log(`Sincronizando template em ${slugs.length} cliente(s)…`)
 console.log(`  origem: ${TEMPLATE}`)
 console.log(`  destino: ${platformRoot}`)
-console.log('  preservado: bio.json, assets de imagem, auth.config.php, .suspended')
+console.log('  preservado: bio.json, bio.draft.json, assets de imagem, auth.config.php, .suspended')
 console.log('')
 
 for (const slug of slugs) {

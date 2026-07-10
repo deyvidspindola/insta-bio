@@ -1,15 +1,17 @@
 import type { SpotifyEmbedCard as SpotifyEmbedCardType } from '../types/bio'
-import { SPOTIFY_COMPACT_HEIGHT, spotifyEmbedUrl } from '../lib/embedUrls'
+import { parseSpotifyEmbed } from '../lib/embedUrls'
+
+function spotifyEmbedInput(item: SpotifyEmbedCardType): string {
+  return (item.embed ?? item.url ?? '').trim()
+}
 
 export function SpotifyEmbedCard({ item }: { item: SpotifyEmbedCardType }) {
-  const theme = item.theme ?? 'dark'
-  const embed = spotifyEmbedUrl(item.url, { theme })
-  const height = SPOTIFY_COMPACT_HEIGHT
+  const parsed = parseSpotifyEmbed(spotifyEmbedInput(item))
 
-  if (!embed) {
+  if (!parsed) {
     return (
       <div className="bio-embed-card bio-embed-card--error rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-        Cole um link válido do Spotify (playlist, álbum, artista ou música).
+        Cole o código de incorporação (iframe) exportado pelo Spotify.
       </div>
     )
   }
@@ -23,11 +25,15 @@ export function SpotifyEmbedCard({ item }: { item: SpotifyEmbedCardType }) {
       ) : null}
       <iframe
         className="w-full"
-        src={embed}
+        src={parsed.src}
+        width="100%"
+        height={parsed.height}
         frameBorder={0}
-        allow="encrypted-media"
-        title={item.title || 'spotify'}
-        style={{ height: `${height}px` }}
+        allowFullScreen
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy"
+        title={item.title || 'Spotify'}
+        style={{ borderRadius: '12px' }}
       />
     </div>
   )

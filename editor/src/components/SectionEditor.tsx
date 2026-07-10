@@ -4,6 +4,7 @@ import type { BioSection, SectionItem, AppHeroPreset } from '@bio-types'
 import {
   APP_HERO_PRESET_LIST,
   CARD_TYPES,
+  cloneItem,
   createAppHero,
   createItem,
   ensureGridHeroLayouts,
@@ -69,6 +70,12 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
     const items = [...section.items]
     const [moved] = items.splice(from, 1)
     items.splice(to, 0, moved)
+    patchSection({ ...section, items })
+  }
+
+  function duplicateItem(index: number) {
+    const items = [...section.items]
+    items.splice(index + 1, 0, cloneItem(section.items[index]))
     patchSection({ ...section, items })
   }
 
@@ -178,6 +185,7 @@ export function SectionEditor({ section, onChange, onRemove }: SectionEditorProp
               isGridSection={isGridSection}
               onChange={(updated) => updateItem(index, updated)}
               onRemove={() => removeItem(index)}
+              onDuplicate={() => duplicateItem(index)}
               collapsed={collapsed.has(index)}
               onToggleCollapse={() => toggleCollapse(index)}
               dragHandle={

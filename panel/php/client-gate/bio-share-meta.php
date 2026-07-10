@@ -60,9 +60,76 @@ function bio_share_resolve_asset_url(string $path, string $publicBase): string
   return rtrim($publicBase, '/') . '/' . ltrim($path, '/');
 }
 
+function bio_share_parse_auth_bio_json_path(string $authFile): ?string
+{
+  if (!is_file($authFile)) {
+    return null;
+  }
+
+  $content = file_get_contents($authFile);
+  if ($content === false) {
+    return null;
+  }
+
+  if (preg_match("/define\\('BIO_JSON_PATH',\\s*__DIR__\\s*\\.\\s*'([^']+)'\\)/", $content, $matches)) {
+    $path = dirname($authFile) . $matches[1];
+    $real = realpath($path);
+    return $real !== false ? $real : $path;
+  }
+
+  if (preg_match("/define\\('BIO_JSON_PATH',\\s*'([^']+)'\\)/", $content, $matches)) {
+    return $matches[1];
+  }
+
+  return null;
+}
+
+function bio_share_json_relative_path(string $clientRoot): string
+{
+  $authFile = rtrim($clientRoot, '/\\') . '/editor/auth.config.php';
+  $absolute = bio_share_parse_auth_bio_json_path($authFile);
+  if ($absolute !== null && is_file($authFile)) {
+    require_once dirname($authFile) . '/bio-path.php';
+    if (function_exists('bio_path_to_relative')) {
+      return bio_path_to_relative($absolute, $clientRoot);
+    }
+  }
+
+  $bioPathJson = rtrim($clientRoot, '/\\') . '/bio-path.json';
+  if (is_file($bioPathJson)) {
+    $data = json_decode((string) file_get_contents($bioPathJson), true);
+    if (is_array($data)) {
+      $relative = trim((string) ($data['bioJsonPath'] ?? ''));
+      if ($relative !== '') {
+        return $relative;
+      }
+      $legacy = trim((string) ($data['bioJsonUrl'] ?? ''));
+      if ($legacy !== '') {
+        return ltrim($legacy, '/');
+      }
+    }
+  }
+
+  return 'bio.json';
+}
+
+function bio_share_inject_runtime(string $html, string $relativeBioPath): string
+{
+  $script = '    <script>window.__BIO_JSON_PATH__='
+    . json_encode($relativeBioPath, JSON_UNESCAPED_SLASHES)
+    . ";</script>\n";
+
+  return preg_replace('/<\/head>/i', $script . '  </head>', $html, 1) ?? $html;
+}
+
 function bio_share_load_brand(string $clientRoot): ?array
 {
-  $bioPath = rtrim($clientRoot, '/\\') . DIRECTORY_SEPARATOR . 'bio.json';
+  $authFile = rtrim($clientRoot, '/\\') . '/editor/auth.config.php';
+  $bioPath = bio_share_parse_auth_bio_json_path($authFile);
+  if ($bioPath === null) {
+    $bioPath = rtrim($clientRoot, '/\\') . DIRECTORY_SEPARATOR . 'bio.json';
+  }
+
   if (!is_file($bioPath)) {
     return null;
   }
@@ -144,6 +211,9 @@ function bio_share_inject_head(string $html, array $brand, string $publicBase, s
 function bio_share_render_index(string $clientRoot, string $indexPath): string
 {
   $html = (string) file_get_contents($indexPath);
+  $relativeBioPath = bio_share_json_relative_path($clientRoot);
+  $html = bio_share_inject_runtime($html, $relativeBioPath);
+
   $brand = bio_share_load_brand($clientRoot);
   if ($brand === null) {
     return $html;

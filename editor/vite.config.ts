@@ -6,7 +6,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { getSessionFromRequest, handleAuthRequest, requireSession } from './server/auth.mjs'
 
-const ADMIN_ROOT = path.dirname(fileURLToPath(import.meta.url))
+const EDITOR_ROOT = path.dirname(fileURLToPath(import.meta.url))
 
 function normalizeBasePath(input?: string) {
   if (!input || input === '/') return '/'
@@ -21,7 +21,8 @@ function editorBaseFrom(publicBase: string) {
   return `${publicBase}editor/`
 }
 
-const ASSETS_DIR = path.resolve(ADMIN_ROOT, '../public/assets')
+const BIO_ROOT = path.resolve(EDITOR_ROOT, '../bio')
+const ASSETS_DIR = path.resolve(BIO_ROOT, 'public/assets')
 
 function sanitizeFilename(name: string): string {
   const parsed = path.parse(name)
@@ -48,31 +49,210 @@ function uniqueFilename(filename: string): string {
 }
 
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'])
-const BIO_JSON_PATH = path.resolve(ADMIN_ROOT, '../public/bio.json')
+const VIDEO_EXT = new Set(['.mp4', '.webm', '.mov'])
+const MEDIA_EXT = new Set([...IMAGE_EXT, ...VIDEO_EXT])
+const BIO_JSON_PATH = path.resolve(BIO_ROOT, 'public/bio.json')
+const BIO_DRAFT_PATH = path.resolve(BIO_ROOT, 'public/bio.draft.json')
+const AUTH_CONFIG_FILE = path.join(EDITOR_ROOT, 'php', 'auth.config.php')
+const EDITOR_PHP_DIR = path.join(EDITOR_ROOT, 'php')
 
-function isValidAssetName(name: string): boolean {
-  return /^[a-z0-9][a-z0-9._-]*\.(jpg|jpeg|png|gif|webp|svg)$/i.test(name)
+type EditorStoragePaths = {
+  bioJsonPath: string
+  draftPath: string
+  assetsDir: string
+  configFile: string
 }
 
-function bioUsesAsset(filename: string): boolean {
-  if (!fs.existsSync(BIO_JSON_PATH)) return false
-  const json = fs.readFileSync(BIO_JSON_PATH, 'utf-8')
+function parsePhpDefinePath(content: string, name: string, editorDir: string): string | null {
+  const match = content.match(new RegExp(`define\\('${name}',\\s*([^)]+)\\)`))
+  if (!match) return null
+  const expr = match[1].trim()
+  if (expr.startsWith("'") && expr.endsWith("'")) {
+    return expr.slice(1, -1)
+  }
+  const rel = expr.match(/__DIR__\s*\.\s*'([^']+)'/)
+  if (rel) {
+    return path.resolve(editorDir, rel[1])
+  }
+  return null
+}
+
+function pathToPhpDefineExpr(editorDir: string, absolutePath: string): string {
+  const editorReal = fs.realpathSync(editorDir)
+  let targetReal: string
+  try {
+    targetReal = fs.realpathSync(absolutePath)
+  } catch {
+    targetReal = path.resolve(absolutePath)
+  }
+  const normalizedEditor = editorReal.replace(/\\/g, '/')
+  const normalizedTarget = targetReal.replace(/\\/g, '/')
+  if (
+    normalizedTarget === normalizedEditor ||
+    normalizedTarget.startsWith(`${normalizedEditor}/`)
+  ) {
+    const relative = normalizedTarget.slice(normalizedEditor.length).replace(/^\/+/, '')
+    return `__DIR__ . '/${relative}'`
+  }
+  return `'${absolutePath.replace(/\\/g, '/')}'`
+}
+
+function getEditorStoragePaths(): EditorStoragePaths {
+  const fallback: EditorStoragePaths = {
+    bioJsonPath: BIO_JSON_PATH,
+    draftPath: BIO_DRAFT_PATH,
+    assetsDir: ASSETS_DIR,
+    configFile: AUTH_CONFIG_FILE,
+  }
+  if (!fs.existsSync(AUTH_CONFIG_FILE)) return fallback
+
+  const content = fs.readFileSync(AUTH_CONFIG_FILE, 'utf8')
+  const bioJsonPath =
+    parsePhpDefinePath(content, 'BIO_JSON_PATH', EDITOR_PHP_DIR) ?? fallback.bioJsonPath
+  const assetsDir = parsePhpDefinePath(content, 'ASSETS_DIR', EDITOR_PHP_DIR) ?? fallback.assetsDir
+  const draftPath = path.join(path.dirname(bioJsonPath), 'bio.draft.json')
+  return { bioJsonPath, draftPath, assetsDir, configFile: AUTH_CONFIG_FILE }
+}
+
+function normalizeBioPathInput(input: string): { ok: true; path: string } | { ok: false; error: string } {
+  const value = input.trim()
+  if (!value) return { ok: false, error: 'Informe o caminho do bio.json' }
+  if (!/\.json$/i.test(value)) return { ok: false, error: 'O caminho deve terminar em .json' }
+
+  const resolved = path.isAbsolute(value)
+    ? path.resolve(value)
+    : path.resolve(EDITOR_PHP_DIR, value)
+  const parentDir = path.dirname(resolved)
+  if (!fs.existsSync(parentDir)) {
+    try {
+      fs.mkdirSync(parentDir, { recursive: true })
+    } catch {
+      return { ok: false, error: 'A pasta do arquivo não existe e não pôde ser criada' }
+    }
+  }
+  return { ok: true, path: resolved }
+}
+
+function writeAuthConfigPaths(bioJsonPath: string, assetsDir: string) {
+  const content = `<?php
+// Caminhos do editor — atualizado pelo painel de configurações.
+define('BIO_JSON_PATH', ${pathToPhpDefineExpr(EDITOR_PHP_DIR, bioJsonPath)});
+define('ASSETS_DIR', ${pathToPhpDefineExpr(EDITOR_PHP_DIR, assetsDir)});
+
+`
+  fs.writeFileSync(AUTH_CONFIG_FILE, content, 'utf8')
+}
+
+function bioPathToRelative(absoluteBioPath: string, clientRoot: string): string {
+  const bio = path.resolve(absoluteBioPath).replace(/\\/g, '/')
+  const client = path.resolve(clientRoot).replace(/\\/g, '/')
+  if (bio.startsWith(`${client}/`)) {
+    return path.relative(client, bio).replace(/\\/g, '/')
+  }
+  return 'bio-json.php'
+}
+
+function buildPathsInfo(paths: EditorStoragePaths) {
+  const parentDir = path.dirname(paths.bioJsonPath)
+  return {
+    bioJsonPath: paths.bioJsonPath.replace(/\\/g, '/'),
+    assetsDir: paths.assetsDir.replace(/\\/g, '/'),
+    draftPath: paths.draftPath.replace(/\\/g, '/'),
+    publicBioUrl: bioPathToRelative(paths.bioJsonPath, path.resolve(EDITOR_ROOT, '..')),
+    configFile: paths.configFile.replace(/\\/g, '/'),
+    bioExists: fs.existsSync(paths.bioJsonPath),
+    draftExists: fs.existsSync(paths.draftPath),
+    writable: fs.existsSync(parentDir)
+      ? (() => {
+          try {
+            fs.accessSync(parentDir, fs.constants.W_OK)
+            return true
+          } catch {
+            return false
+          }
+        })()
+      : false,
+  }
+}
+
+function writeDevBioPathJson(absoluteBioPath: string) {
+  const clientRoot = path.resolve(EDITOR_ROOT, '..')
+  const relative = bioPathToRelative(absoluteBioPath, clientRoot)
+  const payload = {
+    bioJsonPath: relative,
+    updatedAt: new Date().toISOString(),
+  }
+  fs.writeFileSync(
+    path.join(clientRoot, 'bio-path.json'),
+    `${JSON.stringify(payload, null, 2)}\n`,
+    'utf8',
+  )
+}
+
+function isValidAssetName(name: string): boolean {
+  return /^[a-z0-9][a-z0-9._-]*\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|mov)$/i.test(name)
+}
+
+function readJsonFile(filePath: string): unknown | null {
+  if (!fs.existsSync(filePath)) return null
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'))
+  } catch {
+    return null
+  }
+}
+
+function writeJsonFile(filePath: string, data: unknown) {
+  fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf-8')
+}
+
+function jsonUsesAsset(json: string, filename: string): boolean {
   return [`assets/${filename}`, `/assets/${filename}`, filename].some((needle) =>
     json.includes(needle),
   )
 }
 
-function listAssetFiles() {
-  if (!fs.existsSync(ASSETS_DIR)) return []
+function bioUsesAsset(filename: string): boolean {
+  const { bioJsonPath, draftPath } = getEditorStoragePaths()
+  for (const filePath of [bioJsonPath, draftPath]) {
+    if (!fs.existsSync(filePath)) continue
+    if (jsonUsesAsset(fs.readFileSync(filePath, 'utf-8'), filename)) return true
+  }
+  return false
+}
+
+function readRequestBody(req: import('http').IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let body = ''
+    req.on('data', (chunk) => {
+      body += chunk
+    })
+    req.on('end', () => resolve(body))
+    req.on('error', reject)
+  })
+}
+
+function sendJson(
+  res: import('http').ServerResponse,
+  status: number,
+  payload: unknown,
+) {
+  res.statusCode = status
+  res.setHeader('Content-Type', 'application/json')
+  res.end(JSON.stringify(payload))
+}
+
+function listAssetFiles(assetsDir = getEditorStoragePaths().assetsDir) {
+  if (!fs.existsSync(assetsDir)) return []
   return fs
-    .readdirSync(ASSETS_DIR)
+    .readdirSync(assetsDir)
     .filter((name) => {
-      const full = path.join(ASSETS_DIR, name)
+      const full = path.join(assetsDir, name)
       if (!fs.statSync(full).isFile()) return false
-      return IMAGE_EXT.has(path.extname(name).toLowerCase())
+      return MEDIA_EXT.has(path.extname(name).toLowerCase())
     })
     .map((name) => {
-      const full = path.join(ASSETS_DIR, name)
+      const full = path.join(assetsDir, name)
       const stat = fs.statSync(full)
       return {
         name,
@@ -95,47 +275,149 @@ function uploadPlugin(): Plugin {
         next()
       })
 
-      server.middlewares.use((req, _res, next) => {
+      server.middlewares.use((req, res, next) => {
         const url = new URL(req.url ?? '/', 'http://localhost')
+        if (url.pathname === '/bio.draft.json' || url.pathname.endsWith('/bio.draft.json')) {
+          res.statusCode = 403
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Forbidden' }))
+          return
+        }
         if (url.pathname === '/preview' || url.pathname === '/preview/') {
           req.url = '/preview.html'
         }
         next()
       })
 
-      server.middlewares.use('/api/bio/save', (req, res) => {
-        if (req.method !== 'POST') {
-          res.statusCode = 405
-          res.end('Method not allowed')
+      server.middlewares.use('/api/bio/load', (req, res) => {
+        if (req.method !== 'GET') {
+          sendJson(res, 405, { error: 'Method not allowed' })
           return
         }
-
         if (!getSessionFromRequest(req)) {
-          res.statusCode = 401
-          res.setHeader('Content-Type', 'application/json')
-          res.end(JSON.stringify({ error: 'Não autenticado' }))
+          sendJson(res, 401, { error: 'Não autenticado' })
           return
         }
 
-        let body = ''
-        req.on('data', (chunk) => {
-          body += chunk
-        })
-        req.on('end', () => {
-          try {
-            const parsed = JSON.parse(body)
-            fs.writeFileSync(
-              path.resolve(ADMIN_ROOT, '../public/bio.json'),
-              `${JSON.stringify(parsed, null, 2)}\n`,
-              'utf-8',
-            )
-            res.setHeader('Content-Type', 'application/json')
-            res.end(JSON.stringify({ ok: true }))
-          } catch {
-            res.statusCode = 500
-            res.end(JSON.stringify({ error: 'Não foi possível salvar o bio.json' }))
+        const { bioJsonPath, draftPath } = getEditorStoragePaths()
+        const draft = readJsonFile(draftPath)
+        const published = readJsonFile(bioJsonPath)
+        if (draft) {
+          sendJson(res, 200, { ok: true, config: draft, source: 'draft', hasDraft: true })
+          return
+        }
+        if (published) {
+          sendJson(res, 200, {
+            ok: true,
+            config: published,
+            source: 'published',
+            hasDraft: false,
+          })
+          return
+        }
+        sendJson(res, 404, { error: 'Nenhuma configuração encontrada' })
+      })
+
+      server.middlewares.use('/api/bio/save', async (req, res) => {
+        if (req.method !== 'POST') {
+          sendJson(res, 405, { error: 'Method not allowed' })
+          return
+        }
+        if (!getSessionFromRequest(req)) {
+          sendJson(res, 401, { error: 'Não autenticado' })
+          return
+        }
+
+        try {
+          const parsed = JSON.parse(await readRequestBody(req))
+          const { draftPath } = getEditorStoragePaths()
+          writeJsonFile(draftPath, parsed)
+          sendJson(res, 200, { ok: true, saved: 'draft' })
+        } catch {
+          sendJson(res, 500, { error: 'Não foi possível salvar o rascunho' })
+        }
+      })
+
+      server.middlewares.use('/api/bio/publish', async (req, res) => {
+        if (req.method !== 'POST') {
+          sendJson(res, 405, { error: 'Method not allowed' })
+          return
+        }
+        if (!getSessionFromRequest(req)) {
+          sendJson(res, 401, { error: 'Não autenticado' })
+          return
+        }
+
+        try {
+          const parsed = JSON.parse(await readRequestBody(req))
+          const { bioJsonPath, draftPath } = getEditorStoragePaths()
+          writeJsonFile(draftPath, parsed)
+          writeJsonFile(bioJsonPath, parsed)
+          sendJson(res, 200, { ok: true, saved: 'published' })
+        } catch {
+          sendJson(res, 500, { error: 'Não foi possível publicar a bio' })
+        }
+      })
+
+      server.middlewares.use('/api/bio/revert', async (req, res) => {
+        if (req.method !== 'POST') {
+          sendJson(res, 405, { error: 'Method not allowed' })
+          return
+        }
+        if (!getSessionFromRequest(req)) {
+          sendJson(res, 401, { error: 'Não autenticado' })
+          return
+        }
+
+        try {
+          const { bioJsonPath, draftPath } = getEditorStoragePaths()
+          const published = readJsonFile(bioJsonPath)
+          if (!published) {
+            sendJson(res, 404, { error: 'Bio publicada não encontrada' })
+            return
           }
-        })
+          writeJsonFile(draftPath, published)
+          sendJson(res, 200, { ok: true, config: published })
+        } catch {
+          sendJson(res, 500, { error: 'Não foi possível reverter o rascunho' })
+        }
+      })
+
+      server.middlewares.use('/api/bio/paths', async (req, res) => {
+        if (!getSessionFromRequest(req)) {
+          sendJson(res, 401, { error: 'Não autenticado' })
+          return
+        }
+
+        if (req.method === 'GET') {
+          sendJson(res, 200, { ok: true, paths: buildPathsInfo(getEditorStoragePaths()) })
+          return
+        }
+
+        if (req.method !== 'POST') {
+          sendJson(res, 405, { error: 'Method not allowed' })
+          return
+        }
+
+        try {
+          const body = JSON.parse(await readRequestBody(req)) as { bioJsonPath?: string }
+          const normalized = normalizeBioPathInput(String(body.bioJsonPath ?? ''))
+          if (normalized.ok === false) {
+            sendJson(res, 400, { error: normalized.error })
+            return
+          }
+          const assetsDir = path.join(path.dirname(normalized.path), 'assets')
+          writeAuthConfigPaths(normalized.path, assetsDir)
+          writeDevBioPathJson(normalized.path)
+          const paths = getEditorStoragePaths()
+          sendJson(res, 200, {
+            ok: true,
+            paths: buildPathsInfo(paths),
+            reloadRequired: true,
+          })
+        } catch {
+          sendJson(res, 500, { error: 'Não foi possível salvar o caminho' })
+        }
       })
 
       const handleUpload = (req: import('http').IncomingMessage, res: import('http').ServerResponse) => {
@@ -158,10 +440,11 @@ function uploadPlugin(): Plugin {
             const { name, data } = JSON.parse(body) as { name: string; data: string }
             const base64 = data.includes(',') ? data.split(',')[1] : data
             const buffer = Buffer.from(base64, 'base64')
+            const { assetsDir } = getEditorStoragePaths()
 
-            fs.mkdirSync(ASSETS_DIR, { recursive: true })
+            fs.mkdirSync(assetsDir, { recursive: true })
             const filename = uniqueFilename(sanitizeFilename(name))
-            fs.writeFileSync(path.join(ASSETS_DIR, filename), buffer)
+            fs.writeFileSync(path.join(assetsDir, filename), buffer)
 
             res.setHeader('Content-Type', 'application/json')
             res.end(JSON.stringify({ path: `assets/${filename}` }))
@@ -208,7 +491,7 @@ function uploadPlugin(): Plugin {
               res.end(JSON.stringify({ error: 'Nome de arquivo inválido' }))
               return
             }
-            const full = path.join(ASSETS_DIR, filename)
+            const full = path.join(getEditorStoragePaths().assetsDir, filename)
             if (!fs.existsSync(full)) {
               res.statusCode = 404
               res.setHeader('Content-Type', 'application/json')
@@ -220,7 +503,8 @@ function uploadPlugin(): Plugin {
               res.setHeader('Content-Type', 'application/json')
               res.end(
                 JSON.stringify({
-                  error: 'Imagem em uso na bio. Remova das seções antes de excluir.',
+                  error:
+                    'Arquivo em uso na bio (publicada ou rascunho). Remova das seções antes de excluir.',
                 }),
               )
               return
@@ -254,16 +538,16 @@ export default defineConfig(({ command }) => {
       'import.meta.env.VITE_PUBLIC_BASE': JSON.stringify(publicBase),
     },
     plugins: [react(), tailwindcss(), uploadPlugin()],
-    // Em dev servimos ../public para o editor ler o bio.json atual.
+    // Em dev servimos bio/public para o editor ler o bio.json atual.
     // No build não copiamos o site inteiro para dentro do editor.
     publicDir:
       command === 'serve'
-        ? path.resolve(ADMIN_ROOT, '../public')
-        : path.resolve(ADMIN_ROOT, 'public'),
+        ? path.resolve(BIO_ROOT, 'public')
+        : path.resolve(EDITOR_ROOT, 'public'),
     resolve: {
       alias: {
-        '@bio-types': path.resolve(ADMIN_ROOT, '../src/types/bio.ts'),
-        '@site': path.resolve(ADMIN_ROOT, '../src'),
+        '@bio-types': path.resolve(BIO_ROOT, 'src/types/bio.ts'),
+        '@site': path.resolve(BIO_ROOT, 'src'),
       },
     },
     server: {
@@ -274,9 +558,9 @@ export default defineConfig(({ command }) => {
     build: {
       rollupOptions: {
         input: {
-          main: path.resolve(ADMIN_ROOT, 'index.html'),
-          preview: path.resolve(ADMIN_ROOT, 'preview.html'),
-          demo: path.resolve(ADMIN_ROOT, 'demo.html'),
+          main: path.resolve(EDITOR_ROOT, 'index.html'),
+          preview: path.resolve(EDITOR_ROOT, 'preview.html'),
+          demo: path.resolve(EDITOR_ROOT, 'demo.html'),
         },
       },
     },

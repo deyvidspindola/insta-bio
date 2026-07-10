@@ -7,8 +7,21 @@ export type Client = {
   name: string
   email: string
   status: 'active' | 'suspended' | 'pending'
+  self_hosted: boolean | number
+  allowed_host: string | null
+  deploy_path: string | null
   created_at: string
   updated_at: string
+}
+
+export function deployPathLabel(path: string | null | undefined): string {
+  if (!path) return '/'
+  return path
+}
+
+export function deployPathToInput(path: string | null | undefined): string {
+  if (path === null || path === undefined || path === '') return '/'
+  return path
 }
 
 export type CreatedClient = Client & {
@@ -34,6 +47,9 @@ export async function createClient(input: {
   email: string
   password?: string
   instagramHandle?: string
+  selfHosted?: boolean
+  allowedHost?: string
+  deployPath?: string
 }): Promise<CreatedClient> {
   const slugError = validateSlug(input.slug)
   if (slugError) throw new Error(slugError)
@@ -48,6 +64,9 @@ export async function createClient(input: {
       email: input.email.trim().toLowerCase(),
       password: input.password?.trim() || undefined,
       instagram_handle: input.instagramHandle?.trim() || undefined,
+      self_hosted: Boolean(input.selfHosted),
+      allowed_host: input.selfHosted ? input.allowedHost?.trim() || undefined : undefined,
+      deploy_path: input.selfHosted ? input.deployPath?.trim() || undefined : undefined,
     }),
   })
 
@@ -76,6 +95,9 @@ export async function updateClient(input: {
   name: string
   slug: string
   email: string
+  selfHosted?: boolean
+  allowedHost?: string
+  deployPath?: string
 }): Promise<UpdatedClient> {
   const slugError = validateSlug(input.slug)
   if (slugError) throw new Error(slugError)
@@ -89,6 +111,9 @@ export async function updateClient(input: {
       name: input.name.trim(),
       slug: normalizeSlug(input.slug),
       email: input.email.trim().toLowerCase(),
+      self_hosted: Boolean(input.selfHosted),
+      allowed_host: input.selfHosted ? input.allowedHost?.trim() ?? '' : '',
+      deploy_path: input.selfHosted ? input.deployPath?.trim() ?? '' : '',
     }),
   })
 
@@ -167,6 +192,48 @@ export async function resetClientPassword(id: number, password?: string): Promis
 
 export function slugFromName(name: string): string {
   return normalizeSlug(name)
+}
+
+export function isSelfHostedClient(
+  client: Pick<Client, 'self_hosted' | 'allowed_host'>,
+): boolean {
+  return Boolean(client.self_hosted) && Boolean(client.allowed_host?.trim())
+}
+
+function normalizeClientHost(host: string): string {
+  return host.trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '')
+}
+
+function deployPathPrefix(path: string | null | undefined): string {
+  if (!path) return '/'
+  const trimmed = path.replace(/^\/+|\/+$/g, '')
+  return trimmed ? `/${trimmed}/` : '/'
+}
+
+export function clientBioUrl(
+  client: Pick<Client, 'slug' | 'self_hosted' | 'allowed_host' | 'deploy_path'>,
+  platformOrigin?: string,
+): string {
+  const origin = platformOrigin ?? (typeof window !== 'undefined' ? window.location.origin : '')
+  if (isSelfHostedClient(client)) {
+    const prefix = deployPathPrefix(client.deploy_path)
+    return `https://${normalizeClientHost(client.allowed_host!)}${prefix}`
+  }
+  return `${origin}/${client.slug}/`
+}
+
+export function clientEditorUrl(
+  client: Pick<Client, 'slug' | 'email' | 'self_hosted' | 'allowed_host' | 'deploy_path'>,
+  platformOrigin?: string,
+): string {
+  const origin = platformOrigin ?? (typeof window !== 'undefined' ? window.location.origin : '')
+  const qs = new URLSearchParams({ user: client.email })
+  if (isSelfHostedClient(client)) {
+    const prefix = deployPathPrefix(client.deploy_path)
+    const editorPath = prefix === '/' ? '/editor/' : `${prefix}editor/`
+    return `https://${normalizeClientHost(client.allowed_host!)}${editorPath}?${qs.toString()}`
+  }
+  return `${origin}/${client.slug}/editor/?${qs.toString()}`
 }
 
 export function clientBioHref(slug: string): string {

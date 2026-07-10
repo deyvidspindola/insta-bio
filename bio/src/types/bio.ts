@@ -16,6 +16,28 @@ export type IconName =
   | 'pray'
   | 'coffee'
   | 'message'
+  | 'star'
+  | 'phone'
+  | 'mail'
+  | 'globe'
+  | 'link'
+  | 'music'
+  | 'mic'
+  | 'book'
+  | 'camera'
+  | 'home'
+  | 'share'
+  | 'headphones'
+  | 'sun'
+  | 'moon'
+  | 'church'
+  | 'instagram'
+  | 'tiktok'
+  | 'facebook'
+  | 'telegram'
+  | 'spotify'
+
+export type CardWidth = 'full' | 'half'
 
 export type SocialNetwork =
   | 'instagram'
@@ -102,6 +124,8 @@ export interface FeatureCard {
   image?: string
   gradient?: string
   tags?: Array<{ label: string; icon?: IconName }>
+  /** Metade da largura — 2 cards por linha (fora da grade da seção). */
+  width?: CardWidth
 }
 
 export interface LinkCard {
@@ -110,6 +134,7 @@ export interface LinkCard {
   subtitle?: string
   url: string
   icon?: IconName
+  width?: CardWidth
 }
 
 export interface GridCard {
@@ -120,6 +145,7 @@ export interface GridCard {
   url: string
   image?: string
   gradient?: string
+  width?: CardWidth
 }
 
 export interface InstagramCard {
@@ -172,6 +198,7 @@ export interface VideoCard {
   poster?: string
   url?: string
   variant?: MediaCardVariant
+  width?: CardWidth
   /** @deprecated use variant */
   aspectRatio?: VideoAspectRatio
 }
@@ -200,8 +227,11 @@ export type SpotifyEmbedTheme = 'dark' | 'light'
 export interface SpotifyEmbedCard {
   type: 'spotify-embed'
   title?: string
-  url: string
-  /** Tema visual do player (Spotify embed). */
+  /** Código iframe exportado pelo Spotify ou URL de embed. */
+  embed?: string
+  /** @deprecated Use `embed`. Mantido para bios antigas. */
+  url?: string
+  /** @deprecated O tema vem no iframe exportado pelo Spotify. */
   theme?: SpotifyEmbedTheme
   /** @deprecated legado */
   size?: 'compact' | 'default'

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const TEMPLATE = path.join(ROOT, 'platform-template', '_template')
-const MINIMAL_BIO = path.join(ROOT, 'public', 'bio.template.json')
+const MINIMAL_BIO = path.join(ROOT, 'bio', 'public', 'bio.template.json')
 
 const BUILD_ASSET_EXT = new Set(['.js', '.css', '.mjs'])
 
@@ -68,7 +68,7 @@ function assertIndexReferencesBundles(templateDir) {
 /** Deixa o pacote do cliente só com o mínimo (sem imagens nem conteúdo de demo). */
 function sanitizeClientTemplate(templateDir) {
   if (!fs.existsSync(MINIMAL_BIO)) {
-    throw new Error('public/bio.template.json não encontrado')
+    throw new Error('bio/public/bio.template.json não encontrado')
   }
 
   fs.copyFileSync(MINIMAL_BIO, path.join(templateDir, 'bio.json'))
@@ -115,13 +115,13 @@ const env = { ...process.env, TEMPLATE_BUILD: '1' }
 
 console.log('')
 console.log('→ Build da bio (template relativo)…')
-execSync('npm run build', { cwd: ROOT, env, stdio: 'inherit' })
+execSync('npm run build', { cwd: path.join(ROOT, 'bio'), env, stdio: 'inherit' })
 
 console.log('→ Build do editor (template relativo)…')
-execSync('npm run build:hostgator-template', { cwd: path.join(ROOT, 'admin'), env, stdio: 'inherit' })
+execSync('npm run build:hostgator-template', { cwd: path.join(ROOT, 'editor'), env, stdio: 'inherit' })
 
 const siteDist = path.join(ROOT, 'dist')
-const editorDist = path.join(ROOT, 'admin', 'dist')
+const editorDist = path.join(ROOT, 'editor', 'dist')
 
 if (!fs.existsSync(siteDist) || !fs.existsSync(editorDist)) {
   console.error('Builds não encontrados.')

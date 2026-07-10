@@ -1,20 +1,23 @@
 import type { LinkCard as LinkCardType } from '../types/bio'
+import { CardLink, hasClickableUrl } from '../lib/cardLink'
 import { ArrowIcon, BioIcon } from './icons'
 
 export function LinkCard({ item, grid = false }: { item: LinkCardType; grid?: boolean }) {
+  const clickable = hasClickableUrl(item.url)
+
   if (grid) {
     return (
-      <a
-        href={item.url}
-        target="_blank"
-        rel="noopener noreferrer"
+      <CardLink
+        url={item.url}
         className="bio-card bio-link-card bio-link-card--grid group relative flex h-full flex-col p-3"
       >
         <div className="bio-link-body mb-3 flex items-center justify-between">
           <div className="bio-link-icon-wrap flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
             <BioIcon name={item.icon} className="h-5 w-5 text-primary" />
           </div>
-          <ArrowIcon className="bio-link-arrow h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+          {clickable && (
+            <ArrowIcon className="bio-link-arrow h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+          )}
         </div>
         <div className={`min-w-0 ${item.subtitle ? '' : 'mt-auto'}`}>
           <h3 className="bio-link-title text-sm font-bold leading-tight text-foreground">
@@ -26,17 +29,12 @@ export function LinkCard({ item, grid = false }: { item: LinkCardType; grid?: bo
             </p>
           )}
         </div>
-      </a>
+      </CardLink>
     )
   }
 
   return (
-    <a
-      href={item.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="bio-card bio-link-card group relative block"
-    >
+    <CardLink url={item.url} className="bio-card bio-link-card group relative block">
       <div className="bio-link-body flex items-center gap-4 p-4">
         <div className="bio-link-icon-wrap flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
           <BioIcon name={item.icon} className="h-6 w-6 text-primary" />
@@ -49,8 +47,10 @@ export function LinkCard({ item, grid = false }: { item: LinkCardType; grid?: bo
             <p className="bio-link-subtitle bio-text-secondary mt-0.5 text-xs">{item.subtitle}</p>
           )}
         </div>
-        <ArrowIcon className="bio-link-arrow h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+        {clickable && (
+          <ArrowIcon className="bio-link-arrow h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+        )}
       </div>
-    </a>
+    </CardLink>
   )
 }

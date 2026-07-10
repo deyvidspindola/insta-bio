@@ -1,5 +1,5 @@
 import { Copy, X } from 'lucide-react'
-import { clientEditorHref, type CreatedClient } from '../lib/clients'
+import { clientBioUrl, clientEditorUrl, type CreatedClient } from '../lib/clients'
 
 type Props = {
   client: CreatedClient | null
@@ -9,9 +9,8 @@ type Props = {
 export function CredentialsModal({ client, onClose }: Props) {
   if (!client) return null
 
-  const origin = window.location.origin
-  const bioUrl = `${origin}${client.bio_url}`
-  const editorUrl = `${origin}${clientEditorHref(client.slug, client.email)}`
+  const bioUrl = clientBioUrl(client)
+  const editorUrl = clientEditorUrl(client)
 
   const lines = [
     `Bio: ${bioUrl}`,

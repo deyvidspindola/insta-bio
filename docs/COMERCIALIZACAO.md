@@ -29,7 +29,7 @@ Um **link da bio** profissional para Instagram, com:
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  SEU COMPUTADOR (desenvolvimento)                        │
-│  Node.js → npm run build + npm run admin:hostgator      │
+│  Node.js → npm run build + npm run editor:hostgator      │
 └──────────────────────────┬──────────────────────────────┘
                            │ FTP / upload
                            ▼
@@ -37,7 +37,7 @@ Um **link da bio** profissional para Instagram, com:
 │  HOSTGATOR (produção)                                    │
 │                                                          │
 │  public_html/              ← site público (dist/)        │
-│  public_html/editor/       ← painel + PHP (admin/dist/)  │
+│  public_html/editor/       ← painel + PHP (editor/dist/)  │
 │                                                          │
 │  Sem Node · Sem MySQL · Só PHP para login/salvar       │
 └─────────────────────────────────────────────────────────┘
@@ -65,21 +65,21 @@ Use esta lista para cada venda/entrega.
 ```bash
 # 1. Clonar o template (ou copiar pasta do projeto)
 cd insta-bio
-npm install && npm install --prefix admin
+make install
 
 # 2. Editar conteúdo
-npm run admin          # http://localhost:5180
-# Login dev: admin / troque-esta-senha (admin/auth.json)
+npm run editor          # http://localhost:5180
+# Login dev: admin / troque-esta-senha (editor/auth.json)
 
-# 3. Ajustar public/bio.json + public/assets/
-#    (modelo inicial: public/bio.default.json)
+# 3. Ajustar bio/public/bio.json + bio/public/assets/
+#    (modelo inicial: bio/public/bio.default.json)
 
 # 4. Gerar builds
 npm run build
-npm run hash-password --prefix admin -- "SenhaUnicaDoCliente"
-cp admin/php/auth.config.example.php admin/php/auth.config.php
+npm run hash-password --prefix editor -- "SenhaUnicaDoCliente"
+cp editor/php/auth.config.example.php editor/php/auth.config.php
 # Editar auth.config.php com usuário e hash
-npm run admin:hostgator
+npm run editor:hostgator
 ```
 
 ### Fase 3 — Publicação
@@ -107,9 +107,9 @@ Opcional: gravar um vídeo de 2 minutos mostrando o editor.
 
 ---
 
-## Um cliente = um deploy (recomendado)
+## Um cliente = um deploy (single-tenant)
 
-Para comercializar, o modelo mais simples é **uma instalação por cliente**:
+Para comercializar com **conta HostGator separada por cliente**, o modelo mais simples é **uma instalação por cliente**:
 
 | Cliente | Onde fica |
 |---------|-----------|
@@ -120,13 +120,17 @@ Cada um tem seu próprio `bio.json`, `assets/`, `auth.config.php` e senha.
 
 **Não** misture vários clientes no mesmo `bio.json`.
 
+### Alternativa: plataforma multi-cliente
+
+Vários clientes no **mesmo domínio** (`linksnabio.app.br/{slug}/`) com provisionamento pelo `/panel/`. Ver [PLATAFORMA.md](./PLATAFORMA.md).
+
 ---
 
 ## Reutilizar o template para outro cliente
 
 ### Opção A — Pelo editor (rápido)
 
-1. `npm run admin`
+1. `npm run editor`
 2. **Importar JSON** de outro projeto, ou **Limpar e começar do zero**
 3. Trocar marca, seções, imagens
 4. Build + deploy na conta HostGator do novo cliente
@@ -134,8 +138,8 @@ Cada um tem seu próprio `bio.json`, `assets/`, `auth.config.php` e senha.
 ### Opção B — Copiar pasta do projeto
 
 1. Duplicar a pasta `insta-bio` → `insta-bio-cliente-x`
-2. Limpar `public/assets/` (manter só o que for do cliente)
-3. Resetar `public/bio.json` (copie de `public/bio.default.json` ou use **Restaurar modelo padrão** no editor)
+2. Limpar `bio/public/assets/` (manter só o que for do cliente)
+3. Resetar `bio/public/bio.json` (copie de `bio/public/bio.default.json` ou use **Restaurar modelo padrão** no editor)
 4. Novo `auth.config.php` com senha diferente
 
 ---
@@ -169,7 +173,7 @@ O cliente pode editar sozinho pelo editor — isso reduz suporte recorrente.
 ### Resetar senha do cliente
 
 ```bash
-npm run hash-password --prefix admin -- "NovaSenha123"
+npm run hash-password --prefix editor -- "NovaSenha123"
 ```
 
 Atualize `AUTH_PASSWORD_HASH` no `auth.config.php` do servidor (FTP) e envie a nova senha ao cliente.
@@ -180,7 +184,7 @@ Atualize `AUTH_PASSWORD_HASH` no `auth.config.php` do servidor (FTP) e envie a n
 
 | Ambiente | Comando | Login |
 |----------|---------|-------|
-| **Seu PC** | `npm run admin` | `admin/auth.json` |
+| **Seu PC** | `npm run editor` | `editor/auth.json` |
 | **HostGator** | (arquivos em `editor/`) | `auth.config.php` |
 
 No PC você desenvolve e testa. Na HostGator o cliente usa o editor publicado.
@@ -195,7 +199,7 @@ Por FTP, o cliente só precisa do editor. Estes arquivos são técnicos:
 - `editor/*.php` — autenticação e API
 - `editor/.htaccess`
 
-Se algo quebrar após edição manual no servidor, reenvie `admin/dist/` (preservando `auth.config.php`).
+Se algo quebrar após edição manual no servidor, reenvie `editor/dist/` (preservando `auth.config.php`).
 
 ---
 
@@ -216,9 +220,9 @@ Se algo quebrar após edição manual no servidor, reenvie `admin/dist/` (preser
 
 Quando adicionar funcionalidades no código:
 
-1. Desenvolva local (`npm run dev` / `npm run admin`)
+1. Desenvolva local (`npm run dev` / `npm run editor`)
 2. Teste
-3. `npm run build` + `npm run admin:hostgator`
+3. `npm run build` + `npm run editor:hostgator`
 4. Atualize clientes via FTP (ou ofereça como "atualização paga")
 
 Documente mudanças em [PROJETO.md](./PROJETO.md) e [BIO-JSON.md](./BIO-JSON.md).
@@ -228,6 +232,7 @@ Documente mudanças em [PROJETO.md](./PROJETO.md) e [BIO-JSON.md](./BIO-JSON.md)
 ## Documentos relacionados
 
 - [HOSTGATOR.md](./HOSTGATOR.md) — deploy técnico passo a passo
-- [ADMIN.md](./ADMIN.md) — manual do editor
+- [EDITOR.md](./EDITOR.md) — manual do editor
 - [BIO-JSON.md](./BIO-JSON.md) — referência de conteúdo
+- [PLATAFORMA.md](./PLATAFORMA.md) — multi-cliente no mesmo domínio
 - [PROJETO.md](./PROJETO.md) — arquitetura para desenvolvedores

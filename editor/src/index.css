@@ -393,6 +393,61 @@ input[type='range'] {
   cursor: not-allowed;
 }
 
+.topbar-draft,
+.topbar-publish {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2.25rem;
+  padding: 0 1.05rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.topbar-draft {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.topbar-draft:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
+.topbar-publish {
+  background: #fff;
+  color: color-mix(in oklch, var(--color-primary) 78%, black);
+  border: 0;
+  box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.45);
+}
+
+.topbar-publish:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.topbar-draft:active:not(:disabled),
+.topbar-publish:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.topbar-draft:disabled,
+.topbar-publish:disabled,
+.topbar-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Alias legado (demo CTA e refs antigas) */
 .topbar-save {
   display: inline-flex;
   align-items: center;
@@ -407,15 +462,6 @@ input[type='range'] {
   cursor: pointer;
   border: 0;
   box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.45);
-  transition: transform 0.15s ease, background-color 0.15s ease;
-}
-
-.topbar-save:hover {
-  background: rgba(255, 255, 255, 0.88);
-}
-
-.topbar-save:active {
-  transform: translateY(1px);
 }
 
 .editor-rail {
@@ -574,6 +620,67 @@ input[type='range'] {
 .confirm-dialog-icon-danger {
   background: oklch(0.58 0.19 25 / 0.15);
   color: oklch(0.62 0.2 25);
+}
+
+.asset-preview-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.asset-preview-panel {
+  position: relative;
+  display: flex;
+  width: 100%;
+  max-width: min(56rem, 100%);
+  flex-direction: column;
+  gap: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  padding: 1rem;
+  box-shadow:
+    0 24px 48px -12px oklch(0 0 0 / 0.45),
+    0 0 0 1px color-mix(in oklch, var(--color-primary) 8%, transparent);
+  animation: confirm-slide-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.asset-preview-media {
+  display: flex;
+  min-height: 12rem;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: color-mix(in oklch, var(--color-muted) 65%, black);
+}
+
+.gallery-thumb-btn {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.gallery-thumb-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.gallery-thumb-btn:hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: oklch(0 0 0 / 0.12);
+  pointer-events: none;
 }
 
 @keyframes confirm-fade-in {

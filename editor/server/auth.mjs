@@ -5,9 +5,9 @@ import { fileURLToPath } from 'node:url'
 import bcrypt from 'bcryptjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const ADMIN_ROOT = path.resolve(__dirname, '..')
-const AUTH_FILE = path.join(ADMIN_ROOT, 'auth.json')
-const SECRET_FILE = path.join(ADMIN_ROOT, '.auth-secret')
+const EDITOR_ROOT = path.resolve(__dirname, '..')
+const AUTH_FILE = path.join(EDITOR_ROOT, 'auth.json')
+const SECRET_FILE = path.join(EDITOR_ROOT, '.auth-secret')
 
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 

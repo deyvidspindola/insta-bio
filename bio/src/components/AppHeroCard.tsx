@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { AppHero, AppHeroPreset, WhatsAppHero } from '../types/bio'
+import { CardLink, hasClickableUrl } from '../lib/cardLink'
 import { APP_HERO_PRESETS } from '../lib/appHeroPresets'
 import { ArrowIcon, BioIcon, InstagramIcon, TelegramIcon, WhatsAppIcon, YouTubeIcon } from './icons'
 
@@ -121,14 +122,15 @@ function HeroShell({
   children: ReactNode
   className?: string
 }) {
+  const clickable = hasClickableUrl(item.url)
+
   return (
-    <a
-      href={item.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`bio-card bio-card--hero bio-card--media group relative block overflow-hidden border transition-all ${className}`}
+    <CardLink
+      url={item.url}
+      className={`bio-card bio-card--hero bio-card--media group relative block overflow-hidden border transition-all ${className} ${clickable ? '' : 'cursor-default'}`}
       style={{ borderColor: theme.border }}
       onMouseEnter={(e) => {
+        if (!clickable) return
         e.currentTarget.style.borderColor = theme.borderHover
       }}
       onMouseLeave={(e) => {
@@ -136,7 +138,7 @@ function HeroShell({
       }}
     >
       {children}
-    </a>
+    </CardLink>
   )
 }
 
@@ -251,7 +253,9 @@ function HeroCondensed({
         <h3 className="min-w-0 flex-1 text-xs font-bold leading-tight text-white line-clamp-2">
           {item.title}
         </h3>
-        <ArrowIcon className="h-3.5 w-3.5 shrink-0 text-white/85 transition-transform group-hover:translate-x-0.5" />
+        {hasClickableUrl(item.url) && (
+          <ArrowIcon className="h-3.5 w-3.5 shrink-0 text-white/85 transition-transform group-hover:translate-x-0.5" />
+        )}
       </div>
     </HeroShell>
   )

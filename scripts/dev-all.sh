@@ -52,7 +52,8 @@ echo ""
 echo "insta-bio — servidores de desenvolvimento"
 echo ""
 echo "  Bio demo:  http://localhost:5173/"
-echo "  Editor:    http://localhost:5180/"
+echo "  Editor:    http://localhost:5180/  (código ao vivo)"
+echo "  Cliente:   http://localhost:5175/{slug}/editor/  (proxy → :5180 em dev)"
 echo "  Demo:      http://localhost:5180/demo.html"
 echo "  Painel:    http://localhost:5175/panel/  (admin@local.dev / admin123)"
 echo "  Landing:   http://localhost:5190/"
@@ -82,8 +83,8 @@ start_service() {
   PIDS+=($!)
 }
 
-start_service "bio" npm run dev
-start_service "admin" npm run admin
+start_service "bio" npm run bio
+start_service "editor" npm run editor
 start_service "panel" npm run panel
 start_service "site" npm run site
 

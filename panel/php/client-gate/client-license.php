@@ -33,9 +33,64 @@ function client_license_normalize_slug(string $input): string
   return trim($value, '-');
 }
 
+function client_license_normalize_host(string $host): string
+{
+  $host = strtolower(trim($host));
+  if ($host === '') {
+    return '';
+  }
+
+  if (str_contains($host, '://')) {
+    $parsed = parse_url($host, PHP_URL_HOST);
+    $host = is_string($parsed) ? $parsed : '';
+  }
+
+  $host = rtrim($host, '/');
+  if (str_contains($host, ':')) {
+    $host = explode(':', $host, 2)[0];
+  }
+
+  if (str_starts_with($host, 'www.')) {
+    $host = substr($host, 4);
+  }
+
+  return $host;
+}
+
+function client_license_current_host(): string
+{
+  return client_license_normalize_host((string) ($_SERVER['HTTP_HOST'] ?? ''));
+}
+
 function client_license_deploy_slug(): string
 {
   return client_license_normalize_slug(basename(client_license_root()));
+}
+
+function client_license_root_folder_names(): array
+{
+  return ['public_html', 'htdocs', 'www', 'httpdocs', 'html'];
+}
+
+function client_license_normalize_deploy_path(string $path): string
+{
+  $path = strtolower(trim($path));
+  if ($path === '' || $path === '/' || $path === '.' || $path === 'raiz' || $path === 'root') {
+    return '';
+  }
+
+  $path = trim($path, '/');
+  if ($path === '') {
+    return '';
+  }
+
+  return client_license_normalize_slug($path);
+}
+
+function client_license_deploy_path_label(string $path): string
+{
+  $normalized = client_license_normalize_deploy_path($path);
+  return $normalized === '' ? '/' : $normalized;
 }
 
 function client_license_load_config(): ?array
@@ -63,14 +118,42 @@ function client_license_load_config(): ?array
     'token' => (string) LICENSE_TOKEN,
     'api' => (string) LICENSE_API,
     'selfhost' => defined('LICENSE_SELFHOST') && LICENSE_SELFHOST,
+    'allowed_host' => defined('LICENSE_ALLOWED_HOST')
+      ? client_license_normalize_host((string) LICENSE_ALLOWED_HOST)
+      : '',
+    'deploy_path' => defined('LICENSE_DEPLOY_PATH')
+      ? client_license_normalize_deploy_path((string) LICENSE_DEPLOY_PATH)
+      : '',
   ];
   return $cache;
 }
 
+function client_license_host_matches(array $config): bool
+{
+  $allowed = $config['allowed_host'] ?? '';
+  if ($allowed === '') {
+    return true;
+  }
+
+  $current = client_license_current_host();
+  return $current !== '' && $current === client_license_normalize_host($allowed);
+}
+
 function client_license_path_matches(array $config): bool
 {
+  if (!client_license_host_matches($config)) {
+    return false;
+  }
+
   if (!empty($config['selfhost'])) {
-    return true;
+    $expected = client_license_normalize_deploy_path((string) ($config['deploy_path'] ?? ''));
+    $actual = client_license_deploy_slug();
+
+    if ($expected === '') {
+      return in_array($actual, client_license_root_folder_names(), true);
+    }
+
+    return $actual !== '' && $actual === $expected;
   }
 
   $deploy = client_license_deploy_slug();
@@ -81,8 +164,21 @@ function client_license_path_matches(array $config): bool
 
 function client_license_cache_fingerprint(array $config): string
 {
-  $deploy = !empty($config['selfhost']) ? '' : client_license_deploy_slug();
-  return hash('sha256', $config['slug'] . '|' . $config['token'] . '|' . $deploy);
+  $deploy = !empty($config['selfhost']) ? client_license_deploy_slug() : client_license_deploy_slug();
+  return hash(
+    'sha256',
+    $config['slug'] . '|' . $config['token'] . '|' . $deploy . '|'
+      . ($config['allowed_host'] ?? '') . '|' . ($config['deploy_path'] ?? ''),
+  );
+}
+
+/**
+ * @return array{ok: bool, http_status: int, active: bool, message: string, body: ?array}
+ */
+function client_license_probe_remote(array $config): array
+{
+  $result = client_license_fetch_remote($config, true);
+  return $result;
 }
 
 function client_license_is_active(): bool
@@ -111,12 +207,8 @@ function client_license_is_active(): bool
     }
   }
 
-  $active = client_license_fetch_remote(
-    $config['api'],
-    $config['slug'],
-    $config['token'],
-    !empty($config['selfhost']),
-  );
+  $probe = client_license_fetch_remote($config, false);
+  $active = !empty($probe['ok']) && !empty($probe['active']);
   $payload = json_encode([
     'active' => $active,
     'fp' => $fingerprint,
@@ -129,22 +221,40 @@ function client_license_is_active(): bool
   return $active;
 }
 
-function client_license_fetch_remote(string $apiUrl, string $slug, string $token, bool $selfhost = false): bool
+/**
+ * @return array{ok: bool, http_status: int, active: bool, message: string, body: ?array}
+ */
+function client_license_fetch_remote(array $config, bool $detailed = false): array
 {
   $params = [
-    'slug' => $slug,
-    'token' => $token,
+    'slug' => $config['slug'],
+    'token' => $config['token'],
   ];
 
-  if (!$selfhost) {
-    $deploy = client_license_deploy_slug();
-    if ($deploy !== '') {
+  $deploy = client_license_deploy_slug();
+  if (!empty($config['selfhost'])) {
+    $expected = client_license_normalize_deploy_path((string) ($config['deploy_path'] ?? ''));
+    if ($expected === '') {
+      if (!in_array($deploy, client_license_root_folder_names(), true) && $deploy !== '') {
+        $params['deploy'] = $deploy;
+      }
+    } elseif ($deploy !== '') {
       $params['deploy'] = $deploy;
     }
+  } elseif ($deploy !== '') {
+    $params['deploy'] = $deploy;
+  }
+
+  $currentHost = client_license_current_host();
+  if ($currentHost !== '') {
+    $params['host'] = $currentHost;
   }
 
   $query = http_build_query($params);
-  $url = str_contains($apiUrl, '?') ? $apiUrl . '&' . $query : $apiUrl . '?' . $query;
+  $url = str_contains($config['api'], '?') ? $config['api'] . '&' . $query : $config['api'] . '?' . $query;
+
+  $body = false;
+  $status = 0;
 
   if (function_exists('curl_init')) {
     $ch = curl_init($url);
@@ -165,18 +275,43 @@ function client_license_fetch_remote(string $apiUrl, string $slug, string $token
       ],
     ]);
     $body = @file_get_contents($url, false, $context);
-    $status = 0;
     if (isset($http_response_header[0]) && preg_match('/\s(\d{3})\s/', $http_response_header[0], $m)) {
       $status = (int) $m[1];
     }
   }
 
   if ($body === false || $status >= 400) {
-    return false;
+    return [
+      'ok' => false,
+      'http_status' => $status,
+      'active' => false,
+      'message' => $status > 0
+        ? 'API respondeu HTTP ' . $status
+        : 'Não foi possível contactar a API de licença',
+      'body' => null,
+    ];
   }
 
-  $data = json_decode($body, true);
-  return is_array($data) && !empty($data['ok']) && !empty($data['active']);
+  $data = json_decode((string) $body, true);
+  if (!is_array($data) || empty($data['ok'])) {
+    $error = is_array($data) ? (string) ($data['error'] ?? 'Licença recusada pela API') : 'Resposta inválida da API';
+    return [
+      'ok' => false,
+      'http_status' => $status,
+      'active' => false,
+      'message' => $error,
+      'body' => is_array($data) ? $data : null,
+    ];
+  }
+
+  $active = !empty($data['active']);
+  return [
+    'ok' => true,
+    'http_status' => $status,
+    'active' => $active,
+    'message' => $active ? 'Licença ativa na API' : 'Conta suspensa ou inativa na API',
+    'body' => $data,
+  ];
 }
 
 function client_license_deny(string $message = 'Esta bio está indisponível no momento.'): void
@@ -205,6 +340,10 @@ function require_client_license_active(): void
   $config = client_license_load_config();
   if ($config === null) {
     client_license_deny('Licença não configurada.');
+  }
+
+  if (!client_license_host_matches($config)) {
+    client_license_deny('Este domínio não está autorizado para esta licença.');
   }
 
   if (!client_license_path_matches($config)) {

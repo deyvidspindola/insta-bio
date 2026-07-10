@@ -41,7 +41,7 @@ export function ImageField({ label, value, onChange, hint }: ImageFieldProps) {
       const result = (await response.json()) as { path: string }
       onChange(result.path)
     } catch {
-      setError('Upload disponível apenas no editor local (npm run admin). Informe o caminho manualmente.')
+      setError('Upload disponível apenas no editor local (npm run editor). Informe o caminho manualmente.')
     } finally {
       setUploading(false)
     }

@@ -1,5 +1,5 @@
-.PHONY: help install setup dev dev-all admin site site-build build admin-build hostgator package preview \
-	hash-password auth-init lint clean platform-core
+.PHONY: help install setup dev dev-all editor site site-build build editor-build hostgator package preview \
+	hash-password auth-init lint clean platform-core admin admin-build
 
 .DEFAULT_GOAL := help
 
@@ -20,9 +20,10 @@ help: ## Lista os comandos disponíveis
 
 ## — Dependências -------------------------------------------------------------
 
-install: ## Instala dependências do site, admin, panel e landing
+install: ## Instala dependências do site, bio, editor, panel e landing
 	npm install
-	npm install --prefix admin
+	npm install --prefix bio
+	npm install --prefix editor
 	npm install --prefix panel
 	npm install --prefix site
 
@@ -36,8 +37,10 @@ dev: ## Site local → http://localhost:5173
 dev-all: ## Sobe bio, editor, painel e landing (Ctrl+C para parar)
 	bash scripts/dev-all.sh
 
-admin: ## Editor local (Node) → http://localhost:5180
-	npm run admin
+editor: ## Editor local (Node) → http://localhost:5180
+	npm run editor
+
+admin: editor ## Alias legado
 
 site: ## Landing comercial → http://localhost:5190
 	npm run site
@@ -53,11 +56,13 @@ preview: ## Testa o build do site (dist/) localmente
 build: ## Gera o site em dist/
 	npm run build
 
-admin-build: ## Gera só o editor em admin/dist/ (sem PHP)
-	npm run admin:build
+editor-build: ## Gera só o editor em editor/dist/ (sem PHP)
+	npm run editor:build
 
-hostgator: ## Gera editor + PHP para HostGator em admin/dist/
-	npm run admin:hostgator
+admin-build: editor-build ## Alias legado
+
+hostgator: ## Gera editor + PHP para HostGator em editor/dist/
+	npm run editor:hostgator
 
 panel: ## Painel da plataforma (dev) → http://localhost:5175/panel/
 	npm run panel
@@ -79,11 +84,11 @@ package: ## Build unificado em release/ (BASE_PATH=/insta-bio ou deploy.config.j
 
 ## Build separado (legado) ----------------------------------------------------
 
-package-split: build hostgator ## Build em dist/ + admin/dist/ (sem pasta única)
+package-split: build hostgator ## Build em dist/ + editor/dist/ (sem pasta única)
 	@echo ""
 	@echo "Pronto para FTP:"
-	@echo "  dist/*        → public_html/"
-	@echo "  admin/dist/*  → public_html/editor/"
+	@echo "  dist/*          → public_html/"
+	@echo "  editor/dist/*   → public_html/editor/"
 	@echo ""
 	@echo "Guia: docs/HOSTGATOR.md"
 
@@ -93,21 +98,21 @@ hash-password: ## Gera hash bcrypt (use PASSWORD=\"...\")
 ifndef PASSWORD
 	$(error Defina a senha: make hash-password PASSWORD="sua-senha")
 endif
-	npm run hash-password --prefix admin -- "$(PASSWORD)"
+	npm run hash-password --prefix editor -- "$(PASSWORD)"
 
-auth-init: ## Cria admin/php/auth.config.php a partir do exemplo
-	@test -f admin/php/auth.config.php || cp admin/php/auth.config.example.php admin/php/auth.config.php
+auth-init: ## Cria editor/php/auth.config.php a partir do exemplo
+	@test -f editor/php/auth.config.php || cp editor/php/auth.config.example.php editor/php/auth.config.php
 	@echo "auth.config.php criado (ou já existia)."
 	@echo "Gere o hash: make hash-password PASSWORD=\"sua-senha\""
-	@echo "Cole o hash em admin/php/auth.config.php e rode: make hostgator"
+	@echo "Cole o hash em editor/php/auth.config.php e rode: make hostgator"
 
 ## — Qualidade ----------------------------------------------------------------
 
-lint: ## Roda o linter no site e no admin
-	npm run lint
-	npm run lint --prefix admin
+lint: ## Roda o linter no bio e no editor
+	npm run lint --prefix bio
+	npm run lint --prefix editor
 
 ## — Limpeza ------------------------------------------------------------------
 
 clean: ## Remove pastas de build
-	rm -rf dist admin/dist site/dist
+	rm -rf dist bio/dist editor/dist site/dist

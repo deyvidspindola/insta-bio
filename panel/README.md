@@ -18,6 +18,8 @@ Login dev padrão (criado automaticamente):
 
 Clientes criados em dev ficam em `panel/data/platform/{slug}/` e são acessíveis em `http://localhost:5175/{slug}/`.
 
+Em desenvolvimento, o editor do cliente (`/{slug}/editor/`) é **proxy para o Vite na porta 5180** — você sempre vê o código atual sem rodar sync. A bio pública do cliente continua vindo da pasta estática do template (atualize com **Atualizar sites** ou `npm run sync:clients` quando mudar só a bio buildada).
+
 ### Problemas comuns no dev local
 
 - **URL do painel:** use `http://localhost:5175/panel/` (com barra no final).

@@ -12,7 +12,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), platformDevPlugin()],
   resolve: {
     alias: {
-      '@shared': path.resolve(PANEL_ROOT, '../src'),
+      '@shared': path.resolve(PANEL_ROOT, '../bio/src'),
     },
   },
   server: {

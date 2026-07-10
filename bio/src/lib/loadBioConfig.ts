@@ -1,11 +1,67 @@
 import type { BioConfig } from '../types/bio'
-import { bioJsonUrl } from './publicUrl'
+import { pageRelativeUrl, setBioJsonRelativePath } from './publicUrl'
+
+declare global {
+  interface Window {
+    /** Injetado pelo index.php a partir do auth.config.php do editor */
+    __BIO_JSON_PATH__?: string
+  }
+}
+
+function configuredBioJsonRelativePath(): string | null {
+  const injected = window.__BIO_JSON_PATH__?.trim()
+  if (injected) return injected
+  return null
+}
+
+async function readBioPathFromJson(): Promise<string | null> {
+  try {
+    const res = await fetch(pageRelativeUrl('bio-path.json'), { cache: 'no-store' })
+    if (!res.ok) return null
+    const data = (await res.json()) as { bioJsonPath?: string; bioJsonUrl?: string }
+    const relative = data.bioJsonPath?.trim()
+    if (relative) return relative
+    const legacy = data.bioJsonUrl?.trim()
+    if (legacy) return legacy.replace(/^\//, '')
+  } catch {
+    // ignora
+  }
+  return null
+}
+
+async function resolveBioJsonRelativePath(): Promise<string> {
+  const injected = configuredBioJsonRelativePath()
+  if (injected) return injected
+
+  const fromFile = await readBioPathFromJson()
+  if (fromFile) return fromFile
+
+  // Fallback: PHP lê auth.config.php quando bio-path.json não existe no servidor
+  try {
+    const probe = await fetch(pageRelativeUrl('bio-json.php'), { cache: 'no-store' })
+    if (probe.ok) return 'bio-json.php'
+  } catch {
+    // ignora
+  }
+
+  return 'bio.json'
+}
 
 export async function loadBioConfig(): Promise<BioConfig> {
-  const configPath = bioJsonUrl()
-  const response = await fetch(configPath, { cache: 'no-store' })
+  const relativePath = await resolveBioJsonRelativePath()
+  setBioJsonRelativePath(relativePath)
+  const configPath = pageRelativeUrl(relativePath)
+  const separator = configPath.includes('?') ? '&' : '?'
+  const response = await fetch(`${configPath}${separator}t=${Date.now()}`, { cache: 'no-store' })
 
   if (!response.ok) {
+    const fallback = pageRelativeUrl('bio-json.php')
+    if (relativePath !== 'bio-json.php') {
+      const proxyRes = await fetch(`${fallback}${separator}t=${Date.now()}`, { cache: 'no-store' })
+      if (proxyRes.ok) {
+        return proxyRes.json() as Promise<BioConfig>
+      }
+    }
     throw new Error(`Não foi possível carregar ${configPath} (${response.status})`)
   }
 

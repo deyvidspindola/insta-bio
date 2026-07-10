@@ -23,8 +23,8 @@
     "noFallthroughCasesInSwitch": true,
 
     "paths": {
-      "@bio-types": ["../src/types/bio.ts"],
-      "@site/*": ["../src/*"]
+      "@bio-types": ["../bio/src/types/bio.ts"],
+      "@site/*": ["../bio/src/*"]
     }
   },
   "include": ["src"]
