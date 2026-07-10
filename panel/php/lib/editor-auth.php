@@ -15,6 +15,12 @@ function editor_auth_json_input(): array
   if ($raw === false || $raw === '') {
     return [];
   }
+  if (strlen($raw) > 1_048_576) {
+    http_response_code(413);
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'error' => 'Payload JSON muito grande']);
+    exit;
+  }
 
   $data = json_decode($raw, true);
   return is_array($data) ? $data : [];
@@ -29,10 +35,11 @@ function lookup_client_editor_credentials(
 ): ?array {
   platform_ensure_license_column($pdo);
 
-  $stmt = $pdo->prepare(
+  $stmt = platform_db_execute(
+    $pdo,
     'SELECT id, slug, email, password_hash, status FROM clients WHERE slug = ? AND license_token = ? LIMIT 1',
+    [normalize_slug($slug), $token],
   );
-  $stmt->execute([normalize_slug($slug), $token]);
   $client = $stmt->fetch();
   if (!$client) {
     return null;

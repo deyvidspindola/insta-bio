@@ -18,18 +18,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   exit;
 }
 
-$input = editor_auth_json_input();
-$slug = normalize_slug((string) ($input['slug'] ?? ''));
-$token = trim((string) ($input['token'] ?? ''));
-$email = strtolower(trim((string) ($input['email'] ?? $input['username'] ?? '')));
-
-if ($slug === '' || $token === '' || $email === '') {
-  http_response_code(400);
-  echo json_encode(['ok' => false, 'valid' => false, 'error' => 'slug, token e e-mail são obrigatórios']);
-  exit;
-}
-
 try {
+  $input = editor_auth_json_input();
+  $slug = normalize_slug(platform_input_string($input['slug'] ?? '', 40));
+  $token = platform_input_token($input['token'] ?? '');
+  $email = platform_input_optional_email($input['email'] ?? $input['username'] ?? '');
+
+  if ($slug === '' || $token === '' || $email === '') {
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'valid' => false, 'error' => 'slug, token e e-mail são obrigatórios']);
+    exit;
+  }
+
   $pdo = platform_db();
   $client = lookup_client_editor_credentials($pdo, $slug, $token, $email);
   if (!$client) {
@@ -43,6 +43,9 @@ try {
     'user' => $client['email'],
     'slug' => $client['slug'],
   ]);
+} catch (InvalidArgumentException $e) {
+  http_response_code(400);
+  echo json_encode(['ok' => false, 'valid' => false, 'error' => $e->getMessage()]);
 } catch (Throwable $e) {
   platform_capture_exception($e);
   http_response_code(500);

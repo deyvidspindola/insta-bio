@@ -36,6 +36,7 @@ try {
     [
       PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
       PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+      PDO::ATTR_EMULATE_PREPARES => false,
     ],
   );
 
@@ -67,8 +68,11 @@ try {
 
   $count = (int) $pdo->query('SELECT COUNT(*) AS c FROM platform_admins')->fetch()['c'];
   if ($count === 0) {
-    $stmt = $pdo->prepare('INSERT INTO platform_admins (email, password_hash) VALUES (?, ?)');
-    $stmt->execute([$adminEmail, $adminHash]);
+    platform_db_execute(
+      $pdo,
+      'INSERT INTO platform_admins (email, password_hash) VALUES (?, ?)',
+      [$adminEmail, $adminHash],
+    );
   }
 
   file_put_contents($lockFile, gmdate('c') . "\n");

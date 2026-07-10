@@ -735,8 +735,7 @@ function update_client(
   require_once __DIR__ . '/license.php';
   $hosting = resolve_client_hosting_input($selfHosted, $allowedHostInput, $deployPathInput);
 
-  $stmt = $pdo->prepare('SELECT * FROM clients WHERE id = ? LIMIT 1');
-  $stmt->execute([$id]);
+  $stmt = platform_db_execute($pdo, 'SELECT * FROM clients WHERE id = ? LIMIT 1', [$id]);
   $client = $stmt->fetch();
   if (!$client) {
     throw new RuntimeException('Cliente não encontrado');
@@ -745,16 +744,22 @@ function update_client(
   $oldSlug = $client['slug'];
 
   if ($newSlug !== $oldSlug) {
-    $check = $pdo->prepare('SELECT id FROM clients WHERE slug = ? AND id != ? LIMIT 1');
-    $check->execute([$newSlug, $id]);
+    $check = platform_db_execute(
+      $pdo,
+      'SELECT id FROM clients WHERE slug = ? AND id != ? LIMIT 1',
+      [$newSlug, $id],
+    );
     if ($check->fetch()) {
       throw new InvalidArgumentException('Este slug já está em uso');
     }
   }
 
   if (strtolower($email) !== strtolower($client['email'])) {
-    $checkEmail = $pdo->prepare('SELECT id FROM clients WHERE email = ? AND id != ? LIMIT 1');
-    $checkEmail->execute([$email, $id]);
+    $checkEmail = platform_db_execute(
+      $pdo,
+      'SELECT id FROM clients WHERE email = ? AND id != ? LIMIT 1',
+      [$email, $id],
+    );
     if ($checkEmail->fetch()) {
       throw new InvalidArgumentException('Este e-mail já está em uso');
     }
@@ -790,18 +795,19 @@ function update_client(
   $client['deploy_path'] = $hosting['deploy_path'];
   sync_client_license_files($pdo, $platformRoot, $client);
 
-  $update = $pdo->prepare(
+  $update = platform_db_execute(
+    $pdo,
     'UPDATE clients SET slug = ?, name = ?, email = ?, self_hosted = ?, allowed_host = ?, deploy_path = ?, updated_at = NOW() WHERE id = ?',
+    [
+      $newSlug,
+      $name,
+      $email,
+      $hosting['self_hosted'] ? 1 : 0,
+      $hosting['allowed_host'],
+      $hosting['deploy_path'],
+      $id,
+    ],
   );
-  $update->execute([
-    $newSlug,
-    $name,
-    $email,
-    $hosting['self_hosted'] ? 1 : 0,
-    $hosting['allowed_host'],
-    $hosting['deploy_path'],
-    $id,
-  ]);
 
   return [
     'id' => $id,

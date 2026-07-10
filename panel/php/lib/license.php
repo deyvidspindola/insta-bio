@@ -295,10 +295,11 @@ function lookup_client_license(PDO $pdo, string $slug, string $token, string $de
 {
   platform_ensure_license_column($pdo);
 
-  $stmt = $pdo->prepare(
+  $stmt = platform_db_execute(
+    $pdo,
     'SELECT id, slug, status, allowed_host, self_hosted, deploy_path FROM clients WHERE slug = ? AND license_token = ? LIMIT 1',
+    [normalize_slug($slug), $token],
   );
-  $stmt->execute([normalize_slug($slug), $token]);
   $row = $stmt->fetch();
   if (!$row) {
     return null;
@@ -376,8 +377,11 @@ function sync_client_license_files(PDO $pdo, string $platformRoot, array $client
   $token = trim((string) ($client['license_token'] ?? ''));
   if ($token === '') {
     $token = generate_license_token();
-    $stmt = $pdo->prepare('UPDATE clients SET license_token = ? WHERE id = ?');
-    $stmt->execute([$token, $client['id']]);
+    platform_db_execute(
+      $pdo,
+      'UPDATE clients SET license_token = ? WHERE id = ?',
+      [$token, $client['id']],
+    );
   }
 
   $slug = normalize_slug((string) $client['slug']);

@@ -3,21 +3,24 @@ require __DIR__ . '/bootstrap.php';
 platform_require_auth();
 header('Content-Type: application/json');
 
-$input = platform_json_input();
-$id = isset($input['id']) ? (int) $input['id'] : 0;
-
-if ($id <= 0) {
-  http_response_code(400);
-  echo json_encode(['error' => 'ID inválido']);
-  exit;
-}
-
 try {
+  $input = platform_json_input();
+  $id = platform_input_id($input['id'] ?? 0);
+
+  if ($id <= 0) {
+    http_response_code(400);
+    echo json_encode(['error' => 'ID inválido']);
+    exit;
+  }
+
   platform_load_config();
   $pdo = platform_db();
 
-  $stmt = $pdo->prepare('SELECT password_enc FROM clients WHERE id = ? LIMIT 1');
-  $stmt->execute([$id]);
+  $stmt = platform_db_execute(
+    $pdo,
+    'SELECT password_enc FROM clients WHERE id = ? LIMIT 1',
+    [$id],
+  );
   $client = $stmt->fetch();
 
   if (!$client) {
@@ -38,6 +41,9 @@ try {
   }
 
   echo json_encode(['ok' => true, 'password' => $password]);
+} catch (InvalidArgumentException $e) {
+  http_response_code(400);
+  echo json_encode(['error' => $e->getMessage()]);
 } catch (Throwable $e) {
   platform_capture_exception($e);
   http_response_code(500);

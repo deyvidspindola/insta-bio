@@ -4,7 +4,7 @@ require __DIR__ . '/lib/platform.php';
 require __DIR__ . '/lib/license.php';
 platform_require_auth();
 
-$id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+$id = platform_input_id($_GET['id'] ?? 0);
 if ($id <= 0) {
   http_response_code(400);
   header('Content-Type: application/json');
@@ -24,8 +24,7 @@ try {
   $pdo = platform_db();
   platform_ensure_license_column($pdo);
 
-  $stmt = $pdo->prepare('SELECT * FROM clients WHERE id = ? LIMIT 1');
-  $stmt->execute([$id]);
+  $stmt = platform_db_execute($pdo, 'SELECT * FROM clients WHERE id = ? LIMIT 1', [$id]);
   $client = $stmt->fetch();
   if (!$client) {
     http_response_code(404);

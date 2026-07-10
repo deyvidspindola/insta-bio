@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/lib/input.php';
+
 /**
  * Carrega db.config.php uma única vez por request (evita "Constant already defined").
  */
@@ -95,6 +97,8 @@ function platform_db(): PDO
     [
       PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
       PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+      // Prepared statements nativos — não interpolar SQL no cliente.
+      PDO::ATTR_EMULATE_PREPARES => false,
     ],
   );
 
@@ -132,8 +136,34 @@ function platform_require_auth(): void
 function platform_json_input(): array
 {
   $raw = file_get_contents('php://input');
+  if ($raw === false || $raw === '') {
+    return [];
+  }
+  // Limite defensivo contra payloads enormes
+  if (strlen($raw) > 1_048_576) {
+    http_response_code(413);
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Payload JSON muito grande']);
+    exit;
+  }
   $data = json_decode($raw, true);
   return is_array($data) ? $data : [];
+}
+
+/**
+ * Executa SELECT/DML apenas via prepared statement.
+ * Use para qualquer SQL que receba parâmetros do usuário.
+ *
+ * @param list<mixed> $params
+ */
+function platform_db_execute(PDO $pdo, string $sql, array $params = []): PDOStatement
+{
+  if (str_contains($sql, '${') || preg_match('/\$[a-zA-Z_]/', $sql)) {
+    throw new RuntimeException('SQL inseguro: não use interpolação de variáveis na query');
+  }
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute($params);
+  return $stmt;
 }
 
 function app_encrypt(string $plain): string

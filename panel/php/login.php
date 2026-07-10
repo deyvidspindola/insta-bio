@@ -3,20 +3,23 @@ require __DIR__ . '/bootstrap.php';
 platform_session_start();
 header('Content-Type: application/json');
 
-$input = platform_json_input();
-$email = isset($input['email']) ? strtolower(trim((string) $input['email'])) : '';
-$password = isset($input['password']) ? (string) $input['password'] : '';
-
-if ($email === '' || $password === '') {
-  http_response_code(400);
-  echo json_encode(['error' => 'E-mail e senha são obrigatórios']);
-  exit;
-}
-
 try {
+  $input = platform_json_input();
+  $email = platform_input_optional_email($input['email'] ?? '');
+  $password = (string) ($input['password'] ?? '');
+
+  if ($email === '' || $password === '') {
+    http_response_code(400);
+    echo json_encode(['error' => 'E-mail e senha são obrigatórios']);
+    exit;
+  }
+
   $pdo = platform_db();
-  $stmt = $pdo->prepare('SELECT id, email, password_hash FROM platform_admins WHERE email = ? LIMIT 1');
-  $stmt->execute([$email]);
+  $stmt = platform_db_execute(
+    $pdo,
+    'SELECT id, email, password_hash FROM platform_admins WHERE email = ? LIMIT 1',
+    [$email],
+  );
   $admin = $stmt->fetch();
 
   if (!$admin || !password_verify($password, $admin['password_hash'])) {
@@ -30,6 +33,9 @@ try {
   $_SESSION['platform_admin_email'] = $admin['email'];
 
   echo json_encode(['ok' => true, 'user' => $admin['email']]);
+} catch (InvalidArgumentException $e) {
+  http_response_code(400);
+  echo json_encode(['error' => $e->getMessage()]);
 } catch (Throwable $e) {
   platform_capture_exception($e);
   http_response_code(500);

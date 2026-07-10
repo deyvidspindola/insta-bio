@@ -428,3 +428,134 @@ Checklist por versão publicada:
 - **Fora da plataforma** → o cliente (ou você, logado no editor dele) dispara a atualização estilo WordPress, a partir de um ZIP versionado publicado em PRD junto com cada release.
 
 O ponto crítico de engenharia é **aplicar o ZIP sem duplicar pastas** e **nunca sobrescrever** `bio.json`, `assets/` e `auth.config.php` — o mesmo contrato que o sync do painel já respeita hoje.
+
+---
+
+## Plano de execução mínimo (baixo consumo de tokens)
+
+> Objetivo: entregar o MVP com **o menor número de sessões de agente** e **escopo fechado por chat**.  
+> Não explorar o monorepo “de novo” a cada fase — seguir a lista de arquivos abaixo.
+
+### Decisões travadas (não reabrir em chat)
+
+| # | Decisão | Escolha |
+|---|--------|---------|
+| 1 | `bio.default.json` | **Não sobrescrever** |
+| 2 | Endpoint de updates | **API autenticada** em `linksnabio.app.br` (não ZIP público solto) — ver § Segurança |
+| 3 | Quem aplica no editor | **Qualquer login** do editor **e** licença **ativa** no servidor |
+| 4 | Manutenção / rollback UI / GPG / canal beta | **Fora do MVP** (fase 5+) |
+| 5 | Backup pré-update | **Sim, mínimo**: `editor/.update-backup/` (pasta bloqueada no Apache) |
+| 6 | Reuso de lógica | PHP de apply **espelha** `scripts/sync-clients-template.mjs` |
+| 7 | Geração do ZIP | **Junto do release** (`build:update-package` / flag no `make package`) — não passo manual separado |
+| 8 | Temp em hospedagem compartilhada | Preferir `sys_get_temp_dir()`; fallback `editor/.update-tmp/` com `.htaccess` Deny |
+
+### Hospedagem compartilhada (HostGator etc.)
+
+Na prática **não precisamos** de pasta fora de `public_html` para funcionar:
+
+1. **Ideal:** `sys_get_temp_dir()` (muitas vezes `/tmp` do servidor — já fora do web root).
+2. **Fallback:** baixar/extrair em `editor/.update-tmp/` **dentro** da conta, com:
+   - `.htaccess` bloqueando acesso HTTP
+   - limpeza ao final (sucesso ou erro)
+3. Só depois copiar arquivo a arquivo para a raiz do site / `editor/`.
+
+Ou seja: o ZIP **nunca** fica URL pública permanente no site do cliente; é transitório e protegido.
+
+### Geração do ZIP no release
+
+| Situação | Gera ZIP? |
+|----------|-----------|
+| `npm run build:update-package` / release de PRD | **Sim**, sempre, mesma versão do `VERSION` |
+| `make dev-all` / HMR local | **Não** |
+| Build só do editor em dev | **Não** (a menos que você rode o script de update de propósito) |
+
+Fluxo mental: **uma versão publicada = um ZIP + entrada no manifesto**. Sem “lembrar de gerar o zip à parte”.
+
+### Segurança do download (não link exposto)
+
+**Problema:** `https://…/updates/insta-bio-1.4.2.zip` público permite qualquer um baixar o produto.
+
+**MVP (reusa licença que já existe):**
+
+1. Cliente single-tenant já tem `license.config.php` (`LICENSE_SLUG` + `LICENSE_TOKEN` + `LICENSE_API`).
+2. `update-check.php` / `update-apply.php` no editor do cliente chamam a **API da plataforma** (não um JSON estático aberto), enviando slug + token.
+3. A API:
+   - valida slug/token;
+   - verifica se o cliente está **ativo** (não suspenso / licença válida);
+   - se OK, devolve metadados da versão + **URL assinada de curta duração** (ou stream autenticado) do ZIP;
+   - se inativo → `403` com mensagem clara (“Conta suspensa” / “Licença inválida”).
+4. O manifesto “público” do doc antigo vira **resposta autenticada** (ou o `updates.json` fica fora do docroot e só a API lê no disco).
+
+Plataforma (`platform-api.json`): continua **sem** botão de update no editor.
+
+### Validar cliente ativo antes de atualizar?
+
+**Sim — obrigatório no MVP.** Motivos:
+
+- Cliente inadimplente/suspenso não recebe código novo.
+- O token de licença já é o “sou cliente de verdade”.
+- Evita que um ZIP vazado sirva para o mundo todo (ainda assim o apply exige login no editor **e** check de licença).
+
+Ordem no apply:
+
+1. Sessão do editor OK  
+2. Licença ativa na API  
+3. Baixar ZIP (URL assinada)  
+4. Validar SHA-256  
+5. Aplicar  
+
+### O que NÃO fazer no MVP
+
+- Assinatura GPG, canal beta, botão reverter, modo manutenção
+- Atualização automática em background / cron
+- ZIP ou `updates.json` servidos como arquivo estático sem auth
+- Refatorar o sync do painel (só gravar `update-state.json` no final, se sobrar tempo)
+- UI elaborada (spinner + estados de texto bastam)
+
+### Ordem de chats (1 chat = 1 entrega)
+
+Cada chat deve começar com: *“Implemente só a Fase X do plano em ATUALIZACOES-REMOTAS.md. Não faça Y.”*
+
+| Chat | Entrega | Arquivos-alvo (não sair disso) | Critério de pronto | Tokens ~ |
+|------|---------|--------------------------------|--------------------|----------|
+| **A** | Versão + ZIP | `VERSION`, `package.json`, `scripts/package-deploy.mjs` **ou** `scripts/build-update-package.mjs` (novo), saída `dist/updates/` | `npm run build:update-package` gera `updates.json` + `insta-bio-{v}.zip` com `manifest.json` interno | 60–100k |
+| **B** | UI só leitura | `editor/src/components/AdvancedPanel.tsx`, endpoint mínimo `editor/php/update-status.php`, gravar `update-state.json` no package | Configurações mostra versão/data; plataforma sem botão | 50–90k |
+| **C** | Check remoto | `update-check.php` + botão **Buscar** + chamada à **API de licença/updates** (só single-tenant) | Licença ativa → mostra versão/changelog; inativo → erro claro; plataforma sem botão | 80–130k |
+| **D** | Apply | `update-apply.php` (+ temp/backup protegidos) | Revalida licença, baixa ZIP assinado, SHA-256, aplica, preserva dados | 180–280k |
+| **E** | Docs + release | `docs/HOSTGATOR.md` (parágrafo), checklist manual | Você sobe `updates/` no PRD uma vez e testa 1 cliente FTP | 30–50k |
+
+**Total MVP esperado: ~350–600k tokens** (abaixo da estimativa cheia 500–850k), se cada chat respeitar o escopo.
+
+### Prompt-modelo (copiar no início de cada chat)
+
+```text
+Leia APENAS docs/ATUALIZACOES-REMOTAS.md § "Plano de execução mínimo".
+Implemente SOMENTE a Fase {A|B|C|D|E}.
+Não explore além dos arquivos-alvo listados.
+Não implemente fases seguintes.
+Ao terminar: liste arquivos alterados + como testar em 3 bullets.
+```
+
+### Reuso obrigatório (economiza exploração)
+
+- Preservar / limpar bundles: espelhar `scripts/sync-clients-template.mjs` (`removeBundleFiles`, não copiar `auth.config.php`).
+- Detecção plataforma: existência de `editor/platform-api.json` (já usado no produto).
+- Paths do editor: `editor/php` + `auth.config.php` / `editor-paths` existentes — **não inventar** nova árvore.
+
+### Ordem de risco
+
+1. **Chat D (apply)** é o único que pode estourar tokens — se travar, pare e peça só o esqueleto (download + validate + dry-run sem copiar).
+2. Chats A–C são baratos e desbloqueiam teste parcial sem apply.
+3. Não misture A+D no mesmo chat.
+
+### Checklist de aceite do MVP (humano, 20 min)
+
+- [ ] Cliente FTP com `bio.json` na raiz: update OK, conteúdo intacto  
+- [ ] `auth.config.php` intacto, login OK  
+- [ ] Bundles antigos sumiram (sem 404)  
+- [ ] Cliente com `platform-api.json`: **sem** botão Buscar  
+- [ ] Sem login / licença inválida / suspenso: **não** baixa ZIP  
+- [ ] ZIP não acessível por URL pública direta (só via API/assinatura)  
+- [ ] Temp/backup sob `editor/.update-*` bloqueados no HTTP  
+
+Quando o MVP estiver estável, só então abrir Fase 5 (rollback UI, etc.).

@@ -14,19 +14,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
   exit;
 }
 
-$input = $_SERVER['REQUEST_METHOD'] === 'POST' ? platform_json_input() : $_GET;
-$slug = normalize_slug((string) ($input['slug'] ?? ''));
-$token = trim((string) ($input['token'] ?? ''));
-$deploy = normalize_slug((string) ($input['deploy'] ?? ''));
-$host = normalize_license_host((string) ($input['host'] ?? ''));
-
-if ($slug === '' || $token === '') {
-  http_response_code(400);
-  echo json_encode(['ok' => false, 'error' => 'slug e token são obrigatórios']);
-  exit;
-}
-
 try {
+  $input = $_SERVER['REQUEST_METHOD'] === 'POST' ? platform_json_input() : $_GET;
+  $slug = normalize_slug(platform_input_string($input['slug'] ?? '', 40));
+  $token = platform_input_token($input['token'] ?? '');
+  $deploy = normalize_slug(platform_input_string($input['deploy'] ?? '', 40));
+  $host = normalize_license_host(platform_input_string($input['host'] ?? '', 255));
+
+  if ($slug === '' || $token === '') {
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'error' => 'slug e token são obrigatórios']);
+    exit;
+  }
+
   $pdo = platform_db();
   platform_ensure_license_column($pdo);
 
@@ -43,6 +43,9 @@ try {
     'status' => $client['status'],
     'slug' => $client['slug'],
   ]);
+} catch (InvalidArgumentException $e) {
+  http_response_code(400);
+  echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
 } catch (Throwable $e) {
   platform_capture_exception($e);
   http_response_code(500);

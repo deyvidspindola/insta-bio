@@ -6,50 +6,42 @@ require __DIR__ . '/lib/instagram.php';
 platform_require_auth();
 header('Content-Type: application/json');
 
-$input = platform_json_input();
-$name = isset($input['name']) ? trim((string) $input['name']) : '';
-$slug = isset($input['slug']) ? (string) $input['slug'] : '';
-$email = isset($input['email']) ? strtolower(trim((string) $input['email'])) : '';
-$selfHosted = !empty($input['self_hosted']);
-$allowedHost = isset($input['allowed_host']) ? trim((string) $input['allowed_host']) : '';
-$deployPath = isset($input['deploy_path']) ? trim((string) $input['deploy_path']) : '';
-
-if ($name === '' || $slug === '' || $email === '') {
-  http_response_code(400);
-  echo json_encode(['error' => 'Nome, slug e e-mail são obrigatórios']);
-  exit;
-}
-
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-  http_response_code(400);
-  echo json_encode(['error' => 'E-mail inválido']);
-  exit;
-}
-
-$slug = normalize_slug($slug);
-$error = validate_slug($slug);
-if ($error !== null) {
-  http_response_code(400);
-  echo json_encode(['error' => $error]);
-  exit;
-}
-
-$providedPassword = isset($input['password']) ? trim((string) $input['password']) : '';
-if ($providedPassword !== '' && strlen($providedPassword) < 6) {
-  http_response_code(400);
-  echo json_encode(['error' => 'A senha deve ter pelo menos 6 caracteres']);
-  exit;
-}
-
 try {
+  $input = platform_json_input();
+  $name = platform_input_name($input['name'] ?? '');
+  $slug = platform_input_string($input['slug'] ?? '', 40);
+  $email = platform_input_email($input['email'] ?? '');
+  $selfHosted = platform_input_bool($input['self_hosted'] ?? false);
+  $allowedHost = platform_input_host($input['allowed_host'] ?? '');
+  $deployPath = platform_input_deploy_path($input['deploy_path'] ?? '');
+  $providedPassword = platform_input_password($input['password'] ?? '');
+  $instagramHandle = platform_input_instagram_handle($input['instagram_handle'] ?? '');
+
+  if ($slug === '') {
+    http_response_code(400);
+    echo json_encode(['error' => 'Nome, slug e e-mail são obrigatórios']);
+    exit;
+  }
+
+  $slug = normalize_slug($slug);
+  $error = validate_slug($slug);
+  if ($error !== null) {
+    http_response_code(400);
+    echo json_encode(['error' => $error]);
+    exit;
+  }
+
   platform_load_config();
   $pdo = platform_db();
   platform_ensure_license_column($pdo);
 
   $hosting = resolve_client_hosting_input($selfHosted, $allowedHost, $deployPath);
 
-  $check = $pdo->prepare('SELECT id FROM clients WHERE slug = ? OR email = ? LIMIT 1');
-  $check->execute([$slug, $email]);
+  $check = platform_db_execute(
+    $pdo,
+    'SELECT id FROM clients WHERE slug = ? OR email = ? LIMIT 1',
+    [$slug, $email],
+  );
   if ($check->fetch()) {
     http_response_code(409);
     echo json_encode(['error' => 'Slug ou e-mail já cadastrado']);
@@ -73,7 +65,6 @@ try {
   );
 
   $instagramWarning = null;
-  $instagramHandle = isset($input['instagram_handle']) ? trim((string) $input['instagram_handle']) : '';
   if ($instagramHandle !== '') {
     try {
       $profile = fetch_instagram_profile($instagramHandle);
@@ -84,21 +75,22 @@ try {
     }
   }
 
-  $insert = $pdo->prepare(
+  platform_db_execute(
+    $pdo,
     'INSERT INTO clients (slug, name, email, password_hash, password_enc, status, license_token, allowed_host, self_hosted, deploy_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
+      $slug,
+      $name,
+      $email,
+      $passwordHash,
+      $passwordEnc,
+      'active',
+      $licenseToken,
+      $hosting['allowed_host'],
+      $hosting['self_hosted'] ? 1 : 0,
+      $hosting['deploy_path'],
+    ],
   );
-  $insert->execute([
-    $slug,
-    $name,
-    $email,
-    $passwordHash,
-    $passwordEnc,
-    'active',
-    $licenseToken,
-    $hosting['allowed_host'],
-    $hosting['self_hosted'] ? 1 : 0,
-    $hosting['deploy_path'],
-  ]);
 
   $clientId = (int) $pdo->lastInsertId();
 

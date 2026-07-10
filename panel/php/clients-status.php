@@ -5,22 +5,21 @@ require __DIR__ . '/lib/license.php';
 platform_require_auth();
 header('Content-Type: application/json');
 
-$input = platform_json_input();
-$id = isset($input['id']) ? (int) $input['id'] : 0;
-$status = isset($input['status']) ? (string) $input['status'] : '';
-
-if ($id <= 0 || !in_array($status, ['active', 'suspended'], true)) {
-  http_response_code(400);
-  echo json_encode(['error' => 'Dados inválidos']);
-  exit;
-}
-
 try {
+  $input = platform_json_input();
+  $id = platform_input_id($input['id'] ?? 0);
+  $status = platform_input_client_status($input['status'] ?? '');
+
+  if ($id <= 0) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Dados inválidos']);
+    exit;
+  }
+
   platform_load_config();
   $pdo = platform_db();
 
-  $find = $pdo->prepare('SELECT * FROM clients WHERE id = ? LIMIT 1');
-  $find->execute([$id]);
+  $find = platform_db_execute($pdo, 'SELECT * FROM clients WHERE id = ? LIMIT 1', [$id]);
   $row = $find->fetch();
   if (!$row) {
     http_response_code(404);
@@ -28,8 +27,7 @@ try {
     exit;
   }
 
-  $stmt = $pdo->prepare('UPDATE clients SET status = ? WHERE id = ?');
-  $stmt->execute([$status, $id]);
+  platform_db_execute($pdo, 'UPDATE clients SET status = ? WHERE id = ?', [$status, $id]);
   $row['status'] = $status;
 
   sync_client_status(PLATFORM_ROOT, $row['slug'], $status);
@@ -41,6 +39,9 @@ try {
   }
 
   echo json_encode(['ok' => true, 'status' => $status]);
+} catch (InvalidArgumentException $e) {
+  http_response_code(400);
+  echo json_encode(['error' => $e->getMessage()]);
 } catch (Throwable $e) {
   platform_capture_exception($e);
   http_response_code(500);
