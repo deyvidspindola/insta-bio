@@ -1,9 +1,9 @@
 /* CSS dedicado do preview.
  * Reaproveita o tema/estilos do site principal e força o Tailwind
- * a escanear os componentes do site (que ficam fora da raiz do admin),
+ * a escanear os componentes da bio (fora da raiz do editor),
  * garantindo que o preview fique idêntico ao modelo publicado. */
 @import "@site/index.css";
-@source "../../../src";
+@source "../../../bio/src";
 
 /* No mockup do celular: rola normalmente, mas sem barra visível */
 html,

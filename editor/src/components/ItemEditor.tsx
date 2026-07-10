@@ -395,6 +395,11 @@ export function ItemEditor({
               ))}
             </select>
           </Field>
+          <CardWidthField
+            value={item.width}
+            isGridSection={isGridSection}
+            onChange={(width) => onChange({ ...item, width })}
+          />
           <Field label="Badge">
             <input value={item.badge ?? ''} onChange={(e) => onChange({ ...item, badge: e.target.value })} />
           </Field>
@@ -428,11 +433,6 @@ export function ItemEditor({
               onChange={(tags) => onChange({ ...item, tags })}
             />
           )}
-          <CardWidthField
-            value={item.width}
-            isGridSection={isGridSection}
-            onChange={(width) => onChange({ ...item, width })}
-          />
         </>
       )}
 

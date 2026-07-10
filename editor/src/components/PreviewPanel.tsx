@@ -8,7 +8,7 @@ interface PreviewPanelProps {
   compact?: boolean
 }
 
-/** URL do iframe de preview — demo na raiz usa /preview; editor do cliente usa ./preview */
+/** URL do iframe de preview — demo na raiz usa /preview; editor do cliente usa ./preview.html */
 function previewIframeSrc(): string {
   const base = import.meta.env.BASE_URL
   const onPlatformDemo =
@@ -16,10 +16,16 @@ function previewIframeSrc(): string {
     (window.location.pathname === '/demo' || window.location.pathname.startsWith('/demo/'))
 
   if (onPlatformDemo && (base === '/editor/' || base.endsWith('/editor/'))) {
-    return '/preview'
+    return '/preview.html'
   }
 
-  return `${base}preview`
+  // Sempre .html: em produção o Apache reescreve /preview → preview.html;
+  // no painel local (Node) não há rewrite — o arquivo real é preview.html.
+  if (base === './' || base.startsWith('./')) {
+    return new URL('preview.html', window.location.href).pathname
+  }
+
+  return `${base}preview.html`
 }
 
 export function PreviewPanel({ config, compact = false }: PreviewPanelProps) {

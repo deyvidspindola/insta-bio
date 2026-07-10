@@ -554,6 +554,13 @@ export default defineConfig(({ command }) => {
       port: 5180,
       host: true,
       strictPort: true,
+      // HMR direto na 5180 mesmo quando a página é aberta via proxy do painel (5175).
+      hmr: {
+        protocol: 'ws',
+        host: 'localhost',
+        port: 5180,
+        clientPort: 5180,
+      },
     },
     build: {
       rollupOptions: {

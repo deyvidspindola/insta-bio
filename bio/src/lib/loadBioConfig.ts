@@ -36,10 +36,16 @@ async function resolveBioJsonRelativePath(): Promise<string> {
   const fromFile = await readBioPathFromJson()
   if (fromFile) return fromFile
 
-  // Fallback: PHP lê auth.config.php quando bio-path.json não existe no servidor
+  // Fallback: PHP lê auth.config.php quando bio-path.json não existe no servidor.
+  // Em dev (Node) o .php pode ser servido como texto — só aceita se for JSON de verdade.
   try {
     const probe = await fetch(pageRelativeUrl('bio-json.php'), { cache: 'no-store' })
-    if (probe.ok) return 'bio-json.php'
+    if (probe.ok) {
+      const type = probe.headers.get('content-type') ?? ''
+      if (type.includes('application/json')) return 'bio-json.php'
+      const preview = (await probe.clone().text()).trimStart()
+      if (preview.startsWith('{') || preview.startsWith('[')) return 'bio-json.php'
+    }
   } catch {
     // ignora
   }

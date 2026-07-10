@@ -52,13 +52,24 @@ function ensureDirs() {
   fs.mkdirSync(PLATFORM_ROOT, { recursive: true })
 }
 
-function ensureTemplate() {
-  if (fs.existsSync(path.join(TEMPLATE_DIR, 'index.html'))) return
-  if (fs.existsSync(ROOT_TEMPLATE)) {
-    fs.cpSync(ROOT_TEMPLATE, TEMPLATE_DIR, { recursive: true })
-    return
+function ensureTemplate({ force = false } = {}) {
+  if (!fs.existsSync(ROOT_TEMPLATE) || !fs.existsSync(path.join(ROOT_TEMPLATE, 'index.html'))) {
+    if (fs.existsSync(path.join(TEMPLATE_DIR, 'index.html'))) return
+    throw new Error('Template não encontrado. Rode: npm run build:template')
   }
-  throw new Error('Template não encontrado. Rode: npm run build:template')
+
+  const rootIndex = path.join(ROOT_TEMPLATE, 'index.html')
+  const localIndex = path.join(TEMPLATE_DIR, 'index.html')
+  const needsCopy =
+    force ||
+    !fs.existsSync(localIndex) ||
+    fs.statSync(rootIndex).mtimeMs > fs.statSync(localIndex).mtimeMs
+
+  if (!needsCopy) return
+
+  fs.rmSync(TEMPLATE_DIR, { recursive: true, force: true })
+  fs.cpSync(ROOT_TEMPLATE, TEMPLATE_DIR, { recursive: true })
+  console.log('[panel dev] Template atualizado a partir de platform-template/_template')
 }
 
 function readDb() {
@@ -826,7 +837,9 @@ function serveSuspendedPage(res, clientRoot) {
 }
 
 const EDITOR_DEV_PORT = Number(process.env.EDITOR_DEV_PORT || 5180)
-const EDITOR_DEV_PROXY = process.env.EDITOR_DEV_PROXY !== '0'
+// Proxy Vite é frágil (paths /@vite, /node_modules, /@fs). Em dev o padrão é o
+// build estático sincronizado. Para forçar proxy ao vivo: EDITOR_DEV_PROXY=1
+const EDITOR_DEV_PROXY = process.env.EDITOR_DEV_PROXY === '1'
 
 const EDITOR_LOCAL_FILES = new Set([
   'platform-api.json',
@@ -834,10 +847,29 @@ const EDITOR_LOCAL_FILES = new Set([
   'client-guard.php',
 ])
 
-function proxyEditorDevRequest(req, res, editorRel) {
+function isViteDevAssetPath(pathname) {
+  return (
+    pathname.startsWith('/@') ||
+    pathname.startsWith('/src/') ||
+    pathname.startsWith('/node_modules/') ||
+    pathname === '/vite.svg'
+  )
+}
+
+function editorSlugFromReferer(referer = '') {
+  try {
+    const ref = new URL(referer)
+    const parts = ref.pathname.split('/').filter(Boolean)
+    if (parts.length >= 2 && parts[1] === 'editor') return parts[0]
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+function proxyToEditorDev(req, res, targetPathname) {
   const url = new URL(req.url ?? '/', 'http://localhost')
-  const targetPath = editorRel ? `/${editorRel}` : '/'
-  const target = new URL(targetPath + url.search, `http://127.0.0.1:${EDITOR_DEV_PORT}`)
+  const target = new URL(targetPathname + url.search, `http://127.0.0.1:${EDITOR_DEV_PORT}`)
 
   const headers = { ...req.headers, host: `127.0.0.1:${EDITOR_DEV_PORT}` }
   delete headers['accept-encoding']
@@ -846,8 +878,39 @@ function proxyEditorDevRequest(req, res, editorRel) {
     target,
     { method: req.method, headers },
     (proxyRes) => {
-      res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers)
-      proxyRes.pipe(res)
+      const contentType = String(proxyRes.headers['content-type'] ?? '')
+      const looksLikeHtmlDoc =
+        contentType.includes('text/html') &&
+        (targetPathname === '/' ||
+          targetPathname.endsWith('.html') ||
+          targetPathname === '' ||
+          !targetPathname.includes('.'))
+
+      if (!looksLikeHtmlDoc) {
+        res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers)
+        proxyRes.pipe(res)
+        return
+      }
+
+      // HTML do Vite usa paths absolutos (/@vite/client, /src/...).
+      // Reescreve para /{slug}/editor/... quando a página está sob o painel.
+      const chunks = []
+      proxyRes.on('data', (chunk) => chunks.push(chunk))
+      proxyRes.on('end', () => {
+        let body = Buffer.concat(chunks).toString('utf8')
+        const parts = url.pathname.split('/').filter(Boolean)
+        const slug = parts[0]
+        if (slug && parts[1] === 'editor') {
+          const prefix = `/${slug}/editor`
+          body = body
+            .replace(/(src|href)=["']\//g, `$1="${prefix}/`)
+            .replace(/(from |import\()["']\//g, `$1"${prefix}/`)
+        }
+        const outHeaders = { ...proxyRes.headers }
+        delete outHeaders['content-length']
+        res.writeHead(proxyRes.statusCode ?? 200, outHeaders)
+        res.end(body)
+      })
     },
   )
   proxyReq.on('error', () => {
@@ -1533,6 +1596,28 @@ export function platformDevPlugin() {
         console.log(
           `[panel dev] Editor de clientes → proxy http://127.0.0.1:${EDITOR_DEV_PORT} (/{slug}/editor/)`,
         )
+
+        // Assets absolutos do Vite (/@vite/client, /src/...) após rewrite do HTML
+        // ou quando o browser ainda pede na raiz do host do painel.
+        server.middlewares.use((req, res, next) => {
+          const url = new URL(req.url ?? '/', 'http://localhost')
+          if (!isViteDevAssetPath(url.pathname)) return next()
+
+          const fromEditorPath = url.pathname.match(/^\/([^/]+)\/editor(\/.*)$/)
+          if (fromEditorPath) {
+            const slug = fromEditorPath[1]
+            if (RESERVED_SLUGS.has(slug) || slug === 'api' || slug === 'panel') return next()
+            if (!fs.existsSync(path.join(PLATFORM_ROOT, slug))) return next()
+            proxyToEditorDev(req, res, fromEditorPath[2] || '/')
+            return
+          }
+
+          const slug = editorSlugFromReferer(req.headers.referer)
+          if (!slug || RESERVED_SLUGS.has(slug)) return next()
+          if (!fs.existsSync(path.join(PLATFORM_ROOT, slug))) return next()
+          proxyToEditorDev(req, res, url.pathname)
+        })
+
         server.middlewares.use((req, res, next) => {
           const url = new URL(req.url ?? '/', 'http://localhost')
           const parts = url.pathname.split('/').filter(Boolean)
@@ -1546,7 +1631,8 @@ export function platformDevPlugin() {
           if (editorRel.startsWith('api/')) return next()
           if (EDITOR_LOCAL_FILES.has(editorRel) || editorRel.endsWith('.php')) return next()
 
-          proxyEditorDevRequest(req, res, editorRel)
+          const targetPath = editorRel ? `/${editorRel}` : '/'
+          proxyToEditorDev(req, res, targetPath)
         })
       }
 
@@ -1574,6 +1660,19 @@ export function platformDevPlugin() {
         const relParts = parts.slice(1)
         const relPath = relParts.join('/')
 
+        // Emula bio-json.php (sem PHP): devolve o bio.json do cliente
+        if (relPath === 'bio-json.php') {
+          const bioPath = path.join(clientRoot, 'bio.json')
+          if (!fs.existsSync(bioPath)) {
+            return json(res, 404, { error: 'bio.json não encontrado' })
+          }
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'application/json; charset=utf-8')
+          res.setHeader('Cache-Control', 'no-store')
+          res.end(fs.readFileSync(bioPath))
+          return
+        }
+
         const licenseConfig = path.join(clientRoot, 'license.config.php')
         if (!fs.existsSync(licenseConfig) || !clientLicenseActive(db, slug)) {
           if (relPath !== 'suspended.html') {
@@ -1587,9 +1686,22 @@ export function platformDevPlugin() {
           return
         }
 
+        // Não servir fontes PHP cruas no browser (só gate files emulados acima)
+        if (relPath.endsWith('.php')) {
+          return json(res, 404, { error: 'Não disponível em desenvolvimento local' })
+        }
+
         let candidate = parts.length === 1
           ? path.join(clientRoot, 'index.html')
           : path.join(clientRoot, ...parts.slice(1))
+
+        // /{slug}/editor/preview → preview.html (Apache faz isso em produção)
+        if (
+          parts[1] === 'editor' &&
+          (parts[parts.length - 1] === 'preview' || relPath === 'editor/preview/')
+        ) {
+          candidate = path.join(clientRoot, 'editor', 'preview.html')
+        }
 
         if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
           candidate = path.join(candidate, 'index.html')
