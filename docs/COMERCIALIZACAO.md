@@ -153,9 +153,10 @@ Valores são **seus** — isto é só estrutura:
 | Setup único | Montagem, identidade visual, até X links, publicação |
 | Hospedagem | Repasse do plano HostGator ou incluso no pacote |
 | Manutenção mensal | Suporte para editar por ele, backups, pequenos ajustes |
+| Atualizações automáticas | Clientes self-hosted atualizam o template pelo editor (sem FTP) |
 | Domínio | Registro anual (se você gerenciar) |
 
-O cliente pode editar sozinho pelo editor — isso reduz suporte recorrente.
+O cliente pode editar sozinho pelo editor — isso reduz suporte recorrente. Com **atualizações remotas**, você também reduz o trabalho de subir builds via FTP a cada release: o cliente (ou você, logado no editor dele) clica em **Buscar atualizações → Atualizar agora**.
 
 ---
 
@@ -166,7 +167,7 @@ O cliente pode editar sozinho pelo editor — isso reduz suporte recorrente.
 | Mudar texto/link | Cliente (editor) |
 | Trocar logo / foto | Cliente (upload no editor) |
 | Nova seção ou card | Cliente (editor) |
-| Atualizar template (código novo) | Você (rebuild + FTP) |
+| Atualizar template (código novo) | Cliente self-hosted: editor → Configurações; plataforma: sync no `/panel/`; emergência: você via FTP |
 | Trocar domínio / SSL | Você |
 | Esqueceu a senha | Você (gera novo hash) |
 
@@ -222,10 +223,13 @@ Quando adicionar funcionalidades no código:
 
 1. Desenvolva local (`npm run dev` / `npm run editor`)
 2. Teste
-3. `npm run build` + `npm run editor:hostgator`
-4. Atualize clientes via FTP (ou ofereça como "atualização paga")
+3. Atualize o arquivo `VERSION` (SemVer)
+4. `npm run build` + `npm run editor:hostgator`
+5. `npm run build:update-package -- --changelog="…"` — gera ZIP + `updates.json`
+6. Copie `dist/updates/*` para `panel/data/updates/` na plataforma
+7. Clientes self-hosted atualizam pelo editor; clientes da plataforma via **Sincronizar template** no painel (ou FTP em emergência)
 
-Documente mudanças em [PROJETO.md](./PROJETO.md) e [BIO-JSON.md](./BIO-JSON.md).
+Documente mudanças em [PROJETO.md](./PROJETO.md) e [BIO-JSON.md](./BIO-JSON.md). Detalhes: [ATUALIZACOES-REMOTAS.md](./ATUALIZACOES-REMOTAS.md).
 
 ---
 

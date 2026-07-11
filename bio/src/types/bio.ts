@@ -129,6 +129,9 @@ export type AppHeroPreset = 'whatsapp' | 'youtube' | 'instagram' | 'form' | 'tel
 
 export type AppHeroLayout = 'default' | 'compact' | 'condensed'
 
+/** Alinhamento do conteúdo (ícone ao lado vs centralizado). */
+export type FeatureCardAlign = 'side' | 'center'
+
 export interface WhatsAppHero {
   type: 'whatsapp-hero'
   badge: string
@@ -137,6 +140,7 @@ export interface WhatsAppHero {
   cta: string
   url: string
   layout?: AppHeroLayout
+  align?: FeatureCardAlign
 }
 
 export interface AppHero {
@@ -149,6 +153,7 @@ export interface AppHero {
   url: string
   icon?: IconName
   layout?: AppHeroLayout
+  align?: FeatureCardAlign
 }
 
 export interface FeatureCard {
@@ -159,6 +164,12 @@ export interface FeatureCard {
   cta?: string
   url: string
   variant?: 'gradient' | 'compact' | 'portrait' | 'banner' | 'square'
+  /**
+   * Só no formato gradiente:
+   * - side: ícone ao lado do texto (padrão)
+   * - center: ícone acima, conteúdo centralizado
+   */
+  align?: FeatureCardAlign
   icon?: IconName
   image?: string
   gradient?: string

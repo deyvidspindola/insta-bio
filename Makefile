@@ -1,5 +1,5 @@
 .PHONY: help install setup dev dev-all editor site site-build build editor-build hostgator package preview \
-	hash-password auth-init lint clean platform-core admin admin-build
+	hash-password auth-init lint clean platform-core admin admin-build update-package
 
 .DEFAULT_GOAL := help
 
@@ -15,6 +15,7 @@ help: ## Lista os comandos disponíveis
 	@echo "  make install"
 	@echo "  make dev-all"
 	@echo "  make package"
+	@echo "  make update-package"
 	@echo "  make platform-core"
 	@echo "  make hash-password PASSWORD=\"SenhaForteDoCliente\""
 
@@ -67,10 +68,10 @@ hostgator: ## Gera editor + PHP para HostGator em editor/dist/
 panel: ## Painel da plataforma (dev) → http://localhost:5175/panel/
 	npm run panel
 
-package-platform: ## Build completo: landing + panel + template → platform-release/
+package-platform: ## Build completo: landing + panel + template + ZIP updates → platform-release/
 	npm run build:platform
 
-platform-core: ## Platform sem landing → platform-release/
+platform-core: ## Platform sem landing (+ ZIP updates) → platform-release/
 	npm run build:core
 
 package-template: ## Gera só o template de cliente → platform-template/_template/
@@ -81,6 +82,9 @@ sync-clients: ## Atualiza bio+editor de todos os clientes locais (preserva bio.j
 
 package: ## Build unificado em release/ (BASE_PATH=/insta-bio ou deploy.config.json)
 	npm run build:package
+
+update-package: ## Gera ZIP + updates.json (bump VERSION + changelog automático)
+	npm run build:update-package
 
 ## Build separado (legado) ----------------------------------------------------
 

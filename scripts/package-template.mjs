@@ -2,6 +2,8 @@ import { execSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { readVersion } from './lib/read-version.mjs'
+import { writeUpdateState } from './lib/write-update-state.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const TEMPLATE = path.join(ROOT, 'platform-template', '_template')
@@ -137,6 +139,10 @@ copyDir(editorDist, path.join(TEMPLATE, 'editor'))
 
 console.log('→ Limpando template (bio mínimo, preservando bundles)…')
 sanitizeClientTemplate(TEMPLATE)
+
+const version = readVersion(ROOT)
+writeUpdateState(path.join(TEMPLATE, 'editor'), version)
+console.log(`→ update-state.json (v${version}) em _template/editor/`)
 
 fs.writeFileSync(
   path.join(TEMPLATE, '.htaccess'),

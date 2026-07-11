@@ -30,6 +30,7 @@ make dev-all         # bio + editor + panel + site
 | **Publicar** | Copia rascunho para `bio.json` (bio ao vivo) |
 | **Reverter** | Configurações → descarta rascunho e volta ao publicado |
 | **Caminho do bio.json** | Configurações → pasta customizada (ex.: `painel/bio.json`) |
+| **Atualizações** | Configurações → versão instalada; single-tenant pode buscar e aplicar update remoto |
 | **Importar / exportar** | JSON completo |
 | **Tema** | Modo escuro/claro no editor |
 
@@ -54,6 +55,17 @@ make dev-all         # bio + editor + panel + site
 3. **Salvar** → rascunho
 4. **Publicar** → bio pública atualizada
 5. Conferir em `https://seudominio.com/`
+
+### Configurações → Atualizações
+
+O card **Atualizações** mostra a versão do template e permite **Buscar** / **Atualizar agora** para **todos** os clientes (plataforma e self-hosted), desde que exista `license.config.php`.
+
+| Tipo | Comportamento |
+|------|----------------|
+| **Qualquer cliente com licença** | Botões de buscar e aplicar (baixa o ZIP assinado da plataforma). |
+| **Admin da plataforma** | Além disso, pode atualizar **todos** de uma vez no painel (mesmo ZIP). |
+
+Fonte única: `panel/data/updates/insta-bio-{versão}.zip`.
 
 ### Desenvolvimento local
 
@@ -133,3 +145,4 @@ O editor reutiliza componentes da bio via `@site` → `bio/src/`.
 - [COMERCIALIZACAO.md](./COMERCIALIZACAO.md)
 - [BIO-JSON.md](./BIO-JSON.md)
 - [PROJETO.md](./PROJETO.md)
+- [ATUALIZACOES-REMOTAS.md](./ATUALIZACOES-REMOTAS.md)

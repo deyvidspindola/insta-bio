@@ -269,6 +269,18 @@ function apply_instagram_to_client(string $clientDir, array $profile, string $cl
     throw new RuntimeException('bio.json inválido');
   }
 
+  require_once __DIR__ . '/updates.php';
+  if (!platform_bio_config_has_theme($data)) {
+    $base = platform_minimal_bio_config($clientName !== '' ? $clientName : 'Meu Link na Bio');
+    $data = array_replace_recursive($base, $data);
+    if (!isset($data['brand']) || !is_array($data['brand'])) {
+      $data['brand'] = $base['brand'];
+    }
+    if (!isset($data['brand']['theme']) || !is_array($data['brand']['theme'])) {
+      $data['brand']['theme'] = $base['brand']['theme'];
+    }
+  }
+
   $username = $profile['username'];
   $data['brand']['name'] = $clientName !== '' ? $clientName : ($profile['fullName'] ?? $username);
   $data['brand']['instagram'] = [

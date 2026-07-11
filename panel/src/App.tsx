@@ -116,8 +116,8 @@ export default function App() {
   async function handleSyncTemplate() {
     if (
       !window.confirm(
-        'Atualizar todos os sites com o template _template/ mais recente?\n\n' +
-          'Serão atualizados: HTML, JS/CSS, editor, licença e .htaccess.\n' +
+        'Atualizar todos os sites com o pacote ZIP mais recente?\n\n' +
+          'Fonte: panel/data/updates/ (mesmo pacote do botão Atualizar no editor).\n' +
           'Preservados: bio.json, bio.draft.json, imagens e senha do editor.',
       )
     ) {
@@ -192,7 +192,7 @@ export default function App() {
             className="topbar-btn"
             onClick={() => void handleSyncTemplate()}
             disabled={syncing || loading}
-            title="Atualizar todos os sites com o template"
+            title="Atualizar todos os sites com o pacote ZIP"
             aria-label="Atualizar sites"
           >
             <FolderSync className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
@@ -336,6 +336,7 @@ export default function App() {
               }`}
             >
               <p className="font-medium">
+                {syncResult.version ? `v${syncResult.version} · ` : ''}
                 {syncResult.updated.length}{' '}
                 {syncResult.updated.length === 1 ? 'site atualizado' : 'sites atualizados'}
                 {syncResult.skipped.length > 0

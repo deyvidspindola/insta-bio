@@ -210,6 +210,8 @@ export function FeatureCard({ item, grid = false }: { item: FeatureCardType; gri
     )
   }
 
+  const centered = item.align === 'center'
+
   return (
     <CardLink url={item.url} className={shellClass}>
       <div
@@ -223,13 +225,23 @@ export function FeatureCard({ item, grid = false }: { item: FeatureCardType; gri
         {clickable && (
           <ArrowIcon className="absolute right-3 top-3 h-5 w-5 text-white/80 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         )}
-        <div className="relative z-10 flex items-start gap-4">
+        <div
+          className={
+            centered
+              ? 'relative z-10 flex flex-col items-center text-center'
+              : 'relative z-10 flex items-center gap-4'
+          }
+        >
           {item.icon && (
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+            <div
+              className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm ${
+                centered ? 'mb-3' : ''
+              }`}
+            >
               <BioIcon name={item.icon} className="h-7 w-7 text-white" />
             </div>
           )}
-          <div className="min-w-0 flex-1">
+          <div className={`min-w-0 ${centered ? 'w-full' : 'flex-1'}`}>
             {item.badge && (
               <span className="inline-block text-[10px] font-semibold uppercase tracking-[0.2em] text-white/90">
                 {item.badge}

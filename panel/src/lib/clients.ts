@@ -251,6 +251,8 @@ export function downloadClientExport(id: number): void {
 
 export type SyncTemplateResult = {
   ok: boolean
+  source?: string
+  version?: string
   template_dir: string
   platform_root: string
   updated: { id: number; slug: string; name: string }[]

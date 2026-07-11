@@ -87,6 +87,7 @@ function renderItem(
   grid: boolean,
   sectionId: string,
   focused: boolean,
+  pageBackground: string,
 ) {
   const delay = { animationDelay: `${index * 60}ms` }
   const inGrid = itemUsesGridLayout(item, grid)
@@ -102,7 +103,7 @@ function renderItem(
         index,
         className: `${shell} h-full`,
         style: delay,
-        children: <AppHeroCard item={item} grid={grid} />,
+        children: <AppHeroCard item={item} grid={grid} pageBackground={pageBackground} />,
       })
     case 'feature':
       return wrapPreviewItem({
@@ -183,9 +184,12 @@ function renderItem(
 
 export function BioSectionBlock({
   section,
+  pageBackground = '#000000',
   focusItemIndex = null,
 }: {
   section: BioSection
+  /** Fundo efetivo da bio — ver BioPage.tsx (resolveEffectiveBioBackground). */
+  pageBackground?: string
   focusItemIndex?: number | null
 }) {
   const isGrid = section.layout === 'grid-2'
@@ -196,7 +200,7 @@ export function BioSectionBlock({
       {isGrid ? (
         <div className="mb-3 grid grid-cols-2 items-stretch gap-3">
           {section.items.map((item, index) =>
-            renderItem(item, index, true, section.id, focusItemIndex === index),
+            renderItem(item, index, true, section.id, focusItemIndex === index, pageBackground),
           )}
         </div>
       ) : (
@@ -212,6 +216,7 @@ export function BioSectionBlock({
                     false,
                     section.id,
                     focusItemIndex === itemIndex,
+                    pageBackground,
                   )}
                 </div>
               )
@@ -228,6 +233,7 @@ export function BioSectionBlock({
                       false,
                       section.id,
                       focusItemIndex === itemIndex,
+                      pageBackground,
                     )
                   })}
                 </div>
@@ -241,6 +247,7 @@ export function BioSectionBlock({
               false,
               section.id,
               focusItemIndex === itemIndex,
+              pageBackground,
             )
           })}
         </div>

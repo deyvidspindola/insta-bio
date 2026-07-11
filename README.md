@@ -40,6 +40,8 @@ make package
 
 **Guia completo:** [docs/HOSTGATOR.md](./docs/HOSTGATOR.md)
 
+**O que subir após o build:** [docs/DEPLOY-ATUALIZACAO.md](./docs/DEPLOY-ATUALIZACAO.md)
+
 **Vender / instalar para clientes:** [docs/COMERCIALIZACAO.md](./docs/COMERCIALIZACAO.md)
 
 **Plataforma multi-cliente:** [docs/PLATAFORMA.md](./docs/PLATAFORMA.md)
@@ -51,13 +53,14 @@ make package
 | Documento | Para quem | Conteúdo |
 |-----------|-----------|----------|
 | [HOSTGATOR.md](./docs/HOSTGATOR.md) | Deploy | FTP, login PHP, testes, problemas comuns |
+| [DEPLOY-ATUALIZACAO.md](./docs/DEPLOY-ATUALIZACAO.md) | Operação | **O que buildar, estrutura gerada e o que subir no FTP** |
 | [COMERCIALIZACAO.md](./docs/COMERCIALIZACAO.md) | Negócio | Novo cliente, checklist, manutenção |
 | [EDITOR.md](./docs/EDITOR.md) | Editor | Funcionalidades, fluxo salvar/publicar |
 | [BIO-JSON.md](./docs/BIO-JSON.md) | Conteúdo | Campos, cards, ícones, exemplos |
 | [PROJETO.md](./docs/PROJETO.md) | Desenvolvedor | Arquitetura e código |
 | [PLATAFORMA.md](./docs/PLATAFORMA.md) | Plataforma | Multi-cliente, `/panel/`, MySQL |
 | [MELHORIAS.md](./docs/MELHORIAS.md) | Produto | Roadmap e prioridades |
-| [ATUALIZACOES-REMOTAS.md](./docs/ATUALIZACOES-REMOTAS.md) | Operação | Atualização automática (clientes em domínio próprio) — planejado |
+| [ATUALIZACOES-REMOTAS.md](./docs/ATUALIZACOES-REMOTAS.md) | Operação | Atualização remota (single-tenant): release, ZIP, check/apply |
 | [site/README.md](./site/README.md) | Comercial | Landing page de vendas |
 | [panel/README.md](./panel/README.md) | Plataforma | Painel super-admin |
 
@@ -93,6 +96,8 @@ A raiz do repositório é só **orquestração** (`package.json`, `Makefile`, `d
 | `npm run build:platform` | Plataforma → `platform-release/` |
 | `npm run build:template` | Template de cliente → `platform-template/_template/` |
 | `npm run sync:clients` | Atualiza sites locais a partir do template |
+| `npm run build:update-package` | Gera `dist/updates/insta-bio-{VERSION}.zip` + `updates.json` |
+| `make update-package` | Atalho para o comando acima |
 | `make hash-password PASSWORD="..."` | Hash bcrypt para `auth.config.php` |
 | `make clean` | Remove pastas de build |
 

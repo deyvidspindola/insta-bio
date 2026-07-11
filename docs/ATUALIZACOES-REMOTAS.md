@@ -353,27 +353,28 @@ Checklist por versão publicada:
 
 ### Fase 1 — Fundação
 
-- [ ] Arquivo `VERSION` + injeção no build
-- [ ] `update-state.json` no `package-deploy.mjs`
-- [ ] Script `build:update-package` (ZIP + manifesto interno)
-- [ ] Publicar `updates/` em PRD manualmente
+- [x] Arquivo `VERSION` + injeção no build
+- [x] `update-state.json` no `package-deploy.mjs`
+- [x] Script `build:update-package` (ZIP + manifesto interno)
+- [x] Publicar `updates/` em PRD (via `panel/data/updates/` + API autenticada)
 
 ### Fase 2 — Editor (UI + leitura)
 
-- [ ] Exibir versão e data em **Configurações** (todos os clientes)
-- [ ] `update-check.php` + botão **Buscar atualizações** (só single-tenant)
+- [x] Exibir versão e data em **Configurações** (todos os clientes)
+- [x] `update-check.php` + botão **Buscar atualizações** (só single-tenant)
 
 ### Fase 3 — Aplicação automática
 
-- [ ] `update-apply.php` com backup, validação e cópia
-- [ ] Remoção de bundles órfãos
-- [ ] Mensagens de erro amigáveis
+- [x] `update-apply.php` com backup, validação e cópia
+- [x] Remoção de bundles órfãos
+- [x] Mensagens de erro amigáveis
 
 ### Fase 4 — Operação
 
-- [ ] Integrar geração do ZIP no fluxo de release
-- [ ] Painel grava `updatedAt` no sync de plataforma
-- [ ] Documentar em [HOSTGATOR.md](./HOSTGATOR.md) e [COMERCIALIZACAO.md](./COMERCIALIZACAO.md)
+- [x] Integrar geração do ZIP no fluxo de release (`package-deploy` + `make update-package`)
+- [x] Painel grava `updatedAt` no sync de plataforma
+- [x] Documentar em [HOSTGATOR.md](./HOSTGATOR.md) e [COMERCIALIZACAO.md](./COMERCIALIZACAO.md)
+- [x] API `updates/check`, `updates/package` e download assinado no painel
 
 ### Fase 5 — Opcional
 

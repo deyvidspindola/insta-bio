@@ -242,6 +242,20 @@ function sendJson(
   res.end(JSON.stringify(payload))
 }
 
+/** Compara SemVer simples (a > b → 1). */
+function compareSemver(a: string, b: string): number {
+  const pa = a.replace(/^v/i, '').split('.').map((n) => parseInt(n, 10) || 0)
+  const pb = b.replace(/^v/i, '').split('.').map((n) => parseInt(n, 10) || 0)
+  const len = Math.max(pa.length, pb.length)
+  for (let i = 0; i < len; i++) {
+    const da = pa[i] ?? 0
+    const db = pb[i] ?? 0
+    if (da > db) return 1
+    if (da < db) return -1
+  }
+  return 0
+}
+
 function listAssetFiles(assetsDir = getEditorStoragePaths().assetsDir) {
   if (!fs.existsSync(assetsDir)) return []
   return fs
@@ -417,6 +431,198 @@ function uploadPlugin(): Plugin {
           })
         } catch {
           sendJson(res, 500, { error: 'Não foi possível salvar o caminho' })
+        }
+      })
+
+      // Fase B — só leitura (espelha editor/php/update-status.php)
+      server.middlewares.use('/api/update/status', (req, res) => {
+        if (req.method !== 'GET') {
+          sendJson(res, 405, { error: 'Método não permitido' })
+          return
+        }
+        if (!getSessionFromRequest(req)) {
+          sendJson(res, 401, { error: 'Não autenticado' })
+          return
+        }
+
+        const stateFile = path.join(EDITOR_ROOT, 'update-state.json')
+        let state: {
+          version: string
+          updatedAt: string | null
+          channel: string
+          previousVersion?: string | null
+        } = {
+          version: 'desconhecida',
+          updatedAt: null,
+          channel: 'stable',
+        }
+
+        if (fs.existsSync(stateFile)) {
+          try {
+            const raw = JSON.parse(fs.readFileSync(stateFile, 'utf8')) as Record<string, unknown>
+            state = { ...state, ...raw } as typeof state
+          } catch {
+            // mantém fallback
+          }
+        } else {
+          // Dev: lê VERSION do monorepo se ainda não houver update-state.json
+          const versionFile = path.resolve(EDITOR_ROOT, '../VERSION')
+          if (fs.existsSync(versionFile)) {
+            const v = fs.readFileSync(versionFile, 'utf8').trim()
+            if (v) state = { ...state, version: v, updatedAt: null }
+          }
+        }
+
+        const platformManaged =
+          fs.existsSync(path.join(EDITOR_ROOT, 'platform-api.json')) ||
+          fs.existsSync(path.join(EDITOR_ROOT, 'public', 'platform-api.json')) ||
+          fs.existsSync(path.join(EDITOR_ROOT, 'dist', 'platform-api.json'))
+
+        sendJson(res, 200, {
+          ok: true,
+          state,
+          platformManaged,
+        })
+      })
+
+      // Fase C/D — check/apply (dev). Disponível para todos (plataforma e self-hosted).
+      server.middlewares.use('/api/update/check', async (req, res) => {
+        if (req.method !== 'POST') {
+          sendJson(res, 405, { error: 'Método não permitido' })
+          return
+        }
+        if (!getSessionFromRequest(req)) {
+          sendJson(res, 401, { error: 'Não autenticado' })
+          return
+        }
+
+        const updatesJson = path.resolve(EDITOR_ROOT, '../dist/updates/updates.json')
+        let installed = '0.0.0'
+        const stateFile = path.join(EDITOR_ROOT, 'update-state.json')
+        if (fs.existsSync(stateFile)) {
+          try {
+            const raw = JSON.parse(fs.readFileSync(stateFile, 'utf8')) as { version?: string }
+            if (raw.version) installed = raw.version
+          } catch {
+            // ignore
+          }
+        } else {
+          const versionFile = path.resolve(EDITOR_ROOT, '../VERSION')
+          if (fs.existsSync(versionFile)) {
+            const v = fs.readFileSync(versionFile, 'utf8').trim()
+            if (v) installed = v
+          }
+        }
+
+        if (!fs.existsSync(updatesJson)) {
+          sendJson(res, 503, {
+            error: 'Catálogo de atualizações indisponível. Rode: npm run build:update-package',
+          })
+          return
+        }
+
+        try {
+          const manifest = JSON.parse(fs.readFileSync(updatesJson, 'utf8')) as {
+            latest?: string
+            releasedAt?: string
+            changelog?: string
+            packages?: Record<
+              string,
+              { changelog?: string; releasedAt?: string }
+            >
+          }
+          const latest = String(manifest.latest ?? '')
+          if (!latest) {
+            sendJson(res, 503, { error: 'Nenhuma versão publicada ainda.' })
+            return
+          }
+          const pkg = manifest.packages?.[latest] ?? {}
+          const updateAvailable = compareSemver(latest, installed) > 0
+          sendJson(res, 200, {
+            ok: true,
+            updateAvailable,
+            installed,
+            latest,
+            changelog: pkg.changelog || manifest.changelog || null,
+            releasedAt: pkg.releasedAt || manifest.releasedAt || null,
+          })
+        } catch {
+          sendJson(res, 500, { error: 'Não foi possível ler o catálogo de atualizações' })
+        }
+      })
+
+      // Fase D — apply (dev: mock local; atualiza só update-state.json)
+      server.middlewares.use('/api/update/apply', async (req, res) => {
+        if (req.method !== 'POST') {
+          sendJson(res, 405, { error: 'Método não permitido' })
+          return
+        }
+        if (!getSessionFromRequest(req)) {
+          sendJson(res, 401, { error: 'Não autenticado' })
+          return
+        }
+
+        const updatesJson = path.resolve(EDITOR_ROOT, '../dist/updates/updates.json')
+        if (!fs.existsSync(updatesJson)) {
+          sendJson(res, 503, {
+            error: 'Catálogo de atualizações indisponível. Rode: npm run build:update-package',
+          })
+          return
+        }
+
+        try {
+          const manifest = JSON.parse(fs.readFileSync(updatesJson, 'utf8')) as {
+            latest?: string
+          }
+          const latest = String(manifest.latest ?? '')
+          if (!latest) {
+            sendJson(res, 503, { error: 'Nenhuma versão publicada ainda.' })
+            return
+          }
+
+          const stateFile = path.join(EDITOR_ROOT, 'update-state.json')
+          let previousVersion: string | null = null
+          let channel = 'stable'
+          if (fs.existsSync(stateFile)) {
+            try {
+              const raw = JSON.parse(fs.readFileSync(stateFile, 'utf8')) as {
+                version?: string
+                channel?: string
+              }
+              previousVersion = raw.version ?? null
+              channel = raw.channel ?? 'stable'
+            } catch {
+              // ignore
+            }
+          } else {
+            const versionFile = path.resolve(EDITOR_ROOT, '../VERSION')
+            if (fs.existsSync(versionFile)) {
+              previousVersion = fs.readFileSync(versionFile, 'utf8').trim() || null
+            }
+          }
+
+          if (previousVersion && compareSemver(latest, previousVersion) <= 0) {
+            sendJson(res, 400, { error: 'Nenhuma atualização disponível para aplicar.' })
+            return
+          }
+
+          const updatedAt = new Date().toISOString()
+          const newState = {
+            version: latest,
+            updatedAt,
+            channel,
+            previousVersion,
+          }
+          fs.writeFileSync(stateFile, `${JSON.stringify(newState, null, 2)}\n`)
+
+          sendJson(res, 200, {
+            ok: true,
+            version: latest,
+            updatedAt,
+            mock: true,
+          })
+        } catch {
+          sendJson(res, 500, { error: 'Falha ao aplicar atualização (mock local)' })
         }
       })
 

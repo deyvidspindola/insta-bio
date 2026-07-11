@@ -6,6 +6,11 @@ import bcrypt from 'bcryptjs'
 import crypto from 'node:crypto'
 import { applyInstagramToClient, fetchInstagramProfile } from './instagram.mjs'
 import { zipDirectoryToBuffer } from './zip-buffer.mjs'
+import {
+  isViteBundleFile,
+  removeEditorAssetBundles,
+  removeViteBundles,
+} from '../../scripts/lib/vite-bundles.mjs'
 
 const PANEL_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const GATE_DIR = path.join(PANEL_ROOT, 'php', 'client-gate')
@@ -50,6 +55,19 @@ function appDecrypt(encB64) {
 function ensureDirs() {
   fs.mkdirSync(DATA_DIR, { recursive: true })
   fs.mkdirSync(PLATFORM_ROOT, { recursive: true })
+}
+
+function compareSemverDev(a, b) {
+  const pa = String(a).replace(/^v/i, '').split('.').map((n) => parseInt(n, 10) || 0)
+  const pb = String(b).replace(/^v/i, '').split('.').map((n) => parseInt(n, 10) || 0)
+  const len = Math.max(pa.length, pb.length)
+  for (let i = 0; i < len; i++) {
+    const da = pa[i] ?? 0
+    const db = pb[i] ?? 0
+    if (da > db) return 1
+    if (da < db) return -1
+  }
+  return 0
 }
 
 function ensureTemplate({ force = false } = {}) {
@@ -129,21 +147,6 @@ function copyDir(src, dest) {
   }
 }
 
-function isBundleFile(name) {
-  return (
-    /^index-[A-Za-z0-9_-]+\.(js|css)$/.test(name) ||
-    /^main-[A-Za-z0-9_-]+\.(js|css)$/.test(name) ||
-    /^preview-[A-Za-z0-9_-]+\.js$/.test(name)
-  )
-}
-
-function removeBundleFiles(dir) {
-  if (!fs.existsSync(dir)) return
-  for (const name of fs.readdirSync(dir)) {
-    if (isBundleFile(name)) fs.unlinkSync(path.join(dir, name))
-  }
-}
-
 function copyDirExcept(src, dest, skipNames = new Set()) {
   fs.mkdirSync(dest, { recursive: true })
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
@@ -170,11 +173,11 @@ function syncClientBioFromTemplate(clientDir, templateDir) {
   const tplAssets = path.join(templateDir, 'assets')
   const dstAssets = path.join(clientDir, 'assets')
   fs.mkdirSync(dstAssets, { recursive: true })
-  removeBundleFiles(dstAssets)
+  removeViteBundles(dstAssets)
 
   if (fs.existsSync(tplAssets)) {
     for (const name of fs.readdirSync(tplAssets)) {
-      if (isBundleFile(name)) {
+      if (isViteBundleFile(name)) {
         fs.copyFileSync(path.join(tplAssets, name), path.join(dstAssets, name))
       }
     }
@@ -186,7 +189,7 @@ function syncClientEditorFromTemplate(clientDir, templateDir) {
   const dstEditor = path.join(clientDir, 'editor')
   if (!fs.existsSync(tplEditor)) return
 
-  removeBundleFiles(path.join(dstEditor, 'assets'))
+  removeEditorAssetBundles(path.join(dstEditor, 'assets'))
   copyDirExcept(tplEditor, dstEditor, new Set(['auth.config.php']))
 }
 
@@ -980,6 +983,196 @@ export function platformDevPlugin() {
             })
           }
 
+          if (apiPath === '/api/updates/check' && (req.method === 'GET' || req.method === 'POST')) {
+            const body =
+              req.method === 'POST'
+                ? await readBody(req)
+                : Object.fromEntries(url.searchParams.entries())
+            const slug = normalizeSlug(String(body.slug ?? ''))
+            const token = String(body.token ?? '').trim()
+            const deploy = normalizeSlug(String(body.deploy ?? ''))
+            const host = normalizeLicenseHost(String(body.host ?? ''))
+            let installed = String(body.installed ?? '0.0.0').trim() || '0.0.0'
+            if (installed === 'desconhecida') installed = '0.0.0'
+            if (!slug || !token) {
+              return json(res, 400, { ok: false, error: 'slug e token são obrigatórios' })
+            }
+            const client = lookupClientLicense(db, slug, token, deploy, host)
+            if (!client) {
+              return json(res, 401, { ok: false, error: 'Licença inválida para esta instalação' })
+            }
+            if (client.status !== 'active') {
+              return json(res, 403, {
+                ok: false,
+                error: 'Conta suspensa. Atualizações indisponíveis.',
+                status: client.status,
+              })
+            }
+
+            const manifestPaths = [
+              path.join(DATA_DIR, 'updates', 'updates.json'),
+              path.join(PANEL_ROOT, '..', 'dist', 'updates', 'updates.json'),
+            ]
+            let manifest = null
+            for (const p of manifestPaths) {
+              if (!fs.existsSync(p)) continue
+              try {
+                manifest = JSON.parse(fs.readFileSync(p, 'utf8'))
+                if (manifest?.latest) break
+              } catch {
+                manifest = null
+              }
+            }
+            if (!manifest?.latest) {
+              return json(res, 503, {
+                ok: false,
+                error: 'Catálogo de atualizações indisponível no servidor.',
+              })
+            }
+
+            const latest = String(manifest.latest)
+            const pkg = manifest.packages?.[latest] ?? {}
+            const updateAvailable = compareSemverDev(latest, installed) > 0
+            return json(res, 200, {
+              ok: true,
+              updateAvailable,
+              installed,
+              latest,
+              changelog: pkg.changelog || manifest.changelog || null,
+              releasedAt: pkg.releasedAt || manifest.releasedAt || null,
+              slug: client.slug,
+            })
+          }
+
+          if (apiPath === '/api/updates/package' && (req.method === 'GET' || req.method === 'POST')) {
+            const body =
+              req.method === 'POST'
+                ? await readBody(req)
+                : Object.fromEntries(url.searchParams.entries())
+            const slug = normalizeSlug(String(body.slug ?? ''))
+            const token = String(body.token ?? '').trim()
+            const deploy = normalizeSlug(String(body.deploy ?? ''))
+            const host = normalizeLicenseHost(String(body.host ?? ''))
+            if (!slug || !token) {
+              return json(res, 400, { ok: false, error: 'slug e token são obrigatórios' })
+            }
+            const client = lookupClientLicense(db, slug, token, deploy, host)
+            if (!client) {
+              return json(res, 401, { ok: false, error: 'Licença inválida para esta instalação' })
+            }
+            if (client.status !== 'active') {
+              return json(res, 403, {
+                ok: false,
+                error: 'Conta suspensa. Atualizações indisponíveis.',
+                status: client.status,
+              })
+            }
+
+            const manifestPaths = [
+              path.join(DATA_DIR, 'updates', 'updates.json'),
+              path.join(PANEL_ROOT, '..', 'dist', 'updates', 'updates.json'),
+            ]
+            let manifest = null
+            let updatesDir = null
+            for (const p of manifestPaths) {
+              if (!fs.existsSync(p)) continue
+              try {
+                manifest = JSON.parse(fs.readFileSync(p, 'utf8'))
+                if (manifest?.latest) {
+                  updatesDir = path.dirname(p)
+                  break
+                }
+              } catch {
+                manifest = null
+              }
+            }
+            if (!manifest?.latest || !updatesDir) {
+              return json(res, 503, {
+                ok: false,
+                error: 'Catálogo de atualizações indisponível no servidor.',
+              })
+            }
+
+            const latest = String(manifest.latest)
+            const pkg = manifest.packages?.[latest] ?? null
+            if (!pkg) {
+              return json(res, 503, { ok: false, error: 'Pacote da última versão não disponível.' })
+            }
+
+            const zipName = path.basename(String(pkg.url ?? ''))
+            if (!/^insta-bio-\d+\.\d+\.\d+\.zip$/.test(zipName)) {
+              return json(res, 503, { ok: false, error: 'Nome de pacote inválido no manifesto.' })
+            }
+            const zipPath = path.join(updatesDir, zipName)
+            if (!fs.existsSync(zipPath)) {
+              return json(res, 503, { ok: false, error: 'Arquivo ZIP não encontrado no servidor.' })
+            }
+
+            const expires = Math.floor(Date.now() / 1000) + 300
+            const signature = crypto
+              .createHmac('sha256', DEV_SECRET)
+              .update(`${zipName}|${expires}`)
+              .digest('hex')
+            const hostHeader = req.headers.host || 'localhost:5175'
+            const proto = req.headers['x-forwarded-proto'] || 'http'
+            const signedUrl = `${proto}://${hostHeader}/panel/api/updates/download?file=${encodeURIComponent(zipName)}&expires=${expires}&signature=${signature}`
+
+            let sha256 = String(pkg.sha256 ?? '')
+            if (!/^[a-f0-9]{64}$/.test(sha256)) {
+              sha256 = crypto.createHash('sha256').update(fs.readFileSync(zipPath)).digest('hex')
+            }
+
+            return json(res, 200, {
+              ok: true,
+              url: signedUrl,
+              sha256,
+              version: latest,
+              size: Number(pkg.size ?? fs.statSync(zipPath).size),
+              expiresAt: new Date(expires * 1000).toISOString(),
+              slug: client.slug,
+            })
+          }
+
+          if (apiPath === '/api/updates/download' && req.method === 'GET') {
+            const zipName = String(url.searchParams.get('file') ?? '')
+            const expires = Number(url.searchParams.get('expires') ?? 0)
+            const signature = String(url.searchParams.get('signature') ?? '').toLowerCase()
+            if (!/^insta-bio-\d+\.\d+\.\d+\.zip$/.test(zipName) || !expires || !signature) {
+              return json(res, 400, { ok: false, error: 'Parâmetros de download inválidos.' })
+            }
+            if (expires < Math.floor(Date.now() / 1000)) {
+              return json(res, 403, { ok: false, error: 'Link de download inválido ou expirado.' })
+            }
+            const expected = crypto
+              .createHmac('sha256', DEV_SECRET)
+              .update(`${zipName}|${expires}`)
+              .digest('hex')
+            try {
+              const ok = crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(signature, 'hex'))
+              if (!ok) {
+                return json(res, 403, { ok: false, error: 'Link de download inválido ou expirado.' })
+              }
+            } catch {
+              return json(res, 403, { ok: false, error: 'Link de download inválido ou expirado.' })
+            }
+
+            const candidates = [
+              path.join(DATA_DIR, 'updates', zipName),
+              path.join(PANEL_ROOT, '..', 'dist', 'updates', zipName),
+            ]
+            const zipPath = candidates.find((p) => fs.existsSync(p))
+            if (!zipPath) {
+              return json(res, 404, { ok: false, error: 'Pacote não encontrado.' })
+            }
+
+            res.statusCode = 200
+            res.setHeader('Content-Type', 'application/zip')
+            res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`)
+            res.setHeader('Cache-Control', 'no-store')
+            fs.createReadStream(zipPath).pipe(res)
+            return true
+          }
+
           if (apiPath === '/api/editor/login' && req.method === 'POST') {
             const body = await readBody(req)
             const slug = normalizeSlug(String(body.slug ?? ''))
@@ -1363,6 +1556,9 @@ export function platformDevPlugin() {
         'api/bio/publish': 'publish.php',
         'api/bio/revert': 'revert.php',
         'api/bio/paths': 'paths.php',
+        'api/update/status': 'update-status.php',
+        'api/update/check': 'update-check.php',
+        'api/update/apply': 'update-apply.php',
         'api/assets/upload': 'upload.php',
         'api/assets/list': 'list-images.php',
         'api/assets/delete': 'delete-image.php',

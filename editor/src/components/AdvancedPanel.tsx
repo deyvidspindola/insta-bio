@@ -5,6 +5,8 @@ import { fetchEditorPaths, saveEditorPaths, type EditorPathsInfo } from '../lib/
 import { setBioJsonRelativePath } from '@site/lib/publicUrl'
 import { ConfirmDialog } from './ConfirmDialog'
 import { JsonPanel } from './JsonPanel'
+import { UpdatesCard } from './UpdatesCard'
+
 
 interface AdvancedPanelProps {
   config: BioConfig
@@ -80,6 +82,8 @@ export function AdvancedPanel({
 
   return (
     <div className="space-y-4">
+      <UpdatesCard />
+
       <div className="card">
         <h3 className="mb-1 text-sm font-semibold">Caminho do bio.json</h3>
         <p className="mb-4 text-xs text-muted-foreground">

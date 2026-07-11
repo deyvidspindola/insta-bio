@@ -148,15 +148,37 @@ fs.writeFileSync(
 `,
 )
 
+// ZIP de update remoto (fonte única: plataforma + self-hosted).
+// Usa TEMPLATE_BUILD (paths relativos) — ver build-update-package.mjs.
+console.log('→ Pacote de atualização remota (dist/updates/ + panel/data/updates/)…')
+execSync('npm run build:update-package', { cwd: ROOT, stdio: 'inherit' })
+
+const updatesSrc = path.join(ROOT, 'panel', 'data', 'updates')
+const updatesDest = path.join(OUT, 'panel', 'data', 'updates')
+if (fs.existsSync(updatesSrc)) {
+  fs.mkdirSync(updatesDest, { recursive: true })
+  for (const name of fs.readdirSync(updatesSrc)) {
+    const from = path.join(updatesSrc, name)
+    if (!fs.statSync(from).isFile()) continue
+    fs.copyFileSync(from, path.join(updatesDest, name))
+  }
+  console.log('  → panel/data/updates/ incluído em platform-release/')
+} else {
+  console.warn('  ⚠ panel/data/updates/ ausente após build:update-package')
+}
+
 console.log('')
 console.log('Pronto em: platform-release/')
 console.log('  /demo          → editor de demonstração')
 console.log('  /panel/        → super-admin')
+console.log('  /panel/data/updates/ → ZIP + updates.json (self-hosted)')
 console.log('  /_template/    → modelo (bloqueado via .htaccess)')
 console.log('  /{slug}/       → criado pelo painel')
 console.log('  (sem landing comercial na raiz)')
 console.log('')
 console.log('Antes de usar o painel: acesse /panel/install uma vez (ou execute DEPLOY-seed.sql no phpMyAdmin).')
+console.log('')
+console.log('No FTP: suba platform-release/ preservando panel/php/db.config.php e panel/sites/ (ou data) existentes.')
 console.log('')
 
 const zipPath = path.join(ROOT, 'platform-release.zip')

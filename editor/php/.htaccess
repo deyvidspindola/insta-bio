@@ -1,8 +1,11 @@
 # Links na Bio — editor do cliente (/{slug}/editor/)
 Options -Indexes -MultiViews
 
-# Impede que arquivos de configuração sejam baixados
+# Impede que arquivos de configuração / estado / logs sejam baixados
 <FilesMatch "^(auth\.config|auth\.config\.example)\.php$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "^(update\.log|update\.log\.1|update-state\.json|platform-api\.json|license\.config\.php)$">
   Require all denied
 </FilesMatch>
 
@@ -24,6 +27,9 @@ Options -Indexes -MultiViews
   RewriteRule ^api/bio/revert$ revert.php [L,QSA]
   RewriteRule ^api/bio/load$ load.php [L,QSA]
   RewriteRule ^api/bio/paths$ paths.php [L,QSA]
+  RewriteRule ^api/update/status$ update-status.php [L,QSA]
+  RewriteRule ^api/update/check$ update-check.php [L,QSA]
+  RewriteRule ^api/update/apply$ update-apply.php [L,QSA]
   RewriteRule ^api/assets/upload$ upload.php [L,QSA]
   RewriteRule ^api/assets/list$ list-images.php [L,QSA]
   RewriteRule ^api/assets/delete$ delete-image.php [L,QSA]

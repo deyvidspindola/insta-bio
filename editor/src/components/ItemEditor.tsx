@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react'
-import type { AppHero, AppHeroLayout, IconName, SectionItem, WhatsAppHero } from '@bio-types'
+import type {
+  AppHero,
+  AppHeroLayout,
+  FeatureCardAlign,
+  IconName,
+  SectionItem,
+  WhatsAppHero,
+} from '@bio-types'
 import { APP_HERO_PRESETS } from '@site/lib/appHeroPresets'
 import { parseSpotifyEmbed } from '@site/lib/embedUrls'
 import {
@@ -7,6 +14,7 @@ import {
   APP_HERO_LAYOUTS,
   CARD_TYPES,
   CARD_WIDTH_OPTIONS,
+  FEATURE_ALIGNS,
   FEATURE_VARIANTS,
   MEDIA_CARD_VARIANTS,
   resolveHeroLayout,
@@ -151,16 +159,25 @@ function CardWidthField({
 }) {
   return (
     <Field label="Largura do card">
-      <select
-        value={value ?? 'full'}
-        onChange={(e) => onChange(e.target.value as 'full' | 'half')}
-      >
-        {CARD_WIDTH_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <div className="grid grid-cols-2 gap-1.5">
+        {CARD_WIDTH_OPTIONS.map((option) => {
+          const selected = (value ?? 'full') === option.value
+          return (
+            <button
+              key={option.value}
+              type="button"
+              className={`rounded-lg border px-2 py-2 text-left text-[11px] leading-snug transition-colors ${
+                selected
+                  ? 'border-primary bg-primary/10 font-semibold text-foreground'
+                  : 'border-border bg-background/40 text-muted-foreground hover:border-primary/40'
+              }`}
+              onClick={() => onChange(option.value)}
+            >
+              {option.label}
+            </button>
+          )
+        })}
+      </div>
       <p className="mt-1 text-[10px] text-muted-foreground/75">
         {isGridSection
           ? 'Na grade da seção, “largura total” ocupa as 2 colunas.'
@@ -183,31 +200,69 @@ function HeroLayoutFields({
   const layoutOptions = APP_HERO_LAYOUTS.filter(
     (option) => !isGridSection || option.value !== 'default',
   )
+  const align = (item.align ?? 'side') as FeatureCardAlign
 
   return (
     <>
       <Field label="Layout">
-        <select
-          value={layout}
-          onChange={(e) =>
-            onChange({
-              ...item,
-              layout: e.target.value as AppHeroLayout,
-            })
-          }
-        >
-          {layoutOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+          {layoutOptions.map((option) => {
+            const selected = layout === option.value
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={`rounded-lg border px-2 py-2 text-left text-[11px] leading-snug transition-colors ${
+                  selected
+                    ? 'border-primary bg-primary/10 font-semibold text-foreground'
+                    : 'border-border bg-background/40 text-muted-foreground hover:border-primary/40'
+                }`}
+                onClick={() =>
+                  onChange({
+                    ...item,
+                    layout: option.value as AppHeroLayout,
+                  })
+                }
+              >
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
         {isGridSection && (
           <p className="mt-1 text-[10px] text-muted-foreground/75">
             Layout completo desativado em grade de 2 colunas.
           </p>
         )}
       </Field>
+
+      <Field label="Alinhamento">
+        <div className="grid grid-cols-2 gap-1.5">
+          {FEATURE_ALIGNS.map((option) => {
+            const selected = align === option.value
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={`rounded-lg border px-2 py-2 text-left text-[11px] leading-snug transition-colors ${
+                  selected
+                    ? 'border-primary bg-primary/10 font-semibold text-foreground'
+                    : 'border-border bg-background/40 text-muted-foreground hover:border-primary/40'
+                }`}
+                onClick={() =>
+                  onChange({
+                    ...item,
+                    align: option.value,
+                  })
+                }
+              >
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
+      </Field>
+
       {layout === 'default' && (
         <Field label="Badge">
           <input value={item.badge} onChange={(e) => onChange({ ...item, badge: e.target.value })} />
@@ -396,7 +451,10 @@ export function ItemEditor({
                       preset,
                       ...defaults,
                       layout: item.layout,
-                      ...(preset === 'custom' ? { icon: APP_HERO_PRESETS.custom.defaultIcon } : {}),
+                      align: item.align,
+                      ...(preset === 'custom'
+                        ? { icon: APP_HERO_PRESETS.custom.defaultIcon }
+                        : {}),
                     })
                   }}
                 >
@@ -450,6 +508,34 @@ export function ItemEditor({
                     })}
                   </div>
                 </Field>
+                {(item.variant ?? 'gradient') === 'gradient' && (
+                  <Field label="Alinhamento">
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {FEATURE_ALIGNS.map((option) => {
+                        const selected = (item.align ?? 'side') === option.value
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={`rounded-lg border px-2 py-2 text-left text-[11px] leading-snug transition-colors ${
+                              selected
+                                ? 'border-primary bg-primary/10 font-semibold text-foreground'
+                                : 'border-border bg-background/40 text-muted-foreground hover:border-primary/40'
+                            }`}
+                            onClick={() =>
+                              onChange({
+                                ...item,
+                                align: option.value,
+                              })
+                            }
+                          >
+                            {option.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </Field>
+                )}
                 <CardWidthField
                   value={item.width}
                   isGridSection={isGridSection}

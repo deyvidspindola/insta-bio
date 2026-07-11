@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
-import type { AppHero, AppHeroPreset, WhatsAppHero } from '../types/bio'
+import type { AppHero, AppHeroPreset, FeatureCardAlign, WhatsAppHero } from '../types/bio'
 import { CardLink, hasClickableUrl } from '../lib/cardLink'
 import { APP_HERO_PRESETS } from '../lib/appHeroPresets'
+import { resolveAppHeroTheme, type ResolvedAppHeroTheme } from '../lib/appHeroContrast'
 import { ArrowIcon, BioIcon, InstagramIcon, TelegramIcon, WhatsAppIcon, YouTubeIcon } from './icons'
 
 type AppHeroLike = AppHero | WhatsAppHero
@@ -15,6 +16,16 @@ function resolveLayout(item: AppHeroLike, grid: boolean) {
   if (item.layout === 'condensed') return 'condensed'
   if (grid || item.layout === 'compact') return 'compact'
   return item.layout ?? 'default'
+}
+
+function resolveAlign(item: AppHeroLike): FeatureCardAlign {
+  return item.align === 'center' ? 'center' : 'side'
+}
+
+/** Personalizado sem ícone → não reserva espaço do ícone. Presets de marca mantêm o ícone. */
+function resolveShowIcon(item: AppHeroLike, preset: AppHeroPreset): boolean {
+  if (preset !== 'custom') return true
+  return item.type === 'app-hero' && Boolean(item.icon)
 }
 
 function AppHeroIcon({
@@ -43,15 +54,12 @@ function AppHeroIcon({
       case 'form':
         return <BioIcon name="form" className={className} />
       default:
-        return (
-          <BioIcon
-            name={icon ?? config.defaultIcon ?? 'sparkles'}
-            className={className}
-          />
-        )
+        if (!icon) return null
+        return <BioIcon name={icon} className={className} />
     }
   })()
 
+  if (!inner) return null
   return <span style={{ color }}>{inner}</span>
 }
 
@@ -63,7 +71,7 @@ function HeroIconBox({
 }: {
   preset: AppHeroPreset
   icon?: AppHero['icon']
-  theme: (typeof APP_HERO_PRESETS)[AppHeroPreset]['theme']
+  theme: ResolvedAppHeroTheme
   size?: 'md' | 'sm' | 'xs'
 }) {
   const box =
@@ -118,7 +126,7 @@ function HeroShell({
   className = '',
 }: {
   item: AppHeroLike
-  theme: (typeof APP_HERO_PRESETS)[AppHeroPreset]['theme']
+  theme: ResolvedAppHeroTheme
   children: ReactNode
   className?: string
 }) {
@@ -147,12 +155,18 @@ function HeroDefault({
   preset,
   theme,
   icon,
+  showIcon,
+  align,
 }: {
   item: AppHeroLike
   preset: AppHeroPreset
-  theme: (typeof APP_HERO_PRESETS)[AppHeroPreset]['theme']
+  theme: ResolvedAppHeroTheme
   icon?: AppHero['icon']
+  showIcon: boolean
+  align: FeatureCardAlign
 }) {
+  const centered = align === 'center'
+
   return (
     <HeroShell item={item} theme={theme}>
       <div className="relative p-5 sm:p-6" style={{ background: theme.gradient }}>
@@ -164,17 +178,32 @@ function HeroDefault({
             animation: 'bio-glow 4s ease-in-out infinite',
           }}
         />
-        <div className="relative z-10 flex items-start gap-4">
-          <HeroIconBox preset={preset} icon={icon} theme={theme} size="md" />
-          <div className="min-w-0 flex-1">
+        <div
+          className={
+            centered
+              ? 'relative z-10 flex flex-col items-center text-center'
+              : 'relative z-10 flex items-center gap-4'
+          }
+        >
+          {showIcon && (
+            <div className={centered ? 'mb-3' : ''}>
+              <HeroIconBox preset={preset} icon={icon} theme={theme} size="md" />
+            </div>
+          )}
+          <div className={`min-w-0 ${centered ? 'w-full' : 'flex-1'}`}>
             <span
               className="inline-block text-[10px] font-semibold uppercase tracking-[0.2em]"
               style={{ color: theme.badgeText }}
             >
               {item.badge}
             </span>
-            <h3 className="mt-1 text-xl font-bold leading-tight text-white">{item.title}</h3>
-            <p className="mt-1.5 text-xs leading-relaxed text-white/85 sm:text-sm">
+            <h3 className="mt-1 text-xl font-bold leading-tight" style={{ color: theme.titleText }}>
+              {item.title}
+            </h3>
+            <p
+              className="mt-1.5 text-xs leading-relaxed sm:text-sm"
+              style={{ color: theme.bodyText }}
+            >
               {item.description}
             </p>
             <span
@@ -200,33 +229,52 @@ function HeroCompact({
   preset,
   theme,
   icon,
+  showIcon,
+  align,
 }: {
   item: AppHeroLike
   preset: AppHeroPreset
-  theme: (typeof APP_HERO_PRESETS)[AppHeroPreset]['theme']
+  theme: ResolvedAppHeroTheme
   icon?: AppHero['icon']
+  showIcon: boolean
+  align: FeatureCardAlign
 }) {
+  const centered = align === 'center'
+
   return (
     <HeroShell item={item} theme={theme} className="h-full">
       <div
-        className="relative flex h-full min-h-[132px] flex-col p-3.5"
+        className={`relative flex h-full min-h-[132px] p-3.5 ${
+          centered ? 'flex-col items-center text-center' : 'flex-row items-center gap-3'
+        }`}
         style={{ background: theme.gradient }}
       >
-        <HeroIconBox preset={preset} icon={icon} theme={theme} size="sm" />
-        <h3 className="mt-2 line-clamp-2 flex-1 text-sm font-bold leading-snug text-white">
-          {item.title}
-        </h3>
-        <span
-          className="mt-2 inline-flex w-fit max-w-full items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold"
-          style={{
-            background: theme.ctaBg,
-            color: theme.ctaText,
-            boxShadow: theme.ctaShadow,
-          }}
+        {showIcon && <HeroIconBox preset={preset} icon={icon} theme={theme} size="sm" />}
+        <div
+          className={`flex min-w-0 flex-1 flex-col ${centered ? 'mt-2 w-full items-center' : ''}`}
         >
-          <span className="truncate">{item.cta}</span>
-          <ArrowIcon className="h-3 w-3 shrink-0" />
-        </span>
+          <h3
+            className={`line-clamp-2 flex-1 text-sm font-bold leading-snug ${
+              centered ? '' : ''
+            }`}
+            style={{ color: theme.titleText }}
+          >
+            {item.title}
+          </h3>
+          <span
+            className={`mt-2 inline-flex max-w-full items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+              centered ? '' : 'w-fit'
+            }`}
+            style={{
+              background: theme.ctaBg,
+              color: theme.ctaText,
+              boxShadow: theme.ctaShadow,
+            }}
+          >
+            <span className="truncate">{item.cta}</span>
+            <ArrowIcon className="h-3 w-3 shrink-0" />
+          </span>
+        </div>
       </div>
     </HeroShell>
   )
@@ -237,37 +285,65 @@ function HeroCondensed({
   preset,
   theme,
   icon,
+  showIcon,
+  align,
 }: {
   item: AppHeroLike
   preset: AppHeroPreset
-  theme: (typeof APP_HERO_PRESETS)[AppHeroPreset]['theme']
+  theme: ResolvedAppHeroTheme
   icon?: AppHero['icon']
+  showIcon: boolean
+  align: FeatureCardAlign
 }) {
+  const centered = align === 'center'
+
   return (
     <HeroShell item={item} theme={theme} className="h-full">
       <div
-        className="flex h-full min-h-[72px] items-center gap-2.5 p-3"
+        className={`flex h-full min-h-[72px] p-3 ${
+          centered
+            ? 'flex-col items-center justify-center gap-1.5 text-center'
+            : 'flex-row items-center gap-2.5'
+        }`}
         style={{ background: theme.gradient }}
       >
-        <HeroIconBox preset={preset} icon={icon} theme={theme} size="xs" />
-        <h3 className="min-w-0 flex-1 text-xs font-bold leading-tight text-white line-clamp-2">
+        {showIcon && <HeroIconBox preset={preset} icon={icon} theme={theme} size="xs" />}
+        <h3
+          className={`min-w-0 text-xs font-bold leading-tight line-clamp-2 ${
+            centered ? 'w-full' : 'flex-1'
+          }`}
+          style={{ color: theme.titleText }}
+        >
           {item.title}
         </h3>
-        {hasClickableUrl(item.url) && (
-          <ArrowIcon className="h-3.5 w-3.5 shrink-0 text-white/85 transition-transform group-hover:translate-x-0.5" />
+        {!centered && hasClickableUrl(item.url) && (
+          <span style={{ color: theme.bodyText }}>
+            <ArrowIcon className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" />
+          </span>
         )}
       </div>
     </HeroShell>
   )
 }
 
-export function AppHeroCard({ item, grid = false }: { item: AppHeroLike; grid?: boolean }) {
+export function AppHeroCard({
+  item,
+  grid = false,
+  pageBackground = '#000000',
+}: {
+  item: AppHeroLike
+  grid?: boolean
+  /** Fundo efetivo da bio — ver BioPage.tsx (resolveEffectiveBioBackground). */
+  pageBackground?: string
+}) {
   const preset = resolvePreset(item)
-  const theme = APP_HERO_PRESETS[preset].theme
+  const theme = resolveAppHeroTheme(APP_HERO_PRESETS[preset].theme, pageBackground)
   const customIcon = item.type === 'app-hero' ? item.icon : undefined
   const layout = resolveLayout(item, grid)
+  const align = resolveAlign(item)
+  const showIcon = resolveShowIcon(item, preset)
 
-  const props = { item, preset, theme, icon: customIcon }
+  const props = { item, preset, theme, icon: customIcon, showIcon, align }
 
   switch (layout) {
     case 'compact':

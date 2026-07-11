@@ -49,12 +49,14 @@ import {
 } from './lib/bio'
 import { DEMO_WHATSAPP_URL, loadDemoConfig } from './lib/demo'
 import { applyTheme, getStoredTheme, type Theme } from './lib/theme'
+import { checkForUpdates } from './lib/updates'
 import { syncBrandSeo } from '@site/lib/pageMeta'
 
 type Tab = 'identity' | 'appearance' | 'sections' | 'images' | 'advanced'
 type EditorMode = 'full' | 'demo'
 
 const HISTORY_LIMIT = 50
+const UPDATE_PROMPT_KEY = 'insta-bio:update-prompt-dismissed'
 
 interface EditorAppProps {
   mode?: EditorMode
@@ -87,6 +89,12 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   const [publishing, setPublishing] = useState(false)
   const [reverting, setReverting] = useState(false)
   const [confirmPublishOpen, setConfirmPublishOpen] = useState(false)
+  const [updatePromptOpen, setUpdatePromptOpen] = useState(false)
+  const [updatePrompt, setUpdatePrompt] = useState<{
+    installed: string
+    latest: string
+    changelog?: string
+  } | null>(null)
   const statusTimerRef = useRef<number | null>(null)
   const actionErrorTimerRef = useRef<number | null>(null)
 
@@ -198,6 +206,36 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   }, [authenticated, isDemo])
 
   useEffect(() => {
+    if (isDemo || !authenticated) return
+
+    let cancelled = false
+
+    async function promptIfUpdate() {
+      try {
+        const data = await checkForUpdates()
+        if (cancelled || !data.updateAvailable || !data.latest) return
+
+        const dismissed = sessionStorage.getItem(UPDATE_PROMPT_KEY)
+        if (dismissed === data.latest) return
+
+        setUpdatePrompt({
+          installed: data.installed,
+          latest: data.latest,
+          changelog: data.changelog,
+        })
+        setUpdatePromptOpen(true)
+      } catch (err) {
+        console.warn('[updates] check no login falhou', err)
+      }
+    }
+
+    void promptIfUpdate()
+    return () => {
+      cancelled = true
+    }
+  }, [authenticated, isDemo])
+
+  useEffect(() => {
     if (isDemo) {
       loadDemoConfig()
         .then((data) => resetConfig(data))
@@ -269,6 +307,18 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     await logout()
     setAuthenticated(false)
     setConfig(null)
+  }
+
+  function dismissUpdatePrompt() {
+    if (updatePrompt?.latest) {
+      sessionStorage.setItem(UPDATE_PROMPT_KEY, updatePrompt.latest)
+    }
+    setUpdatePromptOpen(false)
+  }
+
+  function goToUpdateSettings() {
+    dismissUpdatePrompt()
+    setActiveTab('advanced')
   }
 
   function showStatus(message: string) {
@@ -833,6 +883,32 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
           onCancel={() => {
             if (!publishing) setConfirmPublishOpen(false)
           }}
+        />
+
+        <ConfirmDialog
+          open={updatePromptOpen && updatePrompt !== null}
+          title="Nova versão disponível"
+          description={
+            <>
+              <p>
+                A versão <strong>{updatePrompt?.latest}</strong> está disponível
+                {updatePrompt?.installed ? <> (você está em {updatePrompt.installed})</> : null}.
+                Abra Configurações para atualizar com segurança.
+              </p>
+              {updatePrompt?.changelog ? (
+                <p className="mt-2 whitespace-pre-wrap text-xs opacity-90">
+                  {updatePrompt.changelog.length > 280
+                    ? `${updatePrompt.changelog.slice(0, 280)}…`
+                    : updatePrompt.changelog}
+                </p>
+              ) : null}
+            </>
+          }
+          confirmLabel="Ir para Configurações"
+          cancelLabel="Agora não"
+          variant="default"
+          onConfirm={goToUpdateSettings}
+          onCancel={dismissUpdatePrompt}
         />
       </div>
     </DemoModeProvider>

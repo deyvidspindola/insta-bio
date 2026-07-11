@@ -29,6 +29,10 @@
     "panel": "npm run dev --prefix panel",
     "dev:all": "bash scripts/dev-all.sh",
     "site": "npm run dev --prefix site",
-    "site:build": "npm run build --prefix site"
+    "site:build": "npm run build --prefix site",
+    "build:update-package": "node scripts/build-update-package.mjs"
+  },
+  "devDependencies": {
+    "archiver": "^8.0.0"
   }
 }

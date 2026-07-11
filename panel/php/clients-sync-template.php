@@ -1,4 +1,10 @@
 <?php
+/**
+ * POST /panel/api/clients/sync-template
+ *
+ * Propaga o ZIP de updates (panel/data/updates/) para todos os clientes.
+ * Mesma fonte do apply remoto no editor.
+ */
 require __DIR__ . '/bootstrap.php';
 require __DIR__ . '/lib/platform.php';
 platform_require_auth();

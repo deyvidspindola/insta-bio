@@ -11,9 +11,22 @@ if (!fs.existsSync(DIST)) {
   process.exit(1)
 }
 
+// Inclui auth.config.php quando existir (deploy single-tenant).
+// Template de plataforma usa build-hostgator-template.mjs (pula auth.config.php).
+const skip = new Set(['auth.config.example.php'])
+
 for (const entry of fs.readdirSync(PHP)) {
   if (skip.has(entry) || entry === 'bio-json.php') continue
-  fs.copyFileSync(path.join(PHP, entry), path.join(DIST, entry))
+  const from = path.join(PHP, entry)
+  if (!fs.statSync(from).isFile()) continue
+  fs.copyFileSync(from, path.join(DIST, entry))
+}
+
+// Pastas protegidas para apply remoto (Fase D)
+for (const dir of ['.update-tmp', '.update-backup']) {
+  const dest = path.join(DIST, dir)
+  fs.mkdirSync(dest, { recursive: true })
+  fs.writeFileSync(path.join(dest, '.htaccess'), 'Require all denied\n')
 }
 
 const hasConfig = fs.existsSync(path.join(DIST, 'auth.config.php'))

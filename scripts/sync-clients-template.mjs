@@ -2,6 +2,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execSync } from 'node:child_process'
+import { writeUpdateState } from './lib/write-update-state.mjs'
+import { readVersion } from './lib/read-version.mjs'
+import {
+  isViteBundleFile,
+  removeEditorAssetBundles,
+  removeViteBundles,
+} from './lib/vite-bundles.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const CLIENT_HTACCESS = path.join(ROOT, 'deploy', 'apache', 'client.htaccess')
@@ -40,17 +47,6 @@ function copyDirExcept(src, dest, skipNames = new Set()) {
   }
 }
 
-function isBundleFile(name) {
-  return /^index-[A-Za-z0-9_-]+\.(js|css)$/.test(name) || /^main-[A-Za-z0-9_-]+\.(js|css)$/.test(name)
-}
-
-function removeBundleFiles(dir) {
-  if (!fs.existsSync(dir)) return
-  for (const name of fs.readdirSync(dir)) {
-    if (isBundleFile(name)) fs.unlinkSync(path.join(dir, name))
-  }
-}
-
 function syncClientBio(clientDir, templateDir) {
   for (const name of ['index.html', 'suspended.html', 'favicon.svg', 'icons.svg', 'logo-instabio.svg']) {
     const src = path.join(templateDir, name)
@@ -61,10 +57,10 @@ function syncClientBio(clientDir, templateDir) {
   const dstAssets = path.join(clientDir, 'assets')
   fs.mkdirSync(dstAssets, { recursive: true })
 
-  removeBundleFiles(dstAssets)
+  removeViteBundles(dstAssets)
 
   for (const name of fs.readdirSync(tplAssets)) {
-    if (isBundleFile(name)) {
+    if (isViteBundleFile(name)) {
       copyFile(path.join(tplAssets, name), path.join(dstAssets, name))
     }
   }
@@ -76,7 +72,7 @@ function syncClientEditor(clientDir, templateDir) {
   if (!fs.existsSync(tplEditor)) return
 
   const assetsDir = path.join(dstEditor, 'assets')
-  removeBundleFiles(assetsDir)
+  removeEditorAssetBundles(assetsDir)
 
   copyDirExcept(tplEditor, dstEditor, new Set(['auth.config.php']))
 
@@ -95,9 +91,24 @@ function writeClientHtaccess(clientDir) {
 }
 
 function syncClient(clientDir, templateDir) {
+  const editorDir = path.join(clientDir, 'editor')
+  const stateFile = path.join(editorDir, 'update-state.json')
+  let previousVersion = null
+  if (fs.existsSync(stateFile)) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(stateFile, 'utf8'))
+      previousVersion = raw.version ?? null
+    } catch {
+      // ignore
+    }
+  }
+
   syncClientBio(clientDir, templateDir)
   syncClientEditor(clientDir, templateDir)
   writeClientHtaccess(clientDir)
+
+  const version = readVersion(ROOT)
+  writeUpdateState(editorDir, version, { previousVersion })
 }
 
 function listClientSlugs(platformRoot) {

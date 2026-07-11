@@ -13,4 +13,7 @@ export const ENDPOINTS = {
   upload: 'api/assets/upload',
   listAssets: 'api/assets/list',
   deleteAsset: 'api/assets/delete',
+  updateStatus: 'api/update/status',
+  updateCheck: 'api/update/check',
+  updateApply: 'api/update/apply',
 } as const

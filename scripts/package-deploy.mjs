@@ -3,6 +3,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { editorBaseFrom, normalizeBasePath } from './lib/base-path.mjs'
+import { readVersion } from './lib/read-version.mjs'
+import { writeUpdateState } from './lib/write-update-state.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const RELEASE = path.join(ROOT, 'release')
@@ -72,6 +74,17 @@ fs.mkdirSync(RELEASE, { recursive: true })
 copyDir(siteDist, RELEASE)
 copyDir(editorDist, editorOut)
 
+const version = readVersion(ROOT)
+writeUpdateState(editorOut, version)
+console.log(`→ update-state.json (v${version}) em release/editor/`)
+
+console.log('→ Pacote de atualização remota (dist/updates/)…')
+execSync('npm run build:update-package -- --skip-build', {
+  cwd: ROOT,
+  env,
+  stdio: 'inherit',
+})
+
 const exampleUrl =
   publicBase === '/'
     ? 'https://seudominio.com/'
@@ -84,6 +97,10 @@ console.log('')
 console.log('URLs esperadas:')
 console.log(`  Bio:    ${exampleUrl}`)
 console.log(`  Editor: ${exampleUrl}editor/`)
+console.log('')
+console.log('Atualização remota:')
+console.log(`  dist/updates/insta-bio-${version}.zip`)
+console.log('  dist/updates/updates.json  → copiar para panel/data/updates/ na plataforma')
 console.log('')
 console.log('Dica: copie deploy.config.example.json → deploy.config.json e ajuste basePath.')
 console.log('      Ou use: make package BASE_PATH=/insta-bio')

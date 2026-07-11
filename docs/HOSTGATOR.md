@@ -193,15 +193,35 @@ A bio pública lê o caminho nesta ordem: `__BIO_JSON_PATH__` (index.php) → `b
 
 ## Atualizar template (nova versão)
 
+### Clientes single-tenant (domínio próprio) — atualização pelo editor
+
+A partir da versão com suporte a updates remotos, o cliente pode atualizar sem FTP:
+
+1. Entre no editor → **Configurações**
+2. Clique em **Buscar atualizações**
+3. Se houver versão nova, clique em **Atualizar agora**
+
+O sistema baixa o pacote assinado da plataforma, valida o SHA-256, faz backup em `editor/.update-backup/` e substitui os arquivos do template **preservando** `bio.json`, `assets/` (imagens), `auth.config.php` e `update-state.json` (reescrito ao final).
+
+Se algo falhar, o backup permanece para restauração manual (copiar de volta os arquivos de `editor/.update-backup/YYYYMMDD_HHMMSS/`).
+
+Detalhes técnicos ficam em **`editor/update.log`** (bloqueado no HTTP). Em caso de erro no check/apply, abra esse arquivo via FTP/SSH para ver a causa (checksum, download, licença, etc.).
+
+### Atualização manual via FTP (legado / emergência)
+
 ```bash
 npm run build
 npm run editor:hostgator
+# opcional — gera ZIP para a plataforma servir aos clientes self-hosted:
+npm run build:update-package
 ```
 
 Por FTP:
 
 1. Substitua arquivos da bio (**preserve** `bio.json`, `assets/`, `bio-path.json`)
 2. Substitua arquivos do editor (**preserve** `auth.config.php`)
+
+Checklist completo de release: [ATUALIZACOES-REMOTAS.md](./ATUALIZACOES-REMOTAS.md).
 
 ---
 
@@ -238,7 +258,9 @@ Clientes com licença usam login via API do painel (`editor/platform-api.json`).
 
 ## Documentos relacionados
 
+- [DEPLOY-ATUALIZACAO.md](./DEPLOY-ATUALIZACAO.md) — estrutura pós-build e o que subir
 - [EDITOR.md](./EDITOR.md) — funcionalidades do editor
 - [COMERCIALIZACAO.md](./COMERCIALIZACAO.md) — instalar para clientes
 - [BIO-JSON.md](./BIO-JSON.md) — referência do conteúdo
 - [PLATAFORMA.md](./PLATAFORMA.md) — multi-cliente com `/panel/`
+- [ATUALIZACOES-REMOTAS.md](./ATUALIZACOES-REMOTAS.md) — updates remotos (single-tenant)

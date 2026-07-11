@@ -33,9 +33,99 @@ function editor_load_license_config(): ?array
     'slug' => (string) LICENSE_SLUG,
     'token' => (string) LICENSE_TOKEN,
     'api' => (string) LICENSE_API,
+    'selfhost' => defined('LICENSE_SELFHOST') && LICENSE_SELFHOST,
+    'allowed_host' => defined('LICENSE_ALLOWED_HOST')
+      ? editor_normalize_license_host((string) LICENSE_ALLOWED_HOST)
+      : '',
+    'deploy_path' => defined('LICENSE_DEPLOY_PATH')
+      ? editor_normalize_deploy_path((string) LICENSE_DEPLOY_PATH)
+      : '',
   ];
 
   return $cache;
+}
+
+function editor_normalize_license_host(string $host): string
+{
+  $host = strtolower(trim($host));
+  if ($host === '') {
+    return '';
+  }
+  if (str_contains($host, '://')) {
+    $parsed = parse_url($host, PHP_URL_HOST);
+    $host = is_string($parsed) ? $parsed : '';
+  }
+  $host = rtrim($host, '/');
+  if (str_contains($host, ':')) {
+    $host = explode(':', $host, 2)[0];
+  }
+  if (str_starts_with($host, 'www.')) {
+    $host = substr($host, 4);
+  }
+  return $host;
+}
+
+function editor_normalize_deploy_path(string $path): string
+{
+  $path = strtolower(trim($path));
+  if ($path === '' || $path === '/' || $path === '.' || $path === 'raiz' || $path === 'root') {
+    return '';
+  }
+  $path = trim($path, '/');
+  return preg_replace('/[^a-z0-9-]+/', '-', $path) ?? $path;
+}
+
+function editor_current_host(): string
+{
+  return editor_normalize_license_host((string) ($_SERVER['HTTP_HOST'] ?? ''));
+}
+
+/** Pasta do cliente (basename da raiz), igual ao gate de licença. */
+function editor_deploy_slug(): string
+{
+  $base = basename(editor_client_root());
+  return strtolower(preg_replace('/[^a-z0-9-]+/', '-', $base) ?? $base);
+}
+
+/**
+ * Payload de autenticação de licença para a API do painel
+ * (mesmo contrato de client-license.php / verificar-ambiente).
+ *
+ * @return array{slug: string, token: string, host?: string, deploy?: string}
+ */
+function editor_license_api_payload(array $extra = []): array
+{
+  $license = editor_load_license_config();
+  if ($license === null) {
+    return $extra;
+  }
+
+  $payload = array_merge([
+    'slug' => $license['slug'],
+    'token' => $license['token'],
+  ], $extra);
+
+  $deploy = editor_deploy_slug();
+  if (!empty($license['selfhost'])) {
+    $expected = editor_normalize_deploy_path((string) ($license['deploy_path'] ?? ''));
+    $rootNames = ['public_html', 'htdocs', 'www', 'httpdocs', 'html'];
+    if ($expected === '') {
+      if ($deploy !== '' && !in_array($deploy, $rootNames, true)) {
+        $payload['deploy'] = $deploy;
+      }
+    } elseif ($deploy !== '') {
+      $payload['deploy'] = $deploy;
+    }
+  } elseif ($deploy !== '') {
+    $payload['deploy'] = $deploy;
+  }
+
+  $host = editor_current_host();
+  if ($host !== '') {
+    $payload['host'] = $host;
+  }
+
+  return $payload;
 }
 
 function editor_platform_api_url(string $licenseApi, string $suffix): string

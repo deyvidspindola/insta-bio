@@ -46,3 +46,25 @@ if (!defined('PLATFORM_ROOT')) {
 if (!defined('TEMPLATE_DIR')) {
   define('TEMPLATE_DIR', dirname(__DIR__) . '/_template');
 }
+
+// Catálogo de updates. Em produção (db.config.php em panel/) use __DIR__/data/...
+// No monorepo (db.config.php em panel/php/) use dirname(__DIR__)/data/...
+if (!defined('UPDATES_MANIFEST_PATH')) {
+  $updatesJson = __DIR__ . '/data/updates/updates.json';
+  if (!is_file($updatesJson)) {
+    $updatesJson = dirname(__DIR__) . '/data/updates/updates.json';
+  }
+  define('UPDATES_MANIFEST_PATH', $updatesJson);
+}
+if (!defined('UPDATES_DIR')) {
+  define('UPDATES_DIR', dirname(UPDATES_MANIFEST_PATH));
+}
+// TTL da URL assinada de download (segundos). Padrão: 5 minutos.
+if (!defined('UPDATES_DOWNLOAD_TTL')) {
+  define('UPDATES_DOWNLOAD_TTL', 300);
+}
+// URL pública da plataforma (sem barra final). Ex.: https://linksnabio.app.br
+// Se vazio, deriva de HTTPS + HTTP_HOST na requisição.
+if (!defined('PLATFORM_PUBLIC_URL')) {
+  define('PLATFORM_PUBLIC_URL', '');
+}

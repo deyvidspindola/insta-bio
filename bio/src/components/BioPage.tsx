@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import type { CSSProperties } from 'react'
 import type { BioConfig } from '../types/bio'
 import { resolveBackgroundPreset } from '../lib/backgroundPresets'
+import { resolveEffectiveBioBackground } from '../lib/appHeroContrast'
 import { resolvePrimarySurfaceColors } from '../lib/contrastColor'
 import { resolveBioTemplate } from '../lib/templates'
 import { resolveCardRadiusPx } from '../lib/cardRadius'
@@ -22,6 +23,11 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
   const bgPreset = resolveBackgroundPreset(brand.theme.backgroundPreset)
   const hasBgImage = Boolean(brand.theme.backgroundImage)
   const hasBgPreset = Boolean(bgPreset) && !hasBgImage
+  const pageBackground = resolveEffectiveBioBackground({
+    background: hasBgPreset && bgPreset ? bgPreset.gradient : brand.theme.background,
+    backgroundPresetColor: bgPreset?.edgeColor,
+    hasBackgroundImage: hasBgImage,
+  })
 
   const primarySurface = resolvePrimarySurfaceColors(brand.theme.primary)
 
@@ -119,6 +125,7 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
           <BioSectionBlock
             key={section.id}
             section={section}
+            pageBackground={pageBackground}
             focusItemIndex={
               previewFocus?.sectionId === section.id ? previewFocus.itemIndex : null
             }

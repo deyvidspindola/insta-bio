@@ -73,6 +73,12 @@ export const FEATURE_VARIANTS = [
   { value: 'banner', label: 'Banner (imagem)' },
 ] as const
 
+/** Alinhamento do conteúdo no destaque em gradiente. */
+export const FEATURE_ALIGNS = [
+  { value: 'side', label: 'Ícone ao lado' },
+  { value: 'center', label: 'Centralizado' },
+] as const
+
 /** Nome legível para listas/selects — evita mostrar IDs técnicos. */
 export function sectionDisplayName(section: BioSection, index: number): string {
   const title = section.title?.trim()
@@ -134,7 +140,39 @@ export function newHeroItemForSection(
 }
 
 export function normalizeBioConfig(config: BioConfig): BioConfig {
-  return { ...config, brand: normalizeBrandSocial(config.brand) }
+  const defaults = structuredClone(defaultBio as BioConfig)
+  const raw = (config ?? {}) as BioConfig & { name?: string }
+
+  // Shape quebrada de provision antigo: { name, sections } sem brand
+  const incomingBrand =
+    raw.brand ??
+    (typeof raw.name === 'string'
+      ? ({ name: raw.name } as BioConfig['brand'])
+      : undefined)
+
+  const brand = {
+    ...defaults.brand,
+    ...(incomingBrand ?? {}),
+    theme: {
+      ...defaults.brand.theme,
+      ...(incomingBrand?.theme ?? {}),
+    },
+    seo: {
+      ...defaults.brand.seo,
+      ...(incomingBrand?.seo ?? {}),
+    },
+    instagram: {
+      handle: incomingBrand?.instagram?.handle ?? defaults.brand.instagram?.handle ?? '',
+      url: incomingBrand?.instagram?.url ?? defaults.brand.instagram?.url ?? '',
+    },
+  }
+
+  return {
+    ...defaults,
+    ...raw,
+    brand: normalizeBrandSocial(brand),
+    sections: Array.isArray(raw.sections) ? raw.sections : [],
+  }
 }
 
 export function createDefaultConfig(): BioConfig {

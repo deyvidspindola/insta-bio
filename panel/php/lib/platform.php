@@ -385,12 +385,18 @@ function client_resolve_export_bio(string $clientDir): array
 function customize_bio_json(string $bioPath, string $clientName, string $slug): void
 {
   if (!file_exists($bioPath)) {
-    throw new RuntimeException('bio.json não encontrado no template');
+    require_once __DIR__ . '/updates.php';
+    platform_write_client_bio_json(dirname($bioPath), $clientName);
   }
 
-  $data = json_decode(file_get_contents($bioPath), true);
+  $data = json_decode((string) file_get_contents($bioPath), true);
   if (!is_array($data)) {
     throw new RuntimeException('bio.json inválido no template');
+  }
+
+  require_once __DIR__ . '/updates.php';
+  if (!platform_bio_config_has_theme($data)) {
+    $data = platform_minimal_bio_config($clientName);
   }
 
   $data['brand']['name'] = $clientName;
@@ -398,7 +404,7 @@ function customize_bio_json(string $bioPath, string $clientName, string $slug): 
   $data['brand']['tagline'] = '';
   $data['brand']['location'] = '';
   $data['brand']['logo'] = '';
-  if (isset($data['brand']['seo'])) {
+  if (isset($data['brand']['seo']) && is_array($data['brand']['seo'])) {
     $data['brand']['seo']['title'] = $clientName;
     $data['brand']['seo']['description'] = $clientName;
   }
@@ -408,6 +414,7 @@ function customize_bio_json(string $bioPath, string $clientName, string $slug): 
   }
   unset($data['brand']['coverImage']);
   $data['sections'] = [];
+  unset($data['name']); // remove chave legada inválida, se houver
 
   $json = json_encode(
     $data,
@@ -457,7 +464,13 @@ function assert_client_has_bundles(string $clientDir): void
 
 function is_build_bundle_filename(string $name): bool
 {
-  return (bool) preg_match('/^(index|main|preview)-[A-Za-z0-9_-]+\.(js|css)$/', $name);
+  // Vite: name-HASH.js|css (index, EditorApp, icons, preview, demo, …)
+  return (bool) preg_match('/^[A-Za-z0-9][A-Za-z0-9._]*-[A-Za-z0-9_-]{6,}\.(js|css)$/', $name);
+}
+
+function is_editor_asset_bundle_filename(string $name): bool
+{
+  return (bool) preg_match('/\.(js|css)(\.map)?$/i', $name);
 }
 
 function copy_file_if_exists(string $src, string $dest): void
@@ -472,7 +485,7 @@ function copy_file_if_exists(string $src, string $dest): void
   }
 }
 
-function remove_build_bundle_files(string $assetsDir): void
+function remove_build_bundle_files(string $assetsDir, bool $editorMode = false): void
 {
   if (!is_dir($assetsDir)) {
     return;
@@ -486,7 +499,10 @@ function remove_build_bundle_files(string $assetsDir): void
     if (!is_file($full)) {
       continue;
     }
-    if (is_build_bundle_filename($file)) {
+    $match = $editorMode
+      ? is_editor_asset_bundle_filename($file)
+      : is_build_bundle_filename($file);
+    if ($match) {
       unlink($full);
     }
   }
@@ -562,24 +578,73 @@ function sync_client_editor_from_template(string $clientDir, string $templateDir
     return;
   }
 
-  remove_build_bundle_files($dstEditor . DIRECTORY_SEPARATOR . 'assets');
+  remove_build_bundle_files($dstEditor . DIRECTORY_SEPARATOR . 'assets', true);
   copy_directory_except_basenames($tplEditor, $dstEditor, ['auth.config.php']);
 }
 
-/** Atualiza arquivos do template sem alterar bio.json, imagens nem credenciais do editor. */
-function sync_client_from_template(string $clientDir, string $templateDir): void
+/** Atualiza um cliente a partir do ZIP de updates (preserva bio, imagens, auth). */
+function sync_client_from_update_package(string $clientDir, string $extractDir, string $version): void
 {
-  sync_client_bio_from_template($clientDir, $templateDir);
-  sync_client_editor_from_template($clientDir, $templateDir);
+  $editorDir = $clientDir . DIRECTORY_SEPARATOR . 'editor';
+  $previousState = null;
+  $stateFile = $editorDir . DIRECTORY_SEPARATOR . 'update-state.json';
+  if (is_file($stateFile)) {
+    $raw = json_decode((string) file_get_contents($stateFile), true);
+    if (is_array($raw)) {
+      $previousState = $raw;
+    }
+  }
+
+  if (!function_exists('platform_apply_extracted_package_to_client')) {
+    require_once __DIR__ . '/updates.php';
+  }
+
+  platform_apply_extracted_package_to_client(
+    $clientDir,
+    $extractDir,
+    $version,
+    $previousState,
+    false,
+  );
   write_client_htaccess($clientDir);
   install_client_license_gate_files($clientDir);
 }
 
+/** Fallback legado: copia de _template/ (preferir ZIP). */
+function sync_client_from_template(string $clientDir, string $templateDir): void
+{
+  $editorDir = $clientDir . DIRECTORY_SEPARATOR . 'editor';
+  $previousState = null;
+  $stateFile = $editorDir . DIRECTORY_SEPARATOR . 'update-state.json';
+  if (is_file($stateFile)) {
+    $raw = json_decode((string) file_get_contents($stateFile), true);
+    if (is_array($raw)) {
+      $previousState = $raw;
+    }
+  }
+
+  sync_client_bio_from_template($clientDir, $templateDir);
+  sync_client_editor_from_template($clientDir, $templateDir);
+  write_client_htaccess($clientDir);
+  install_client_license_gate_files($clientDir);
+
+  if (!function_exists('platform_write_editor_update_state')) {
+    require_once __DIR__ . '/updates.php';
+  }
+  platform_write_editor_update_state(
+    $editorDir,
+    platform_template_version($templateDir),
+    $previousState,
+  );
+}
+
 /**
- * Propaga _template/ para todos os clientes cadastrados no banco.
+ * Propaga o ZIP de updates para todos os clientes (fonte única).
  *
  * @return array{
  *   ok: bool,
+ *   source: string,
+ *   version: string,
  *   template_dir: string,
  *   platform_root: string,
  *   updated: list<array{id: int, slug: string, name: string}>,
@@ -589,23 +654,17 @@ function sync_client_from_template(string $clientDir, string $templateDir): void
  */
 function sync_all_clients_from_template(PDO $pdo, string $platformRoot, string $templateDir): array
 {
-  if (!is_dir($templateDir)) {
-    throw new RuntimeException(
-      'Pasta _template não encontrada na raiz do site. Suba o template atualizado antes de sincronizar.',
-    );
-  }
-
-  assert_client_has_bundles($templateDir);
-
+  require_once __DIR__ . '/updates.php';
   require_once __DIR__ . '/license.php';
 
-  $stmt = $pdo->query(
-    'SELECT id, slug, name, email, password_hash, status, license_token FROM clients ORDER BY slug ASC',
-  );
-  $clients = $stmt->fetchAll();
+  $pkg = platform_extract_latest_update_package();
+  $version = $pkg['version'];
+  $extractDir = $pkg['extractDir'];
 
   $result = [
     'ok' => true,
+    'source' => 'update-package',
+    'version' => $version,
     'template_dir' => $templateDir,
     'platform_root' => $platformRoot,
     'updated' => [],
@@ -613,33 +672,42 @@ function sync_all_clients_from_template(PDO $pdo, string $platformRoot, string $
     'errors' => [],
   ];
 
-  foreach ($clients as $client) {
-    $slug = normalize_slug((string) $client['slug']);
-    $clientDir = rtrim($platformRoot, '/\\') . DIRECTORY_SEPARATOR . $slug;
+  try {
+    $stmt = $pdo->query(
+      'SELECT id, slug, name, email, password_hash, status, license_token FROM clients ORDER BY slug ASC',
+    );
+    $clients = $stmt->fetchAll();
 
-    if (!is_dir($clientDir)) {
-      $result['skipped'][] = [
-        'slug' => $slug,
-        'reason' => 'Pasta do cliente não encontrada',
-      ];
-      continue;
-    }
+    foreach ($clients as $client) {
+      $slug = normalize_slug((string) $client['slug']);
+      $clientDir = rtrim($platformRoot, '/\\') . DIRECTORY_SEPARATOR . $slug;
 
-    try {
-      sync_client_from_template($clientDir, $templateDir);
-      sync_client_license_files($pdo, $platformRoot, $client);
-      $result['updated'][] = [
-        'id' => (int) $client['id'],
-        'slug' => $slug,
-        'name' => (string) $client['name'],
-      ];
-    } catch (Throwable $e) {
-      $result['errors'][] = [
-        'slug' => $slug,
-        'error' => $e->getMessage(),
-      ];
-      $result['ok'] = false;
+      if (!is_dir($clientDir)) {
+        $result['skipped'][] = [
+          'slug' => $slug,
+          'reason' => 'Pasta do cliente não encontrada',
+        ];
+        continue;
+      }
+
+      try {
+        sync_client_from_update_package($clientDir, $extractDir, $version);
+        sync_client_license_files($pdo, $platformRoot, $client);
+        $result['updated'][] = [
+          'id' => (int) $client['id'],
+          'slug' => $slug,
+          'name' => (string) $client['name'],
+        ];
+      } catch (Throwable $e) {
+        $result['errors'][] = [
+          'slug' => $slug,
+          'error' => $e->getMessage(),
+        ];
+        $result['ok'] = false;
+      }
     }
+  } finally {
+    ($pkg['cleanup'])();
   }
 
   return $result;
@@ -690,15 +758,43 @@ function provision_client(
     throw new RuntimeException('Já existe uma pasta com este slug');
   }
 
-  copy_directory($templateDir, $clientDir);
+  require_once __DIR__ . '/updates.php';
+
+  // Fonte única: ZIP. Fallback legado para _template se o pacote não existir.
+  try {
+    platform_materialize_client_from_package($clientDir);
+  } catch (Throwable $e) {
+    if (!is_dir($templateDir)) {
+      throw new RuntimeException(
+        'Pacote de updates indisponível e _template ausente. ' . $e->getMessage(),
+        0,
+        $e,
+      );
+    }
+    copy_directory($templateDir, $clientDir);
+  }
 
   assert_client_has_bundles($clientDir);
 
   write_client_htaccess($clientDir);
 
+  $bioPath = $clientDir . DIRECTORY_SEPARATOR . 'bio.json';
+  $bioRaw = is_file($bioPath) ? json_decode((string) file_get_contents($bioPath), true) : null;
+  if (!function_exists('platform_bio_config_has_theme') || !platform_bio_config_has_theme(is_array($bioRaw) ? $bioRaw : null)) {
+    require_once __DIR__ . '/updates.php';
+    platform_write_client_bio_json($clientDir, $name);
+  }
+  customize_bio_json($bioPath, $name, $slug);
+
   $editorDir = $clientDir . DIRECTORY_SEPARATOR . 'editor';
   write_client_auth_config($editorDir, $email, $passwordHash);
   install_client_license_gate_files($clientDir);
+
+  $version = platform_latest_package_version();
+  if ($version === '0.0.0') {
+    $version = platform_template_version($templateDir);
+  }
+  platform_write_editor_update_state($editorDir, $version, null);
 
   return [
     'slug' => $slug,
