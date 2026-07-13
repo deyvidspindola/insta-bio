@@ -50,7 +50,6 @@ export const ICON_CATALOG: IconCatalogEntry[] = [
   { id: 'linkedin', label: 'LinkedIn', category: 'social' },
   { id: 'github', label: 'GitHub', category: 'social' },
   { id: 'x', label: 'X', category: 'social' },
-  { id: 'ifood', label: 'Ifood', category: 'social' },
 
   // Fé
   { id: 'church', label: 'Igreja', category: 'faith', keywords: ['templo'] },
