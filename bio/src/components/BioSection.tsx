@@ -1,6 +1,7 @@
 import type { CSSProperties, MouseEvent, ReactNode } from 'react'
 import type { BioSection, SectionItem } from '../types/bio'
 import { itemSpansFullInGrid, groupStackSectionItems } from '../lib/sectionLayout'
+import { contrastTextOn } from '../lib/colorEngine'
 import { AppHeroCard } from './AppHeroCard'
 import { FeatureCard } from './FeatureCard'
 import { GridCard } from './GridCard'
@@ -57,18 +58,28 @@ function wrapPreviewItem({
 function SectionTitle({
   title,
   subtitle,
+  pageBackground,
 }: {
   title: string
   subtitle?: string
+  pageBackground: string
 }) {
   if (!title) return null
+  const textColors = contrastTextOn(pageBackground)
 
   return (
     <div className="mb-3 mt-6 px-1">
-      <h2 className="bio-section-title text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">
+      <h2
+        className="bio-section-title text-[10px] font-semibold uppercase tracking-[0.22em]"
+        style={{ color: textColors.title }}
+      >
         {title}
       </h2>
-      {subtitle && <p className="bio-section-subtitle mt-1 text-xs">{subtitle}</p>}
+      {subtitle && (
+        <p className="bio-section-subtitle mt-1 text-xs" style={{ color: textColors.body }}>
+          {subtitle}
+        </p>
+      )}
     </div>
   )
 }
@@ -111,7 +122,7 @@ function renderItem(
         index,
         className: `${shell} h-full`,
         style: delay,
-        children: <FeatureCard item={item} grid={inGrid} />,
+        children: <FeatureCard item={item} grid={inGrid} pageBackground={pageBackground} />,
       })
     case 'link':
       return wrapPreviewItem({
@@ -127,7 +138,7 @@ function renderItem(
         index,
         className: `${shell} h-full`,
         style: delay,
-        children: <GridCard item={item} />,
+        children: <GridCard item={item} pageBackground={pageBackground} />,
       })
     case 'location':
       return wrapPreviewItem({
@@ -196,7 +207,11 @@ export function BioSectionBlock({
 
   return (
     <section>
-      <SectionTitle title={section.title} subtitle={section.subtitle} />
+      <SectionTitle
+        title={section.title}
+        subtitle={section.subtitle}
+        pageBackground={pageBackground}
+      />
       {isGrid ? (
         <div className="mb-3 grid grid-cols-2 items-stretch gap-3">
           {section.items.map((item, index) =>

@@ -7,6 +7,10 @@ import {
   TikTokIcon,
   WhatsAppIcon,
   YouTubeIcon,
+  LinkedInIcon,
+  GitHubIcon,
+  XIcon,
+  TelegramIcon,
 } from './icons'
 
 const LABELS: Record<SocialNetwork, string> = {
@@ -17,6 +21,10 @@ const LABELS: Record<SocialNetwork, string> = {
   email: 'E-mail',
   whatsapp: 'WhatsApp',
   spotify: 'Spotify',
+  linkedin: 'LinkedIn',
+  github: 'GitHub',
+  x: 'X',
+  telegram: 'Telegram',
 }
 
 function SocialIcon({ network, className }: { network: SocialNetwork; className?: string }) {
@@ -35,6 +43,14 @@ function SocialIcon({ network, className }: { network: SocialNetwork; className?
       return <WhatsAppIcon className={className} />
     case 'spotify':
       return <SpotifyIcon className={className} />
+    case 'linkedin':
+      return <LinkedInIcon className={className} />
+    case 'github':
+      return <GitHubIcon className={className} />
+    case 'x':
+      return <XIcon className={className} />
+    case 'telegram':
+      return <TelegramIcon className={className} />
     default:
       return null
   }

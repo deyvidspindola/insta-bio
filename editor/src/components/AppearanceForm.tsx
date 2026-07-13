@@ -11,10 +11,14 @@ import {
 import { COLOR_PALETTES, type ColorPalette } from '../lib/colorPalettes'
 import { extractPaletteFromImage, type ExtractedPalette } from '../lib/extractImagePalette'
 import { ColorField, GlowColorField } from './ColorField'
+import { GradientField } from './GradientField'
 import { EditorSubnav } from './EditorSubnav'
 import { ImageField } from './ImageField'
 
 type AppearanceTab = 'background' | 'colors' | 'links'
+type BgMode = 'preset' | 'solid' | 'gradient' | 'image'
+
+const DEFAULT_CUSTOM_GRADIENT = 'linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%)'
 
 const APPEARANCE_TABS = [
   { id: 'background' as const, label: 'Fundo' },
@@ -39,6 +43,35 @@ export function AppearanceForm({ brand, onChange }: AppearanceFormProps) {
   const activePreset = BACKGROUND_PRESETS.find((preset) => preset.id === activeBgPreset)
   const cardRadius = resolveCardRadius(brand.theme.cardRadius)
   const cardRadiusPx = resolveCardRadiusPx(brand.theme.cardRadius)
+
+  const bgMode: BgMode = hasBgImage
+    ? 'image'
+    : activeBgPreset
+      ? 'preset'
+      : brand.theme.background?.includes('gradient')
+        ? 'gradient'
+        : 'solid'
+
+  function setBgMode(mode: BgMode) {
+    const newTheme: BioBrand['theme'] = { ...brand.theme }
+    if (mode === 'solid') {
+      newTheme.backgroundPreset = undefined
+      newTheme.backgroundImage = undefined
+      if (newTheme.background?.includes('gradient')) {
+        newTheme.background = '#0a0a0a'
+      }
+    } else if (mode === 'gradient') {
+      newTheme.backgroundPreset = undefined
+      newTheme.backgroundImage = undefined
+      if (!newTheme.background?.includes('gradient')) {
+        newTheme.background = DEFAULT_CUSTOM_GRADIENT
+      }
+    } else if (mode === 'preset') {
+      newTheme.backgroundImage = undefined
+      // Mantém preset atual; se não houver, o usuário escolhe no grid abaixo
+    }
+    onChange({ ...brand, theme: newTheme })
+  }
 
   function setTemplate(template: BioTemplate) {
     onChange({ ...brand, template })
@@ -181,6 +214,52 @@ export function AppearanceForm({ brand, onChange }: AppearanceFormProps) {
           </div>
 
           <div className="card">
+            <h3 className="mb-1 text-sm font-semibold">Gradiente personalizado</h3>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Crie seu próprio gradiente de fundo. Substitui presets e cor sólida.
+            </p>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setBgMode('gradient')}
+                disabled={hasBgImage}
+                className={`btn-secondary px-3 py-1.5 text-xs ${
+                  bgMode === 'gradient' ? 'border-primary ring-1 ring-primary/40' : ''
+                } ${hasBgImage ? 'opacity-40' : ''}`}
+              >
+                Gradiente
+              </button>
+              <button
+                type="button"
+                onClick={() => setBgMode('solid')}
+                disabled={hasBgImage}
+                className={`btn-secondary px-3 py-1.5 text-xs ${
+                  bgMode === 'solid' ? 'border-primary ring-1 ring-primary/40' : ''
+                } ${hasBgImage ? 'opacity-40' : ''}`}
+              >
+                Cor sólida
+              </button>
+            </div>
+            {bgMode === 'gradient' && !hasBgImage && (
+              <GradientField
+                label="Cores do gradiente"
+                value={brand.theme.background ?? DEFAULT_CUSTOM_GRADIENT}
+                onChange={(gradient) => {
+                  onChange({
+                    ...brand,
+                    theme: {
+                      ...brand.theme,
+                      background: gradient,
+                      backgroundPreset: undefined,
+                      backgroundImage: undefined,
+                    },
+                  })
+                }}
+              />
+            )}
+          </div>
+
+          <div className="card">
             <h3 className="mb-3 text-sm font-semibold">Imagem ou cor sólida</h3>
             <div className="grid grid-cols-1 gap-3">
               <ImageField
@@ -207,7 +286,11 @@ export function AppearanceForm({ brand, onChange }: AppearanceFormProps) {
               />
               <ColorField
                 label="Cor de fundo sólida"
-                value={brand.theme.background ?? ''}
+                value={
+                  bgMode === 'gradient' || bgMode === 'preset'
+                    ? ''
+                    : (brand.theme.background ?? '')
+                }
                 onChange={(background) =>
                   onChange({
                     ...brand,
@@ -221,9 +304,11 @@ export function AppearanceForm({ brand, onChange }: AppearanceFormProps) {
                 hint={
                   hasBgImage
                     ? 'Com imagem, a cor sólida não cobre a página'
-                    : activeBgPreset
-                      ? 'Gradiente ativo — remova-o para usar cor sólida'
-                      : 'Deixe vazio para o fundo escuro padrão'
+                    : bgMode === 'gradient'
+                      ? 'Gradiente personalizado ativo — use o botão Cor sólida acima para trocar'
+                      : activeBgPreset
+                        ? 'Gradiente de preset ativo — remova-o para usar cor sólida'
+                        : 'Deixe vazio para o fundo escuro padrão'
                 }
               />
             </div>

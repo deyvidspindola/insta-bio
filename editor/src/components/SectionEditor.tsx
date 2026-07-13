@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
-import type { BioSection, SectionItem, AppHeroPreset } from '@bio-types'
+import type { BioBrand, BioSection, SectionItem, AppHeroPreset } from '@bio-types'
 import {
   APP_HERO_PRESET_LIST,
   CARD_TYPES,
@@ -16,6 +16,7 @@ import { ItemEditor } from './ItemEditor'
 
 interface SectionEditorProps {
   section: BioSection
+  theme?: BioBrand['theme']
   onChange: (section: BioSection) => void
   onRemove: () => void
   onFocusItem?: (index: number | null) => void
@@ -25,6 +26,7 @@ interface SectionEditorProps {
 
 export function SectionEditor({
   section,
+  theme,
   onChange,
   onRemove,
   onFocusItem,
@@ -127,7 +129,7 @@ export function SectionEditor({
   }
 
   function addItem(type: SectionItem['type']) {
-    const item = createItem(type)
+    const item = createItem(type, theme)
     const normalized =
       item.type === 'whatsapp-hero' || item.type === 'app-hero'
         ? newHeroItemForSection(section, item)

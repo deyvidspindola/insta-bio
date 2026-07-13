@@ -75,6 +75,10 @@ export type IconName =
   | 'file'
   | 'handshake'
   | 'cross'
+  | 'linkedin'
+  | 'github'
+  | 'x'
+  | 'telegram'
 
 export type CardWidth = 'full' | 'half'
 
@@ -86,6 +90,10 @@ export type SocialNetwork =
   | 'email'
   | 'whatsapp'
   | 'spotify'
+  | 'linkedin'
+  | 'github'
+  | 'x'
+  | 'telegram'
 
 export interface SocialLink {
   network: SocialNetwork

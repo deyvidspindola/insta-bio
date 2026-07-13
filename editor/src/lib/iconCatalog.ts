@@ -47,6 +47,10 @@ export const ICON_CATALOG: IconCatalogEntry[] = [
   { id: 'link', label: 'Link', category: 'social', keywords: ['url'] },
   { id: 'globe', label: 'Site / Web', category: 'social', keywords: ['internet', 'www'] },
   { id: 'megaphone', label: 'Megafone', category: 'social', keywords: ['anuncio', 'promo'] },
+  { id: 'linkedin', label: 'LinkedIn', category: 'social' },
+  { id: 'github', label: 'GitHub', category: 'social' },
+  { id: 'x', label: 'X', category: 'social' },
+  { id: 'ifood', label: 'Ifood', category: 'social' },
 
   // Fé
   { id: 'church', label: 'Igreja', category: 'faith', keywords: ['templo'] },
@@ -118,6 +122,7 @@ export const ICON_CATALOG: IconCatalogEntry[] = [
   { id: 'dumbbell', label: 'Haltere', category: 'general', keywords: ['academia', 'fitness'] },
   { id: 'download', label: 'Download', category: 'general', keywords: ['baixar'] },
   { id: 'external', label: 'Link externo', category: 'general', keywords: ['abrir'] },
+
 ]
 
 export const ICON_OPTIONS: IconName[] = ICON_CATALOG.map((entry) => entry.id)

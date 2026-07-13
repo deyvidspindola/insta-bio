@@ -8,6 +8,10 @@ export const SOCIAL_NETWORK_OPTIONS: { value: SocialNetwork; label: string; plac
   { value: 'whatsapp', label: 'WhatsApp', placeholder: 'https://wa.me/5511999999999' },
   { value: 'email', label: 'E-mail', placeholder: 'contato@email.com' },
   { value: 'spotify', label: 'Spotify', placeholder: 'https://open.spotify.com/artist/...' },
+  { value: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/in/seuperfil' },
+  { value: 'github', label: 'GitHub', placeholder: 'https://github.com/seuperfil' },
+  { value: 'x', label: 'X', placeholder: 'https://x.com/seuperfil' },
+  { value: 'telegram', label: 'Telegram', placeholder: 'https://t.me/seuperfil' },
 ]
 
 type SocialLinksUpdater = SocialLink[] | ((prev: SocialLink[]) => SocialLink[])

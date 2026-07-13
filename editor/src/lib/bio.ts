@@ -1,8 +1,12 @@
-import type { BioConfig, BioSection, SectionItem, AppHeroPreset, AppHeroLayout } from '@bio-types'
+import type { BioBrand, BioConfig, BioSection, SectionItem, AppHeroPreset, AppHeroLayout } from '@bio-types'
 import { bioJsonUrl } from '@site/lib/publicUrl'
 import { normalizeBrandSocial } from '@site/lib/socialLinks'
+import { deriveCardGradientFromTheme } from '@site/lib/colorEngine'
 import defaultBio from '../../../bio/public/bio.default.json'
 import { APP_HERO_PRESET_LIST, createAppHero } from '@site/lib/appHeroPresets'
+
+const FALLBACK_CARD_GRADIENT =
+  'linear-gradient(135deg, oklch(0.70 0.18 55) 0%, oklch(0.55 0.19 40) 100%)'
 
 export { APP_HERO_PRESET_LIST, createAppHero }
 export type { AppHeroPreset }
@@ -196,7 +200,14 @@ export function cloneItem(item: SectionItem): SectionItem {
   return JSON.parse(JSON.stringify(item)) as SectionItem
 }
 
-export function createItem(type: SectionItem['type']): SectionItem {
+export function createItem(
+  type: SectionItem['type'],
+  theme?: BioBrand['theme'],
+): SectionItem {
+  const themeGradient = theme
+    ? deriveCardGradientFromTheme(theme)
+    : FALLBACK_CARD_GRADIENT
+
   switch (type) {
     case 'whatsapp-hero':
       return {
@@ -216,6 +227,7 @@ export function createItem(type: SectionItem['type']): SectionItem {
         description: 'Descrição do card',
         url: 'https://',
         variant: 'gradient',
+        gradient: themeGradient,
       }
     case 'link':
       return {
@@ -229,8 +241,7 @@ export function createItem(type: SectionItem['type']): SectionItem {
         type,
         title: 'Novo card',
         url: 'https://',
-        gradient:
-          'linear-gradient(135deg, oklch(0.70 0.18 55) 0%, oklch(0.55 0.19 40) 100%)',
+        gradient: themeGradient,
       }
     case 'location':
       return {

@@ -63,7 +63,9 @@ export function BioHeader({ brand }: BioHeaderProps) {
       <h1 className="mt-5 font-display text-2xl font-bold tracking-tight">{brand.name}</h1>
 
       {brand.tagline && (
-        <p className="bio-header__subtitle bio-text-secondary mt-2 max-w-xs text-sm">{brand.tagline}</p>
+        <p className="bio-header__subtitle bio-text-secondary mt-2 max-w-xs whitespace-pre-line text-sm">
+          {brand.tagline}
+        </p>
       )}
 
       {brand.location && (

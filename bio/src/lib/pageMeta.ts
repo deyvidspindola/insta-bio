@@ -8,7 +8,8 @@ export function pageTitle(brand: Pick<BioBrand, 'name'>): string {
 
 export function pageDescription(brand: Pick<BioBrand, 'name' | 'tagline'>): string {
   const name = brand.name.trim()
-  const tagline = (brand.tagline ?? '').trim()
+  // Meta description fica em uma linha — quebras da tagline viram espaço.
+  const tagline = (brand.tagline ?? '').replace(/\s+/g, ' ').trim()
 
   if (name && tagline) return `${name}. ${tagline}`
   if (name) return name

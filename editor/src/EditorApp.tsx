@@ -761,6 +761,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
 
                   <SectionEditor
                     section={config.sections[activeSection]}
+                    theme={config.brand.theme}
                     onChange={(section) => {
                       commit((prev) => {
                         const sections = [...prev.sections]

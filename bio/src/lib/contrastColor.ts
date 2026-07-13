@@ -1,3 +1,5 @@
+import { parseColor, relativeLuminance } from './colorEngine'
+
 export interface PrimarySurfaceColors {
   /** Gradiente solid — início (mais claro) */
   solidFrom: string
@@ -7,30 +9,16 @@ export interface PrimarySurfaceColors {
   fillPrimary: string
 }
 
-function parseOklchLightness(color: string): number | null {
-  const match = color.trim().match(/oklch\(\s*([\d.]+%?)/i)
-  if (!match) return null
-  const raw = match[1]
-  return raw.endsWith('%') ? parseFloat(raw) / 100 : parseFloat(raw)
-}
-
-function estimateRelativeLuminance(color: string): number {
-  const trimmed = color.trim()
-  const hexMatch = trimmed.match(/^#([0-9a-f]{3,8})$/i)
-  if (hexMatch) {
-    let hex = hexMatch[1]
-    if (hex.length === 3) hex = hex.split('').map((c) => c + c).join('')
-    const r = parseInt(hex.slice(0, 2), 16) / 255
-    const g = parseInt(hex.slice(2, 4), 16) / 255
-    const b = parseInt(hex.slice(4, 6), 16) / 255
-    const linear = [r, g, b].map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
-    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+function resolveLightness(color: string): number {
+  const parsed = parseColor(color)
+  if (parsed) return relativeLuminance(parsed)
+  // oklch / tokens: fallback conservador (não clareia demais)
+  const oklch = color.trim().match(/oklch\(\s*([\d.]+%?)/i)
+  if (oklch) {
+    const raw = oklch[1]
+    return raw.endsWith('%') ? parseFloat(raw) / 100 : parseFloat(raw)
   }
   return 0.35
-}
-
-function resolveLightness(color: string): number {
-  return parseOklchLightness(color) ?? estimateRelativeLuminance(color)
 }
 
 /**

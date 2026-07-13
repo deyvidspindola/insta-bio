@@ -2,7 +2,10 @@ import { useEffect } from 'react'
 import type { CSSProperties } from 'react'
 import type { BioConfig } from '../types/bio'
 import { resolveBackgroundPreset } from '../lib/backgroundPresets'
-import { resolveEffectiveBioBackground } from '../lib/appHeroContrast'
+import {
+  extractGradientEndColor,
+  resolveEffectiveBioBackground,
+} from '../lib/colorEngine'
 import { resolvePrimarySurfaceColors } from '../lib/contrastColor'
 import { resolveBioTemplate } from '../lib/templates'
 import { resolveCardRadiusPx } from '../lib/cardRadius'
@@ -23,11 +26,28 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
   const bgPreset = resolveBackgroundPreset(brand.theme.backgroundPreset)
   const hasBgImage = Boolean(brand.theme.backgroundImage)
   const hasBgPreset = Boolean(bgPreset) && !hasBgImage
+  const isGradientCustom =
+    !hasBgImage && !hasBgPreset && Boolean(brand.theme.background?.includes('gradient'))
   const pageBackground = resolveEffectiveBioBackground({
     background: hasBgPreset && bgPreset ? bgPreset.gradient : brand.theme.background,
     backgroundPresetColor: bgPreset?.edgeColor,
     hasBackgroundImage: hasBgImage,
   })
+
+  // Cor para a variável CSS --color-background (cards, overlays)
+  let bgColorForVars: string | undefined
+  if (hasBgImage) {
+    bgColorForVars = undefined
+  } else if (hasBgPreset) {
+    bgColorForVars = bgPreset!.edgeColor
+  } else if (isGradientCustom) {
+    const endColor = extractGradientEndColor(brand.theme.background)
+    bgColorForVars = endColor
+      ? `rgb(${Math.round(endColor.r)}, ${Math.round(endColor.g)}, ${Math.round(endColor.b)})`
+      : '#000000'
+  } else {
+    bgColorForVars = brand.theme.background
+  }
 
   const primarySurface = resolvePrimarySurfaceColors(brand.theme.primary)
 
@@ -38,11 +58,9 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
     '--bio-fill-primary': primarySurface.fillPrimary,
     '--bio-card-radius': resolveCardRadiusPx(brand.theme.cardRadius),
     ...(brand.theme.secondary ? { '--color-secondary': brand.theme.secondary } : {}),
-    ...(!hasBgImage && (hasBgPreset ? bgPreset?.edgeColor : brand.theme.background)
+    ...(!hasBgImage && bgColorForVars
       ? {
-          '--color-background': hasBgPreset
-            ? bgPreset!.edgeColor
-            : brand.theme.background,
+          '--color-background': bgColorForVars,
         }
       : {}),
   } as CSSProperties
@@ -79,7 +97,7 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
       className="relative isolate min-h-screen text-foreground"
       style={themeVars}
     >
-      {!hasBgImage && !hasBgPreset && (
+      {!hasBgImage && !hasBgPreset && !isGradientCustom && (
         <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-background" />
       )}
 
@@ -88,6 +106,14 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
           aria-hidden="true"
           className="pointer-events-none fixed inset-0 z-0"
           style={{ background: bgPreset!.gradient }}
+        />
+      )}
+
+      {isGradientCustom && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 z-0"
+          style={{ background: brand.theme.background }}
         />
       )}
 
@@ -108,7 +134,7 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
         />
       )}
 
-      {!hasBgImage && !hasBgPreset && (
+      {!hasBgImage && !hasBgPreset && !isGradientCustom && (
         <div
           aria-hidden="true"
           className="pointer-events-none fixed inset-x-0 top-0 z-[1] h-[480px]"

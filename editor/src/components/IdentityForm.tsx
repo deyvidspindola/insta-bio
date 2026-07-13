@@ -35,10 +35,15 @@ export function IdentityForm({ brand, onChange }: IdentityFormProps) {
           </div>
           <div className="field sm:col-span-2">
             <label>Tagline</label>
-            <input
+            <textarea
+              rows={3}
               value={brand.tagline ?? ''}
               onChange={(e) => onChange(syncBrandSeo(update(brand, 'tagline', e.target.value)))}
+              placeholder={'Ex.: Terça a Sexta — 11h às 18:30\nSábado e Domingo — 11h às 16h'}
             />
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              Enter cria uma nova linha na bio.
+            </p>
           </div>
           <div className="field sm:col-span-2">
             <label>Localização</label>
