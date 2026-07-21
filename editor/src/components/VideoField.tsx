@@ -20,16 +20,30 @@ function readAsBase64(file: File): Promise<string> {
   })
 }
 
+function revokeIfBlob(url: string | undefined) {
+  if (url?.startsWith('blob:')) URL.revokeObjectURL(url)
+}
+
 export function VideoField({ label, value, onChange, hint }: VideoFieldProps) {
   const isDemo = useDemoMode()
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  function setValue(next: string | undefined) {
+    if (value !== next) revokeIfBlob(value)
+    onChange(next)
+  }
+
   async function handleFile(file: File) {
     setUploading(true)
     setError(null)
     try {
+      if (isDemo) {
+        setValue(URL.createObjectURL(file))
+        return
+      }
+
       const data = await readAsBase64(file)
       const response = await fetch(ENDPOINTS.upload, {
         method: 'POST',
@@ -42,10 +56,9 @@ export function VideoField({ label, value, onChange, hint }: VideoFieldProps) {
         throw new Error(payload?.error ?? 'Falha no upload')
       }
       const result = (await response.json()) as { path: string }
-      onChange(result.path)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Falha no upload'
-      setError(message)
+      setValue(result.path)
+    } catch {
+      setError('Upload disponível apenas no editor local (npm run editor). Informe o caminho manualmente.')
     } finally {
       setUploading(false)
     }
@@ -72,21 +85,19 @@ export function VideoField({ label, value, onChange, hint }: VideoFieldProps) {
 
         <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            {!isDemo && (
-              <button
-                type="button"
-                className="btn-secondary px-3 py-1.5 text-xs"
-                disabled={uploading}
-                onClick={() => inputRef.current?.click()}
-              >
-                {uploading ? 'Enviando…' : 'Enviar vídeo'}
-              </button>
-            )}
+            <button
+              type="button"
+              className="btn-secondary px-3 py-1.5 text-xs"
+              disabled={uploading}
+              onClick={() => inputRef.current?.click()}
+            >
+              {uploading ? 'Enviando…' : 'Enviar vídeo'}
+            </button>
             {value && (
               <button
                 type="button"
                 className="btn-danger inline-flex shrink-0 items-center justify-center px-3 py-1.5"
-                onClick={() => onChange(undefined)}
+                onClick={() => setValue(undefined)}
                 title="Remover vídeo"
                 aria-label="Remover vídeo"
               >
@@ -98,7 +109,7 @@ export function VideoField({ label, value, onChange, hint }: VideoFieldProps) {
           <input
             type="text"
             value={value ?? ''}
-            onChange={(e) => onChange(e.target.value || undefined)}
+            onChange={(e) => setValue(e.target.value || undefined)}
             placeholder="assets/video.mp4"
             className="text-xs"
           />
@@ -120,7 +131,7 @@ export function VideoField({ label, value, onChange, hint }: VideoFieldProps) {
       {error && <p className="mt-1 text-[10px] text-red-400">{error}</p>}
       {isDemo && !error && (
         <p className="mt-1 text-[10px] text-muted-foreground/70">
-          Na versão completa você envia vídeos pelo editor.
+          Upload válido só nesta sessão — some ao recarregar.
         </p>
       )}
       {hint && !error && !isDemo && <p className="mt-1 text-[10px] text-muted-foreground/70">{hint}</p>}

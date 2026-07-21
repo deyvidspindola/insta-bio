@@ -114,7 +114,14 @@ export function publicBase(): string {
 /** Resolve caminhos de imagens/vídeos do bio.json para a URL correta no deploy. */
 export function resolvePublicUrl(path: string | undefined): string {
   if (!path) return ''
-  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  if (
+    path.startsWith('http://') ||
+    path.startsWith('https://') ||
+    path.startsWith('blob:') ||
+    path.startsWith('data:')
+  ) {
+    return path
+  }
 
   const clean = path.replace(/^\//, '')
   return pageRelativeUrl(`${bioAssetsPrefix()}${clean}`)

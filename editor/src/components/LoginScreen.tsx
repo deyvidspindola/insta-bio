@@ -13,13 +13,14 @@ function prefillUsername(): string {
 }
 
 export function LoginScreen({ onSuccess }: Props) {
-  const [username, setUsername] = useState(prefillUsername)
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const passwordRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (username) passwordRef.current?.focus()
-  }, [username])
+    setUsername(prefillUsername())
+    passwordRef.current?.focus()
+  }, [])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
