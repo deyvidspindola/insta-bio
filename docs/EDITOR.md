@@ -23,7 +23,7 @@ make dev-all         # bio + editor + panel + site
 |---------|-----------|
 | **Marca** | Nome, logo, redes sociais, cores, SEO, rodapé |
 | **Seções** | Criar, editar, excluir, reordenar (arrastar) |
-| **Cards** | WhatsApp hero, feature, link, vídeo, produtos, slides, Spotify, YouTube, localização |
+| **Cards** | Texto, lista, WhatsApp hero, feature, link, vídeo, produtos, slides, Spotify, YouTube, localização |
 | **Preview ao vivo** | Iframe com a mesma resolução de URLs da bio pública |
 | **Upload** | Imagens e vídeos → pasta `assets/` ao lado do `bio.json` |
 | **Salvar** | Grava rascunho (`bio.draft.json`) — não altera a bio pública |

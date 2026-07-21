@@ -315,6 +315,41 @@ export interface SpotifyEmbedCard {
   schedule?: CardSchedule
 }
 
+export type TextAlignment = 'left' | 'center' | 'right' | 'justify'
+
+/** Bloco de texto livre, sem superfície de card. */
+export interface TextBlock {
+  type: 'text'
+  /** Limite aplicado também no editor. */
+  text: string
+  align?: TextAlignment
+  bold?: boolean
+  italic?: boolean
+  underline?: boolean
+  /** Texto mantém fundo transparente por padrão. */
+  backgroundMode?: 'template' | 'transparent' | 'custom'
+  backgroundColor?: string
+  /** Opacidade somente do fundo, de 0 a 100. */
+  backgroundOpacity?: number
+  schedule?: CardSchedule
+}
+
+export type ListStyle = 'number' | 'bullet' | 'letter' | 'plain'
+
+/** Lista com superfície de card e marcadores configuráveis. */
+export interface ListCard {
+  type: 'list'
+  title?: string
+  items: string[]
+  style?: ListStyle
+  /** Superfície padrão do template, sem fundo, ou cor personalizada. */
+  backgroundMode?: 'template' | 'transparent' | 'custom'
+  backgroundColor?: string
+  /** Opacidade somente do fundo, de 0 a 100. */
+  backgroundOpacity?: number
+  schedule?: CardSchedule
+}
+
 export interface BioSection {
   id: string
   title: string
@@ -336,6 +371,8 @@ export type SectionItem =
   | ProductsCard
   | YoutubeEmbedCard
   | SpotifyEmbedCard
+  | TextBlock
+  | ListCard
 
 export interface BioConfig {
   brand: BioBrand

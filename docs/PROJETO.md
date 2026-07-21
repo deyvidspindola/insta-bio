@@ -163,6 +163,8 @@ Schema TypeScript do JSON. Atualize ao adicionar campos ou tipos de card.
 | `WhatsAppHeroCard.tsx` | `whatsapp-hero` | Card verde do WhatsApp |
 | `FeatureCard.tsx` | `feature` | Variantes gradient, square, compact, portrait, banner |
 | `LinkCard.tsx` | `link` | Linha com ícone + título |
+| `TextBlock.tsx` | `text` | Texto livre com alinhamento e formatação |
+| `ListCard.tsx` | `list` | Lista com números, pontos, letras ou sem marcador |
 | `VideoCard.tsx` | `video` | Vídeo com mute estilo Reels |
 | `ProductsCard.tsx` | `products` | Grade de produtos |
 | `SlideCard.tsx` | `slides` | Carrossel de imagens/vídeos |

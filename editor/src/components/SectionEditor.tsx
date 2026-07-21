@@ -151,9 +151,13 @@ export function SectionEditor({
   const pendingItemTitle =
     pendingItem && 'title' in pendingItem && pendingItem.title
       ? pendingItem.title
-      : pendingItem
-        ? 'este card'
-        : ''
+      : pendingItem?.type === 'text'
+        ? pendingItem.text.trim() || 'este texto'
+        : pendingItem?.type === 'list'
+          ? pendingItem.items.find((entry) => entry.trim())?.trim() || 'esta lista'
+          : pendingItem
+            ? 'este card'
+            : ''
 
   return (
     <div className="min-w-0 space-y-4">

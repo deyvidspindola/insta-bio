@@ -7,10 +7,12 @@ import { AppHeroCard } from './AppHeroCard'
 import { FeatureCard } from './FeatureCard'
 import { GridCard } from './GridCard'
 import { LinkCard } from './LinkCard'
+import { ListCard } from './ListCard'
 import { LocationCard } from './LocationCard'
 import { ProductsCard } from './ProductsCard'
 import { SlideCard } from './SlideCard'
 import { SpotifyEmbedCard } from './SpotifyEmbedCard'
+import { TextBlock } from './TextBlock'
 import { VideoCard } from './VideoCard'
 import { YoutubeEmbedCard } from './YoutubeEmbedCard'
 
@@ -87,6 +89,9 @@ function itemTrackLabel(item: SectionItem): string | undefined {
   }
   if ('badge' in item && typeof item.badge === 'string' && item.badge.trim()) {
     return item.badge.trim()
+  }
+  if ('text' in item && typeof item.text === 'string' && item.text.trim()) {
+    return item.text.trim().slice(0, 80)
   }
   return undefined
 }
@@ -256,6 +261,28 @@ function renderItem(
         style: delay,
         ...scheduleProps,
         children: <SpotifyEmbedCard item={item} />,
+      })
+    case 'text':
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
+        className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
+        style: delay,
+        ...scheduleProps,
+        children: <TextBlock item={item} pageBackground={pageBackground} />,
+      })
+    case 'list':
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
+        className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
+        style: delay,
+        ...scheduleProps,
+        children: <ListCard item={item} pageBackground={pageBackground} />,
       })
     default:
       return null

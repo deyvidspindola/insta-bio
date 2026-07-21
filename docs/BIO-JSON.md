@@ -124,6 +124,8 @@ Todo card precisa do campo `"type"`. Os tipos disponíveis hoje:
 | `app-hero` | Destaque padronizado por app (WhatsApp, YouTube, Instagram, Formulário, Telegram, Personalizado) |
 | `feature` | Card de destaque (gradiente, quadrado, compacto, retrato, banner) |
 | `link` | Card simples com ícone, título e subtítulo |
+| `text` | Bloco de texto livre com alinhamento e formatação |
+| `list` | Card de lista com marcadores configuráveis |
 | `location` | Endereço com link para o mapa |
 | `grid` | **Legado** — use `feature` com `variant: "square"` |
 
@@ -161,6 +163,67 @@ Opcional em **qualquer** card. Controla quando o item aparece na **bio pública*
 | `from` + `until` | Visível enquanto `from <= agora < until` |
 
 No editor: ative **Agendar exibição** no card para editar data/hora de início e fim.
+
+---
+
+### `text`
+
+Bloco de texto livre, sem fundo de card. Aceita até **300 caracteres** e usa automaticamente uma cor legível de acordo com o fundo do template.
+
+```json
+{
+  "type": "text",
+  "text": "Um texto livre para apresentar informações importantes.",
+  "align": "justify",
+  "bold": false,
+  "italic": false,
+  "underline": false,
+  "backgroundMode": "transparent",
+  "backgroundOpacity": 100
+}
+```
+
+| Campo | Obrigatório | Valores |
+|-------|-------------|---------|
+| `text` | Sim | Texto com até 300 caracteres |
+| `align` | Não | `left` (padrão), `center`, `right`, `justify` |
+| `bold` | Não | `true` para negrito |
+| `italic` | Não | `true` para itálico |
+| `underline` | Não | `true` para sublinhado |
+| `backgroundMode` | Não | `transparent` (padrão), `template`, `custom` |
+| `backgroundColor` | Se personalizado | Cor CSS usada no fundo |
+| `backgroundOpacity` | Não | Opacidade do fundo entre 0 e 100 |
+
+A formatação é aplicada ao bloco inteiro. HTML inserido no texto não é interpretado.
+
+### `list`
+
+Card para listas. O título é opcional e os itens vazios não aparecem na bio.
+
+```json
+{
+  "type": "list",
+  "title": "O que você vai encontrar",
+  "style": "letter",
+  "backgroundMode": "custom",
+  "backgroundColor": "#1f2937",
+  "backgroundOpacity": 80,
+  "items": [
+    "Conteúdo exclusivo",
+    "Atualizações semanais",
+    "Contato com a comunidade"
+  ]
+}
+```
+
+| Campo | Obrigatório | Valores |
+|-------|-------------|---------|
+| `title` | Não | Título do card |
+| `items` | Sim | Array de textos |
+| `style` | Não | `number`, `bullet` (padrão), `letter`, `plain` |
+| `backgroundMode` | Não | `template` (padrão), `transparent`, `custom` |
+| `backgroundColor` | Se personalizado | Cor CSS usada quando `backgroundMode` é `custom` |
+| `backgroundOpacity` | Não | Opacidade do fundo entre 0 e 100 |
 
 ---
 

@@ -26,6 +26,16 @@ export const CARD_WIDTH_OPTIONS = [
 
 export const CARD_TYPES = [
   {
+    value: 'text',
+    label: 'Texto',
+    hint: 'Texto livre com alinhamento e formatação.',
+  },
+  {
+    value: 'list',
+    label: 'Lista',
+    hint: 'Lista com números, pontos, letras ou sem marcador.',
+  },
+  {
     value: 'feature',
     label: 'Destaque',
     hint: 'Card visual com cor, imagem ou gradiente — o mais versátil.',
@@ -283,6 +293,19 @@ export function createItem(
         type,
         title: '',
         embed: '',
+      }
+    case 'text':
+      return {
+        type,
+        text: 'Digite seu texto aqui.',
+        align: 'left',
+      }
+    case 'list':
+      return {
+        type,
+        title: 'Nova lista',
+        style: 'bullet',
+        items: ['Primeiro item', 'Segundo item'],
       }
     default:
       return {
