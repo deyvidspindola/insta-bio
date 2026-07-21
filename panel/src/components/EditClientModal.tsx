@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { validateSlug, normalizeSlug } from '@shared/lib/reservedSlugs'
-import { updateClient, type Client } from '../lib/clients'
+import { deployPathToInput, updateClient, type Client } from '../lib/clients'
 
 type Props = {
   client: Client | null
@@ -12,6 +12,9 @@ export function EditClientModal({ client, onClose, onUpdated }: Props) {
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [email, setEmail] = useState('')
+  const [selfHosted, setSelfHosted] = useState(false)
+  const [allowedHost, setAllowedHost] = useState('')
+  const [deployPath, setDeployPath] = useState('/')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -20,6 +23,9 @@ export function EditClientModal({ client, onClose, onUpdated }: Props) {
     setName(client.name)
     setSlug(client.slug)
     setEmail(client.email)
+    setSelfHosted(Boolean(client.self_hosted))
+    setAllowedHost(client.allowed_host ?? '')
+    setDeployPath(deployPathToInput(client.deploy_path))
     setError(null)
   }, [client])
 
@@ -28,13 +34,28 @@ export function EditClientModal({ client, onClose, onUpdated }: Props) {
   const slugPreview = normalizeSlug(slug)
   const slugError = slugPreview ? validateSlug(slugPreview) : null
   const slugChanged = slugPreview !== client.slug
+  const hostingError = selfHosted
+    ? !allowedHost.trim()
+      ? 'Informe o domínio autorizado'
+      : !deployPath.trim()
+        ? 'Informe a pasta no domínio'
+        : null
+    : null
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setLoading(true)
     try {
-      await updateClient({ id: client.id, name, slug, email })
+      await updateClient({
+        id: client.id,
+        name,
+        slug,
+        email,
+        selfHosted,
+        allowedHost: selfHosted ? allowedHost : undefined,
+        deployPath: selfHosted ? deployPath : undefined,
+      })
       onUpdated()
       onClose()
     } catch (err) {
@@ -50,7 +71,7 @@ export function EditClientModal({ client, onClose, onUpdated }: Props) {
       <div className="modal-panel">
         <h2 className="text-lg font-semibold">Editar cliente</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Altere nome, e-mail ou slug. A URL pública muda junto com o slug.
+          Altere nome, e-mail, slug ou configuração de hospedagem.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
@@ -65,7 +86,7 @@ export function EditClientModal({ client, onClose, onUpdated }: Props) {
           </div>
 
           <div className="field mb-0">
-            <label htmlFor="edit-client-slug">Slug (URL)</label>
+            <label htmlFor="edit-client-slug">Slug (URL na plataforma)</label>
             <input
               id="edit-client-slug"
               value={slug}
@@ -82,6 +103,52 @@ export function EditClientModal({ client, onClose, onUpdated }: Props) {
           </div>
 
           <div className="field mb-0">
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={selfHosted}
+                onChange={(e) => setSelfHosted(e.target.checked)}
+              />
+              <span>
+                <span className="font-medium">Hospedagem própria</span>
+                <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                  Ative para permitir exportar ZIP e rodar em domínio do cliente.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          {selfHosted && (
+            <>
+              <div className="field mb-0">
+                <label htmlFor="edit-client-allowed-host">Domínio autorizado</label>
+                <input
+                  id="edit-client-allowed-host"
+                  value={allowedHost}
+                  onChange={(e) => setAllowedHost(e.target.value)}
+                  placeholder="cliente.com.br"
+                  required={selfHosted}
+                />
+              </div>
+
+              <div className="field mb-0">
+                <label htmlFor="edit-client-deploy-path">Pasta no domínio</label>
+                <input
+                  id="edit-client-deploy-path"
+                  value={deployPath}
+                  onChange={(e) => setDeployPath(e.target.value)}
+                  placeholder="/ ou links"
+                  required={selfHosted}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Caminho onde o ZIP será extraído. Use <code className="text-xs">/</code> para raiz.
+                </p>
+              </div>
+            </>
+          )}
+
+          <div className="field mb-0">
             <label htmlFor="edit-client-email">E-mail (login do editor)</label>
             <input
               id="edit-client-email"
@@ -92,6 +159,7 @@ export function EditClientModal({ client, onClose, onUpdated }: Props) {
             />
           </div>
 
+          {hostingError && <p className="text-sm text-red-400">{hostingError}</p>}
           {error && <p className="text-sm text-red-400">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-2">
@@ -101,7 +169,7 @@ export function EditClientModal({ client, onClose, onUpdated }: Props) {
             <button
               type="submit"
               className="btn-primary"
-              disabled={loading || Boolean(slugError)}
+              disabled={loading || Boolean(slugError) || Boolean(hostingError)}
             >
               {loading ? 'Salvando…' : 'Salvar'}
             </button>

@@ -1,0 +1,23 @@
+# Links na Bio — bio pública do cliente (/{slug}/)
+Options -Indexes -MultiViews
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Cliente suspenso
+  RewriteCond %{REQUEST_URI} !/suspended\.html$ [NC]
+  RewriteCond .suspended -f
+  RewriteRule ^ suspended.html [L]
+
+  # /editor sem barra → /editor/
+  RewriteRule ^editor$ editor/ [R=301,L]
+</IfModule>
+
+# bio.json sempre fresco após salvar no editor
+<Files "bio.json">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </IfModule>
+</Files>

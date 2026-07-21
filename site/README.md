@@ -1,10 +1,11 @@
-# Site comercial — insta-bio
+# Site comercial — links na bio
 
-Landing page baseada no template **NextSaaS** (`home-page-22.html`), renderizada em **React** com o HTML/CSS/JS originais do template.
+Landing page em **React**, usando o template NextSaaS renderizado a partir de `src/template-home.html`.
 
 ## Desenvolvimento
 
 ```bash
+cd site
 npm install
 npm run dev    # http://localhost:5190
 ```
@@ -12,32 +13,42 @@ npm run dev    # http://localhost:5190
 Na raiz do monorepo:
 
 ```bash
-make site
+make site          # só a landing
+make dev-all       # landing + bio + editor + painel
 ```
+
+**Demo do editor:** com `make dev-all` ou `make editor`, abra [http://localhost:5180/demo.html](http://localhost:5180/demo.html). Os CTAs da landing apontam para essa URL em desenvolvimento.
 
 ## Conteúdo e personalização
 
 | Arquivo | O que mudar |
 |---------|-------------|
-| `src/template-home.html` | Textos, seções e links da landing |
-| `src/config.ts` | WhatsApp e Instagram (referência) |
-| `scripts/patch-content.py` | Script usado para aplicar a copy comercial inicial |
+| `site/src/template-home.html` | Textos, seções, FAQ, hero |
+| `site/src/config.ts` | WhatsApp, `DEMO_URL`, Instagram |
+| `editor/public/demo-bio.json` | Bio carregada no modo demonstração |
 
-Os CTAs principais apontam para WhatsApp (`5519999999999` — troque pelo seu número).
+Scripts opcionais de conteúdo (one-off): `site/scripts/apply-landing-brief.py`, `optimize-landing.py`, `patch-content.py`.
 
-## Assets do template
+## Assets
 
-Os arquivos estáticos ficam em `public/template/`:
-
-- `assets/main.css` — estilos compilados do NextSaaS
-- `assets/main.js` — animações e interações
-- `vendor/` — GSAP, Swiper, Stack Cards, etc.
-- `images/` — imagens do home-page-22
-
-Logo do produto: `public/logo-instabio.svg`
+| Pasta | Uso |
+|-------|-----|
+| `site/public/images/` | Imagens da landing (previews do editor, features) |
+| `site/public/logo-instabio.svg` | Logo do produto |
+| `site/public/template/assets/` | CSS/JS compilados do NextSaaS |
+| `site/public/template/vendor/` | GSAP, Swiper, etc. |
+| `site/public/template/images/gradient/` | Fundos referenciados no CSS |
+| `site/public/template/images/icons/` | Ícones do template |
 
 ## Build
 
 ```bash
-npm run build    # gera site/dist/
+npm run site:build    # → site/dist/
 ```
+
+Em produção na plataforma, a landing entra em `platform-release/` na raiz do domínio. Para demo do editor, inclua também `editor/dist/demo.html` e assets do editor (ver `npm run build:platform`).
+
+## Documentação
+
+- [README.md](../README.md) — visão geral do monorepo
+- [MELHORIAS.md](../docs/MELHORIAS.md) — roadmap da landing

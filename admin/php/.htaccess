@@ -1,8 +1,0 @@
-# Impede que os arquivos de configuração sejam servidos como download.
-# (Mesmo como PHP eles não vazam conteúdo, mas reforçamos o bloqueio.)
-<FilesMatch "^(auth\.config|auth\.config\.example)\.php$">
-  Require all denied
-</FilesMatch>
-
-# Sem listagem de diretório
-Options -Indexes

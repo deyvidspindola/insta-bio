@@ -1,0 +1,28 @@
+{
+  "brand": {
+    "name": "Meu Link na Bio",
+    "tagline": "",
+    "location": "",
+    "instagram": {
+      "handle": "",
+      "url": ""
+    },
+    "socialLinks": [
+      {
+        "network": "instagram",
+        "url": ""
+      }
+    ],
+    "logo": "",
+    "theme": {
+      "primary": "oklch(0.72 0.16 55)",
+      "glow": "oklch(0.70 0.18 55 / 0.28)"
+    },
+    "seo": {
+      "title": "Meu Link na Bio",
+      "description": "Meu Link na Bio"
+    },
+    "footer": "© 2026"
+  },
+  "sections": []
+}

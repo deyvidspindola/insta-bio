@@ -1,213 +1,144 @@
 # Deploy na HostGator — passo a passo
 
-Guia completo para publicar o **site da bio** e o **editor online** em hospedagem compartilhada HostGator (sem Node, sem banco de dados).
+Guia para publicar o **site da bio** e o **editor** em hospedagem compartilhada (sem Node, sem MySQL no cliente).
 
 ---
 
 ## O que você vai publicar
 
-| Parte | URL típica | Tecnologia no servidor |
-|-------|------------|------------------------|
-| Site da bio (público) | `https://seudominio.com/` | HTML + JS + `bio.json` (estático) |
-| Editor (protegido) | `https://seudominio.com/editor/` | React compilado + **PHP** |
+| Parte | URL típica | Tecnologia |
+|-------|------------|------------|
+| Bio pública | `https://seudominio.com/` | HTML + JS estático + `bio.json` |
+| Editor | `https://seudominio.com/editor/` | React compilado + **PHP** |
 
-O build é feito **no seu computador** (precisa de Node.js). Na HostGator você só sobe arquivos prontos via FTP ou Gerenciador de Arquivos.
+O build roda **no seu computador** (Node.js). Na HostGator você envia arquivos prontos via FTP ou Gerenciador de Arquivos.
 
 ---
 
 ## Pré-requisitos
 
-### No seu computador (uma vez)
+### No computador
 
-- [Node.js](https://nodejs.org/) 20+ instalado
-- Este repositório clonado ou baixado
-- Terminal na pasta do projeto
+- [Node.js](https://nodejs.org/) 20+
+- Repositório clonado
 
 ```bash
 cd insta-bio
-npm install
-npm install --prefix admin
+make install
+# ou: npm install --prefix bio && npm install --prefix editor
 ```
 
 ### Na HostGator
 
-- Plano com **PHP** (todos os compartilhados têm)
-- Acesso ao **cPanel** (FTP ou Gerenciador de Arquivos)
-- Domínio apontando para a hospedagem
-- **SSL ativo** (Let's Encrypt grátis no cPanel → SSL/TLS)
+- PHP habilitado
+- cPanel (FTP ou Gerenciador de Arquivos)
+- Domínio com **SSL** (Let's Encrypt no cPanel)
 
 ---
 
-## Passo 1 — Configurar o caminho público (se não for a raiz do domínio)
+## Passo 1 — Caminho público (se não for a raiz)
 
-Se a bio ficar em uma **subpasta** (ex.: `https://dmta.dev.br/insta-bio/`), defina o `basePath` **antes** do build:
+Se a bio ficar em subpasta (`https://dominio.com/insta-bio/`):
 
 ```bash
 cp deploy.config.example.json deploy.config.json
 ```
 
-Edite `deploy.config.json`:
-
 ```json
-{
-  "basePath": "/insta-bio/"
-}
+{ "basePath": "/insta-bio/" }
 ```
 
-Ou passe na hora do build:
+Ou: `make package BASE_PATH=/insta-bio`
 
-```bash
-make package BASE_PATH=/insta-bio
-```
-
-Para a **raiz do domínio** (`https://cliente.com.br/`), use `"/"` ou omita o arquivo.
+Para a **raiz do domínio**, use `"/"` ou omita o arquivo.
 
 ---
 
-## Passo 2 — Gerar o pacote de deploy (recomendado)
-
-Na raiz do projeto:
+## Passo 2 — Gerar o pacote (recomendado)
 
 ```bash
 make package
 # ou: npm run build:package
 ```
 
-Isso cria a pasta **`release/`** com **tudo junto**:
+Cria **`release/`** com bio + editor:
 
 ```
 release/
-├── index.html          ← bio pública
+├── index.html
 ├── bio.json
+├── bio-path.json      (se configurado no editor)
+├── bio-json.php       (proxy opcional)
 ├── assets/
-└── editor/             ← painel + PHP
+└── editor/
     ├── index.html
     ├── login.php
-    └── ...
+    └── …
 ```
 
-Suba **todo o conteúdo** de `release/` para a pasta correspondente no servidor.
-
-**Exemplo:** para `https://dmta.dev.br/insta-bio/` → envie para `public_html/insta-bio/` no FTP.
+Suba **todo o conteúdo** de `release/` para a pasta do domínio no servidor.
 
 ---
 
 ## Passo 2 (alternativo) — Builds separados
 
 ```bash
-npm run build                  # → dist/
-npm run admin:hostgator        # → admin/dist/
+npm run build              # → dist/ na raiz do repo
+npm run editor:hostgator   # → editor/dist/
 ```
 
-Use `make package-split` se preferir subir `dist/` e `admin/dist/` separadamente (modo legado).
+| Local | Remoto |
+|-------|--------|
+| `dist/*` | `public_html/` |
+| `editor/dist/*` | `public_html/editor/` |
 
 ---
 
-## Passo 3 — Gerar só o site (alternativo antigo)
+## Passo 3 — Login do editor
 
-Na raiz do projeto:
-
-```bash
-npm run build
-```
-
-Isso cria a pasta **`dist/`** com:
-
-```
-dist/
-├── index.html
-├── bio.json          ← copiado de public/bio.json
-├── assets/           ← imagens
-└── assets/*.js, *.css
-```
-
-> Antes do build, confira se `public/bio.json` e `public/assets/` já estão com o conteúdo do cliente.
-
----
-
-## Passo 2 — Configurar login do editor
-
-### 2.1 Gerar hash da senha
+### 3.1 Hash da senha
 
 ```bash
-npm run hash-password --prefix admin -- "SenhaForteDoCliente123"
+make hash-password PASSWORD="SenhaForteDoCliente123"
+# ou: npm run hash-password --prefix editor -- "SenhaForteDoCliente123"
 ```
 
-O terminal imprime uma linha como:
+### 3.2 `auth.config.php`
+
+```bash
+cp editor/php/auth.config.example.php editor/php/auth.config.php
+```
+
+Edite `editor/php/auth.config.php`:
 
 ```php
-define('AUTH_PASSWORD_HASH', '$2a$10$...');
-```
-
-Copie essa linha.
-
-### 2.2 Criar `auth.config.php`
-
-```bash
-cp admin/php/auth.config.example.php admin/php/auth.config.php
-```
-
-Edite `admin/php/auth.config.php`:
-
-```php
-define('AUTH_USERNAME', 'admin');           // ou o usuário que preferir
-define('AUTH_PASSWORD_HASH', '$2a$10$...'); // cole o hash gerado
+define('AUTH_USERNAME', 'admin');
+define('AUTH_PASSWORD_HASH', '$2a$10$...'); // hash gerado
 define('BIO_JSON_PATH', __DIR__ . '/../bio.json');
 define('ASSETS_DIR', __DIR__ . '/../assets');
 ```
 
-> **Nunca** commite `auth.config.php` no Git. Ele fica só no servidor.
+> Não commite `auth.config.php`. No servidor, preserve este arquivo ao atualizar o editor.
 
-Os caminhos `BIO_JSON_PATH` e `ASSETS_DIR` assumem que o editor fica em `public_html/editor/` e o site na raiz. Só altere se usar outra estrutura.
+Caminhos padrão: editor em `/editor/`, bio na raiz. Se o `bio.json` ficar em subpasta (ex.: `painel/bio.json`), configure no editor → **Configurações** → caminho do arquivo — isso atualiza `auth.config.php` e gera `bio-path.json`.
 
 ---
 
-## Passo 3 — Gerar o pacote do editor
+## Passo 4 — Build do editor
 
 ```bash
-npm run admin:hostgator
+npm run editor:hostgator
 ```
 
-Isso compila o editor React e copia os arquivos PHP para **`admin/dist/`**:
-
-```
-admin/dist/
-├── index.html
-├── preview.html
-├── assets/
-├── login.php
-├── logout.php
-├── session.php
-├── save.php
-├── upload.php
-├── auth.config.php      ← se você criou no passo 2
-├── auth.config.example.php
-└── .htaccess
-```
-
-Se aparecer aviso de que falta `auth.config.php`, volte ao passo 2 e rode o comando de novo.
+Gera `editor/dist/` com HTML, JS, PHP e `.htaccess`.
 
 ---
 
-## Passo 4 — Enviar para a HostGator
+## Passo 5 — Enviar para a HostGator
 
-### Via Gerenciador de Arquivos (cPanel)
-
-1. Acesse **cPanel → Gerenciador de Arquivos**
-2. Abra a pasta **`public_html`** (ou a pasta do domínio/addon)
-3. **Site da bio (raiz):**
-   - Envie **todo o conteúdo** de `dist/` (não a pasta `dist` em si)
-   - Deve ficar: `public_html/index.html`, `public_html/bio.json`, `public_html/assets/...`
-4. **Editor:**
-   - Crie a pasta `public_html/editor/`
-   - Envie **todo o conteúdo** de `admin/dist/` para dentro de `editor/`
-
-### Via FTP (FileZilla, etc.)
-
-| Local no PC | Remoto na HostGator |
-|-------------|---------------------|
-| `dist/*` | `/public_html/` |
-| `admin/dist/*` | `/public_html/editor/` |
+1. **Bio:** conteúdo de `dist/` ou `release/` (raiz) → `public_html/`
+2. **Editor:** conteúdo de `editor/dist/` → `public_html/editor/`
+3. Confirme `auth.config.php` e permissões de escrita em `bio.json` e `assets/`
 
 ---
 
@@ -215,110 +146,121 @@ Se aparecer aviso de que falta `auth.config.php`, volte ao passo 2 e rode o coma
 
 ```
 public_html/
-├── index.html              ← site da bio
+├── index.html
+├── index.php              (clientes da plataforma — licença)
 ├── bio.json
+├── bio-path.json          (opcional — caminho customizado)
+├── bio-json.php           (opcional — proxy PHP)
 ├── assets/
-│   ├── logo-expressar.jpeg
-│   └── ...
-├── favicon.svg             (se houver no build)
 └── editor/
     ├── index.html
-    ├── assets/
+    ├── platform-api.json  (clientes com login no painel central)
+    ├── auth.config.php
     ├── login.php
     ├── save.php
+    ├── publish.php
     ├── upload.php
-    ├── session.php
-    ├── logout.php
-    ├── auth.config.php
     └── .htaccess
 ```
 
 ---
 
-## Passo 5 — Testar
+## Passo 6 — Testar
 
-| Teste | URL | Resultado esperado |
-|-------|-----|-------------------|
-| Site público | `https://seudominio.com/` | Página da bio carrega |
-| Editor | `https://seudominio.com/editor/` | Tela de login |
-| Login | usuário + senha do `auth.config.php` | Abre o editor |
-| Salvar | Editar texto → **Salvar** | `bio.json` atualiza no servidor |
-| Upload | Enviar imagem no editor | Arquivo em `/assets/` |
-| Site após salvar | Recarregar a raiz | Mudança visível (pode precisar Ctrl+F5) |
-
----
-
-## Fluxo do dia a dia (cliente editando)
-
-1. Acessar `https://seudominio.com/editor/`
-2. Fazer login
-3. Editar Marca, Seções, cards
-4. Clicar em **Salvar**
-5. Abrir `https://seudominio.com/` e conferir
-
-Não é necessário rebuild nem FTP para mudanças de texto, links ou imagens enviadas pelo editor.
+| Teste | URL | Esperado |
+|-------|-----|----------|
+| Bio pública | `/` | Página carrega |
+| Editor | `/editor/` | Login |
+| Salvar | Editar → **Salvar** | `bio.draft.json` (rascunho) |
+| Publicar | **Publicar** | `bio.json` atualizado |
+| Upload | Enviar imagem | Arquivo em `assets/` |
+| Preview | Painel lateral | Imagens e vídeos corretos |
 
 ---
 
-## Atualizar o código (nova versão do template)
+## Bio em subpasta (ex.: `painel/bio.json`)
 
-Quando você melhorar o template no repositório:
+Alguns clientes guardam o JSON fora da raiz:
+
+1. No editor → **Configurações** → informe o caminho absoluto ou relativo
+2. Salve — gera `bio-path.json` na raiz e atualiza `auth.config.php`
+3. Assets ficam na **mesma pasta** do JSON (`painel/assets/`)
+4. Suba `bio-json.php` na raiz se a URL direta do JSON não funcionar
+
+A bio pública lê o caminho nesta ordem: `__BIO_JSON_PATH__` (index.php) → `bio-path.json` → `bio-json.php` → `bio.json`.
+
+---
+
+## Atualizar template (nova versão)
+
+### Clientes single-tenant (domínio próprio) — atualização pelo editor
+
+A partir da versão com suporte a updates remotos, o cliente pode atualizar sem FTP:
+
+1. Entre no editor → **Configurações**
+2. Clique em **Buscar atualizações**
+3. Se houver versão nova, clique em **Atualizar agora**
+
+O sistema baixa o pacote assinado da plataforma, valida o SHA-256, faz backup em `editor/.update-backup/` e substitui os arquivos do template **preservando** `bio.json`, `assets/` (imagens), `auth.config.php` e `update-state.json` (reescrito ao final).
+
+Se algo falhar, o backup permanece para restauração manual (copiar de volta os arquivos de `editor/.update-backup/YYYYMMDD_HHMMSS/`).
+
+Detalhes técnicos ficam em **`editor/update.log`** (bloqueado no HTTP). Em caso de erro no check/apply, abra esse arquivo via FTP/SSH para ver a causa (checksum, download, licença, etc.).
+
+### Atualização manual via FTP (legado / emergência)
 
 ```bash
 npm run build
-npm run admin:hostgator
+npm run editor:hostgator
+# opcional — gera ZIP para a plataforma servir aos clientes self-hosted:
+npm run build:update-package
 ```
 
-Depois, por FTP:
+Por FTP:
 
-1. Substitua os arquivos do site em `public_html/` (**exceto** `bio.json` e `assets/` do cliente, se quiser preservar)
-2. Substitua os arquivos em `public_html/editor/` (**preserve** `auth.config.php` do cliente)
+1. Substitua arquivos da bio (**preserve** `bio.json`, `assets/`, `bio-path.json`)
+2. Substitua arquivos do editor (**preserve** `auth.config.php`)
+
+Checklist completo de release: [ATUALIZACOES-REMOTAS.md](./ATUALIZACOES-REMOTAS.md).
 
 ---
 
 ## Problemas comuns
 
-### Página em branco no site
+### Página em branco / erro ao carregar bio.json
 
-- Confira se `index.html` está na raiz de `public_html`, não dentro de uma subpasta extra
-- Abra o Console do navegador (F12) e veja erros de caminho de JS/CSS
+- Confira `bio-path.json` e `auth.config.php` (caminho do JSON)
+- Verifique se `bio-json.php` existe na raiz
+- Console do navegador (F12) — erros de caminho JS/CSS
 
-### Editor: erro 500 ao salvar ou fazer login
+### Editor: erro 500
 
-- PHP ativo? (HostGator compartilhada: sim)
-- `auth.config.php` existe em `editor/`?
-- Permissões: pastas `755`, arquivos `644`; `bio.json` e pasta `assets/` precisam ser **graváveis** pelo PHP (geralmente `644` no json e `755` em assets)
+- `auth.config.php` presente?
+- Permissões: pastas `755`, arquivos `644`; `bio.json` e `assets/` graváveis
 
-Para permissões no cPanel: clique com botão direito no arquivo → **Alterar permissões**.
+### Imagens não carregam na bio (mas funcionam no preview)
+
+- Assets devem estar na **mesma pasta** do `bio.json` (`painel/assets/` se JSON está em `painel/`)
+- Re-salve o caminho no editor para regenerar `bio-path.json`
+- Suba build novo da bio (`npm run build`)
 
 ### Salvar não reflete no site
 
-- O `BIO_JSON_PATH` em `auth.config.php` deve apontar para o `bio.json` da raiz (`../bio.json` se editor está em `/editor/`)
-- Limpe cache do navegador (Ctrl+F5)
+- Use **Publicar**, não só **Salvar** (rascunho ≠ publicado)
+- `BIO_JSON_PATH` correto no `auth.config.php`
+- Ctrl+F5 no navegador
 
-### Upload de imagem falha
+### Login do editor em cliente da plataforma
 
-- Pasta `public_html/assets/` existe e tem permissão de escrita
-- Tamanho do arquivo dentro do limite do PHP (HostGator costuma aceitar até alguns MB)
-
-### Cookie de sessão não segura
-
-- Ative **SSL/HTTPS** no cPanel para o domínio
-
----
-
-## Subdomínio para o editor (opcional)
-
-Em vez de `seudominio.com/editor/`, você pode usar `editor.seudominio.com`:
-
-1. cPanel → **Subdomínios** → criar `editor`
-2. A pasta será algo como `public_html/editor` ou `public_html/editor.seudominio.com`
-3. Ajuste `BIO_JSON_PATH` e `ASSETS_DIR` no `auth.config.php` conforme a estrutura real
+Clientes com licença usam login via API do painel (`editor/platform-api.json`). Não é o `auth.config.php` local.
 
 ---
 
 ## Documentos relacionados
 
-- [ADMIN.md](./ADMIN.md) — funcionalidades do editor
-- [COMERCIALIZACAO.md](./COMERCIALIZACAO.md) — instalar para novos clientes e vender o serviço
+- [DEPLOY-ATUALIZACAO.md](./DEPLOY-ATUALIZACAO.md) — estrutura pós-build e o que subir
+- [EDITOR.md](./EDITOR.md) — funcionalidades do editor
+- [COMERCIALIZACAO.md](./COMERCIALIZACAO.md) — instalar para clientes
 - [BIO-JSON.md](./BIO-JSON.md) — referência do conteúdo
+- [PLATAFORMA.md](./PLATAFORMA.md) — multi-cliente com `/panel/`
+- [ATUALIZACOES-REMOTAS.md](./ATUALIZACOES-REMOTAS.md) — updates remotos (single-tenant)

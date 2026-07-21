@@ -1,5 +1,5 @@
 import { Copy, X } from 'lucide-react'
-import { clientEditorHref, type CreatedClient } from '../lib/clients'
+import { clientBioUrl, clientEditorUrl, type CreatedClient } from '../lib/clients'
 
 type Props = {
   client: CreatedClient | null
@@ -9,9 +9,8 @@ type Props = {
 export function CredentialsModal({ client, onClose }: Props) {
   if (!client) return null
 
-  const origin = window.location.origin
-  const bioUrl = `${origin}${client.bio_url}`
-  const editorUrl = `${origin}${clientEditorHref(client.slug, client.email)}`
+  const bioUrl = clientBioUrl(client)
+  const editorUrl = clientEditorUrl(client)
 
   const lines = [
     `Bio: ${bioUrl}`,
@@ -61,6 +60,13 @@ export function CredentialsModal({ client, onClose }: Props) {
             <code className="rounded bg-background px-1.5 py-0.5">{client.password}</code>
           </p>
         </div>
+
+        {client.instagram_warning && (
+          <p className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+            Instagram não importado: {client.instagram_warning}. O cliente foi criado normalmente — ajuste
+            nome e foto manualmente no editor.
+          </p>
+        )}
 
         <button
           type="button"

@@ -18,6 +18,9 @@ function resetFormState() {
     name: '',
     slug: '',
     email: '',
+    selfHosted: false,
+    allowedHost: '',
+    deployPath: '/',
     password: generatePassword(),
     slugTouched: false,
     showPassword: true,
@@ -32,6 +35,9 @@ export function CreateClientModal({ open, onClose, onCreated }: Props) {
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [email, setEmail] = useState('')
+  const [selfHosted, setSelfHosted] = useState(false)
+  const [allowedHost, setAllowedHost] = useState('')
+  const [deployPath, setDeployPath] = useState('/')
   const [password, setPassword] = useState(() => generatePassword())
   const [showPassword, setShowPassword] = useState(true)
   const [slugTouched, setSlugTouched] = useState(false)
@@ -53,6 +59,9 @@ export function CreateClientModal({ open, onClose, onCreated }: Props) {
     setName(fresh.name)
     setSlug(fresh.slug)
     setEmail(fresh.email)
+    setSelfHosted(fresh.selfHosted)
+    setAllowedHost(fresh.allowedHost)
+    setDeployPath(fresh.deployPath)
     setPassword(fresh.password)
     setShowPassword(fresh.showPassword)
     setSlugTouched(fresh.slugTouched)
@@ -78,6 +87,14 @@ export function CreateClientModal({ open, onClose, onCreated }: Props) {
     }
   }
 
+  const hostingError = selfHosted
+    ? !allowedHost.trim()
+      ? 'Informe o domínio autorizado'
+      : !deployPath.trim()
+        ? 'Informe a pasta no domínio'
+        : null
+    : null
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -88,6 +105,9 @@ export function CreateClientModal({ open, onClose, onCreated }: Props) {
         slug: slug || name,
         email,
         password,
+        selfHosted,
+        allowedHost: selfHosted ? allowedHost : undefined,
+        deployPath: selfHosted ? deployPath : undefined,
         instagramHandle: instagramProfile?.username ?? instagramHandle,
       })
       onCreated(client)
@@ -186,6 +206,56 @@ export function CreateClientModal({ open, onClose, onCreated }: Props) {
           </div>
 
           <div className="field mb-0">
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={selfHosted}
+                onChange={(e) => setSelfHosted(e.target.checked)}
+              />
+              <span>
+                <span className="font-medium">Hospedagem própria</span>
+                <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                  Marque se a bio vai rodar fora do nosso domínio (ZIP em servidor do cliente).
+                </span>
+              </span>
+            </label>
+          </div>
+
+          {selfHosted && (
+            <>
+              <div className="field mb-0">
+                <label htmlFor="client-allowed-host">Domínio autorizado</label>
+                <input
+                  id="client-allowed-host"
+                  value={allowedHost}
+                  onChange={(e) => setAllowedHost(e.target.value)}
+                  placeholder="cliente.com.br"
+                  required={selfHosted}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Sem www — deve ser exatamente o domínio onde o ZIP será instalado.
+                </p>
+              </div>
+
+              <div className="field mb-0">
+                <label htmlFor="client-deploy-path">Pasta no domínio</label>
+                <input
+                  id="client-deploy-path"
+                  value={deployPath}
+                  onChange={(e) => setDeployPath(e.target.value)}
+                  placeholder="/ ou links"
+                  required={selfHosted}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Use <code className="text-xs">/</code> para a raiz do domínio ou o nome da subpasta
+                  (ex.: <code className="text-xs">links</code>). Pode ser diferente do slug no painel.
+                </p>
+              </div>
+            </>
+          )}
+
+          <div className="field mb-0">
             <label htmlFor="client-email">E-mail do cliente (login do editor)</label>
             <input
               id="client-email"
@@ -240,6 +310,8 @@ export function CreateClientModal({ open, onClose, onCreated }: Props) {
             </p>
           )}
 
+          {hostingError && <p className="text-sm text-red-400">{hostingError}</p>}
+
           {error && <p className="text-sm text-red-400">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-2">
@@ -249,7 +321,7 @@ export function CreateClientModal({ open, onClose, onCreated }: Props) {
             <button
               type="submit"
               className="btn-primary"
-              disabled={loading || Boolean(slugError) || Boolean(passwordError)}
+              disabled={loading || Boolean(slugError) || Boolean(passwordError) || Boolean(hostingError)}
             >
               {loading ? 'Criando…' : 'Criar cliente'}
             </button>

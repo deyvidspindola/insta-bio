@@ -1,0 +1,40 @@
+/* CSS dedicado do preview.
+ * Reaproveita o tema/estilos do site principal e força o Tailwind
+ * a escanear os componentes da bio (fora da raiz do editor),
+ * garantindo que o preview fique idêntico ao modelo publicado. */
+@import "@site/index.css";
+@source "../../../bio/src";
+
+/* No mockup do celular: rola normalmente, mas sem barra visível */
+html,
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* Preview ao vivo: sem animação de entrada (evita “pulo” a cada edição) */
+html[data-bio-preview] .animate-fade-up {
+  animation: none !important;
+  opacity: 1;
+  transform: none;
+}
+
+html[data-bio-preview] .bio-preview-selectable {
+  cursor: pointer;
+}
+
+html[data-bio-preview] .bio-preview-selectable:hover {
+  outline: 1px dashed color-mix(in oklch, var(--color-primary) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.bio-preview-focus {
+  outline: 2px solid color-mix(in oklch, var(--color-primary) 85%, white);
+  outline-offset: 3px;
+  border-radius: calc(var(--bio-card-radius, 1rem) + 2px);
+}

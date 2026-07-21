@@ -67,132 +67,127 @@ Cada card é um componente React baseado no "type" do JSON
 
 ```
 insta-bio/
-├── public/                    # Arquivos estáticos (copiados para dist/ no build)
-│   ├── bio.json               # ★ Configuração da página (ativa)
-│   ├── bio.default.json       # ★ Modelo padrão (comercial / novo cliente)
-│   ├── assets/                # Imagens (logo, fotos dos cards…)
-│   ├── favicon.svg
-│   └── icons.svg
-│
-├── src/
-│   ├── App.tsx                # Ponto de entrada: carrega JSON e exibe loading/erro
-│   ├── main.tsx               # Bootstrap do React
-│   ├── index.css              # Estilos globais, tema e animações
-│   │
-│   ├── components/            # Componentes visuais
-│   │   ├── BioPage.tsx        # Layout principal da página
-│   │   ├── BioHeader.tsx      # Logo, nome, Instagram, capa opcional
-│   │   ├── BioSection.tsx     # Renderiza seção + escolhe layout (stack/grid)
-│   │   ├── WhatsAppHeroCard.tsx
-│   │   ├── FeatureCard.tsx
-│   │   ├── LinkCard.tsx
-│   │   ├── GridCard.tsx
-│   │   ├── LocationCard.tsx
-│   │   └── icons.tsx          # Mapeamento de ícones Lucide + SVGs custom
-│   │
-│   ├── lib/
-│   │   ├── loadBioConfig.ts   # Fetch de /bio.json
-│   │   └── cn.ts              # Utilitário para classes CSS (clsx)
-│   │
-│   └── types/
-│       └── bio.ts             # Tipos TypeScript do schema do JSON
+├── bio/                       # Bio pública (React + conteúdo)
+│   ├── public/                # Arquivos estáticos (copiados para dist/ no build)
+│   │   ├── bio.json           # ★ Configuração da página (ativa)
+│   │   ├── bio.default.json   # ★ Modelo padrão (comercial / novo cliente)
+│   │   └── assets/            # Imagens (logo, fotos dos cards…)
+│   ├── src/
+│   │   ├── App.tsx            # Ponto de entrada: carrega JSON e exibe loading/erro
+│   │   ├── components/        # BioPage, cards, header…
+│   │   ├── lib/               # loadBioConfig, publicUrl…
+│   │   └── types/bio.ts       # Tipos TypeScript do schema do JSON
+│   ├── index.html
+│   ├── vite.config.ts
+│   └── package.json
 │
 ├── docs/
-│   ├── BIO-JSON.md            # Referência completa do bio.json
-│   ├── PROJETO.md             # Este arquivo
-│   ├── PLATAFORMA.md          # Super-admin e multi-cliente
-│   ├── ADMIN.md               # Editor visual
-│   ├── HOSTGATOR.md           # Deploy na HostGator
-│   └── COMERCIALIZACAO.md     # Instalar e vender para clientes
+│   ├── BIO-JSON.md
+│   ├── PROJETO.md
+│   ├── PLATAFORMA.md
+│   ├── EDITOR.md
+│   ├── HOSTGATOR.md
+│   ├── COMERCIALIZACAO.md
+│   └── MELHORIAS.md
 │
-├── admin/                     # Editor visual + PHP (produção)
-│   ├── src/                   # React
-│   ├── php/                   # Login, salvar, upload (HostGator)
-│   ├── server/                # Backend Node (só dev)
-│   └── dist/                  # Build do editor
+├── editor/                    # Editor visual + PHP (produção)
+│   ├── src/
+│   ├── php/
+│   ├── server/
+│   └── dist/
 │
 ├── site/                      # Landing comercial (vendas)
-│   ├── src/                   # React — inspirada em instabio.cc
-│   └── dist/                  # Build da landing
+│   └── …
 │
-├── dist/                      # Saída do build do site (gerado)
-├── index.html                 # HTML base + meta tags + fontes
-├── vite.config.ts             # Vite + plugin React + Tailwind
-├── package.json
-└── tsconfig.*.json
+├── panel/                     # Super-admin multi-cliente
+│   └── …
+│
+└── dist/                      # Saída do build da bio (gerado na raiz)
 ```
 
 ---
 
 ## Arquivos principais
 
-### `public/bio.json`
+### `bio/public/bio.json`
 
 **O que edita no dia a dia.** Contém marca, seções, links, textos e referências a imagens.
 
+Em desenvolvimento local fica em `bio/public/bio.json`. No servidor, após o build, fica na raiz do site (`public_html/bio.json`) ou em subpasta configurada no editor.
+
 → Ver [BIO-JSON.md](./BIO-JSON.md) para referência completa.
 
-### `src/App.tsx`
+### `bio/public/bio.default.json`
 
-Responsabilidades:
-- Buscar `bio.json` ao montar a página
-- Exibir spinner de carregamento
-- Exibir mensagem de erro se o JSON falhar
-- Passar os dados para `<BioPage />`
+Modelo comercial usado pelo editor em **Restaurar modelo padrão** e como base para novos clientes.
 
-### `src/lib/loadBioConfig.ts`
+### `bio/src/App.tsx`
 
-Faz `fetch('/bio.json', { cache: 'no-store' })` e retorna o objeto tipado como `BioConfig`.
+- Busca a configuração ao montar (`loadBioConfig`)
+- Exibe spinner de carregamento ou mensagem de erro
+- Passa os dados para `<BioPage />`
 
-Para apontar outro arquivo (ex.: `bio-homolog.json`), altere a constante `CONFIG_PATH` aqui — isso **exige rebuild**.
+### `bio/src/lib/loadBioConfig.ts`
 
-### `src/types/bio.ts`
+Resolve **onde** está o `bio.json` e faz o fetch:
 
-Define a estrutura esperada do JSON. Serve como documentação viva para desenvolvedores. Se adicionar campos novos no JSON, atualize este arquivo e o componente correspondente.
+1. `window.__BIO_JSON_PATH__` (injetado pelo `index.php` do cliente)
+2. `bio-path.json` na raiz do site
+3. `bio-json.php` (proxy PHP que lê `editor/auth.config.php`)
+4. Fallback: `bio.json` na raiz
 
-### `src/components/BioPage.tsx`
+Também define o prefixo de assets (`painel/assets/` quando o JSON está em subpasta).
 
-- Aplica título e meta description do `brand.seo`
-- Renderiza o brilho de fundo (`theme.glow`)
-- Monta `<BioHeader />`, lista de `<BioSectionBlock />` e rodapé
+### `bio/src/lib/publicUrl.ts`
 
-### `src/components/BioSection.tsx`
+Monta URLs de imagens/vídeos e do `bio.json` conforme a pasta de deploy (raiz, subpasta ou plataforma `/{slug}/`).
 
-- Lê `section.layout` para decidir entre empilhado (`stack`) ou grade (`grid-2`)
-- Faz o `switch` no `item.type` e escolhe o componente de card
-- Tipos **não** tratados no switch são silenciosamente ignorados
+### `bio/src/types/bio.ts`
 
-### Componentes de card
+Schema TypeScript do JSON. Atualize ao adicionar campos ou tipos de card.
 
-| Arquivo | `type` no JSON | Descrição |
-|---------|----------------|-----------|
-| `WhatsAppHeroCard.tsx` | `whatsapp-hero` | Card verde animado do WhatsApp |
-| `FeatureCard.tsx` | `feature` | Card com variantes: gradient, square, compact, portrait, banner |
-| `LinkCard.tsx` | `link` | Linha com ícone + título + subtítulo |
-| `GridCard.tsx` | `grid` | Legado — preferir `feature` + `variant: square` |
-| `LocationCard.tsx` | `location` | Endereço + link para mapa |
+### `bio/src/components/BioPage.tsx`
 
-### `src/index.css`
+- Meta tags (`pageMeta`)
+- Fundo, header, seções e rodapé
 
-- Importa Tailwind CSS 4
-- Define variáveis de tema (`--color-background`, `--color-primary`…)
-- Animações: `bio-pulse`, `bio-glow`, `fade-up`
+### `bio/src/components/BioSection.tsx`
 
-### `index.html`
+- Layout `stack` ou `grid-2`
+- `switch` em `item.type` → componente de card
 
-HTML estático com meta viewport, fonte Inter (Google Fonts) e placeholder de description (sobrescrito pelo React após carregar o JSON).
+### Componentes de card (principais)
+
+| Arquivo | `type` | Descrição |
+|---------|--------|-----------|
+| `WhatsAppHeroCard.tsx` | `whatsapp-hero` | Card verde do WhatsApp |
+| `FeatureCard.tsx` | `feature` | Variantes gradient, square, compact, portrait, banner |
+| `LinkCard.tsx` | `link` | Linha com ícone + título |
+| `VideoCard.tsx` | `video` | Vídeo com mute estilo Reels |
+| `ProductsCard.tsx` | `products` | Grade de produtos |
+| `SlideCard.tsx` | `slides` | Carrossel de imagens/vídeos |
+| `SpotifyEmbedCard.tsx` | `spotify` | Player Spotify |
+| `YoutubeEmbedCard.tsx` | `youtube` | Embed YouTube |
+| `GridCard.tsx` | `grid` | Legado — preferir `feature` + `square` |
+| `LocationCard.tsx` | `location` | Endereço + mapa |
+
+### `editor/`
+
+Editor React + API PHP (produção) ou Node (dev). Importa componentes da bio via alias `@site` → `bio/src/`.
+
+Arquivos PHP relevantes: `save.php`, `publish.php`, `upload.php`, `editor-paths.php`, `bio-path.php`, `platform-auth.php`.
 
 ---
 
-## Fluxo de dados
+## Fluxo de dados (bio pública)
 
 ```mermaid
 flowchart LR
-  A[bio.json] -->|fetch| B[loadBioConfig]
-  B --> C[App.tsx]
-  C --> D[BioPage]
-  D --> E[BioHeader]
-  D --> F[BioSection]
+  A[bio-path.json / index.php] --> B[loadBioConfig]
+  B --> C[bio.json]
+  C --> D[App.tsx]
+  D --> E[BioPage]
+  E --> F[BioSection]
   F --> G[Cards por type]
 ```
 
@@ -202,62 +197,61 @@ flowchart LR
 
 | Comando | O que faz |
 |---------|-----------|
-| `npm run dev` | Servidor local em `http://localhost:5173` |
-| `npm run build` | Gera pasta `dist/` para deploy |
-| `npm run preview` | Serve a pasta `dist/` localmente para testar o build |
-| `npm run lint` | Verifica código com Oxlint |
-| `npm run admin` | Editor local em `http://localhost:5180` |
-| `npm run admin:hostgator` | Build do editor + PHP para HostGator |
+| `npm run dev` | Bio em `http://localhost:5173` |
+| `npm run build` | Gera `dist/` na raiz |
+| `npm run preview` | Serve `dist/` localmente |
+| `npm run lint` | Oxlint em `bio/` |
+| `npm run editor` | Editor em `http://localhost:5180` |
+| `npm run editor:hostgator` | Build editor + PHP |
+| `make dev-all` | Bio + editor + panel + site |
+| `make package` | `release/` (bio + editor) |
+| `npm run build:platform` | `platform-release/` |
 
 ### Desenvolvimento local
 
 ```bash
-npm install
-npm run dev
+make install
+npm run dev          # bio
+npm run editor       # editor (outro terminal)
 ```
 
-Edite `public/bio.json` e recarregue o navegador para ver mudanças.
+Edite `bio/public/bio.json` e use **Publicar** no editor, ou recarregue após salvar o JSON manualmente.
 
-### Deploy
+### Deploy single-tenant
 
-**HostGator (recomendado para comercialização):** ver [HOSTGATOR.md](./HOSTGATOR.md)
+Ver [HOSTGATOR.md](./HOSTGATOR.md).
 
 ```bash
-npm run build
-npm run admin:hostgator
-# Upload dist/ → public_html/
-# Upload admin/dist/ → public_html/editor/
+make package
+# ou: npm run build && npm run editor:hostgator
 ```
 
-**Hospedagem estática** (só o site, sem editor online):
+### Deploy plataforma multi-cliente
+
+Ver [PLATAFORMA.md](./PLATAFORMA.md).
 
 ```bash
-npm run build
+npm run build:platform
 ```
-
-Publique o conteúdo de `dist/` em Vercel, Netlify, Cloudflare Pages, nginx, etc.
-
-Após o deploy, para atualizar **só conteúdo**, use o editor online ou substitua `bio.json` e arquivos em `assets/` — sem novo build.
 
 ---
 
 ## Como adicionar um novo tipo de card
 
-1. Defina o tipo em `src/types/bio.ts`
-2. Crie o componente em `src/components/`
-3. Adicione o `case` em `BioSection.tsx` → `renderItem()`
-4. Documente em `docs/BIO-JSON.md`
-5. Rebuild e deploy
+1. Defina o tipo em `bio/src/types/bio.ts`
+2. Crie o componente em `bio/src/components/`
+3. Adicione o `case` em `BioSection.tsx`
+4. Adicione o editor em `editor/src/components/ItemEditor.tsx` (e campos auxiliares)
+5. Documente em `docs/BIO-JSON.md`
+6. Rebuild e deploy
 
 ---
 
 ## Como adicionar um novo ícone
 
-1. Importe o ícone do `lucide-react` em `src/components/icons.tsx`
-2. Adicione ao objeto `icons` com uma chave (ex.: `music`)
-3. Adicione a chave em `IconName` em `src/types/bio.ts`
-4. Documente em `docs/BIO-JSON.md`
-5. Rebuild e deploy
+1. Importe em `bio/src/components/icons.tsx`
+2. Adicione a chave em `IconName` em `bio/src/types/bio.ts`
+3. Documente em `docs/BIO-JSON.md`
 
 ---
 
@@ -265,11 +259,10 @@ Após o deploy, para atualizar **só conteúdo**, use o editor online ou substit
 
 | O que mudar | Onde |
 |-------------|------|
-| Cores do tema padrão | `src/index.css` (`@theme`) |
+| Cores do tema padrão | `bio/src/index.css` (`@theme`) |
 | Cores por cliente | `bio.json` → `brand.theme` |
-| Animações | `src/index.css` + componentes individuais |
-| Layout máximo da página | `BioPage.tsx` (`max-w-md`, `max-w-lg`) |
-| Fonte | `index.html` (Google Fonts) + `src/index.css` |
+| Layout máximo | `BioPage.tsx` |
+| Fonte | `bio/index.html` + `bio/src/index.css` |
 
 ---
 
@@ -277,51 +270,36 @@ Após o deploy, para atualizar **só conteúdo**, use o editor online ou substit
 
 | Cenário | Documento |
 |---------|-----------|
-| HostGator compartilhada (site + editor) | [HOSTGATOR.md](./HOSTGATOR.md) |
-| Vender / instalar para clientes | [COMERCIALIZACAO.md](./COMERCIALIZACAO.md) |
-| Só site estático | Vercel, Netlify, Cloudflare Pages, nginx |
-
-Para este projeto, a página é uma única rota `/` — não precisa de fallback SPA especial.
-
----
-
-## Manutenção futura — checklist
-
-### Atualização de conteúdo (sem dev)
-
-- [ ] Editar `bio.json`
-- [ ] Validar JSON
-- [ ] Upload no servidor
-- [ ] Testar no celular (tamanho real do link da bio)
-
-### Atualização de código
-
-- [ ] Alterar componentes/types
-- [ ] `npm run build` local
-- [ ] Testar com `npm run preview`
-- [ ] Deploy da pasta `dist/`
-
-### Novo cliente / igreja
-
-Ver checklist completo em [COMERCIALIZACAO.md](./COMERCIALIZACAO.md).
-
-- [ ] Montar `bio.json` + imagens no editor
-- [ ] `npm run build` + `npm run admin:hostgator`
-- [ ] Deploy na HostGator com login único
-- [ ] Entregar URLs e credenciais ao cliente
+| HostGator (1 cliente) | [HOSTGATOR.md](./HOSTGATOR.md) |
+| Vender / instalar | [COMERCIALIZACAO.md](./COMERCIALIZACAO.md) |
+| Plataforma `/{slug}/` | [PLATAFORMA.md](./PLATAFORMA.md) |
+| Só site estático | Vercel, Netlify, etc. — publique `dist/` |
 
 ---
 
-## Referências externas
+## Manutenção — checklist
 
-- Layout de inspiração: [voeconnect.com.br/bio](https://voeconnect.com.br/bio)
-- Dados iniciais da Igreja Expressar: portal Pipefy (links importados para o `bio.json`)
+### Conteúdo (sem dev)
+
+- [ ] Editar via editor ou `bio.json`
+- [ ] Testar no celular
+
+### Código
+
+- [ ] Alterar em `bio/` e/ou `editor/`
+- [ ] `npm run build` + `npm run editor:hostgator`
+- [ ] Deploy preservando `bio.json`, `assets/` e `auth.config.php` do cliente
+
+### Novo cliente
+
+Ver [COMERCIALIZACAO.md](./COMERCIALIZACAO.md).
 
 ---
 
 ## Documentos relacionados
 
-- [BIO-JSON.md](./BIO-JSON.md) — referência completa do arquivo de configuração
-- [ADMIN.md](./ADMIN.md) — editor visual
-- [HOSTGATOR.md](./HOSTGATOR.md) — deploy na HostGator
-- [COMERCIALIZACAO.md](./COMERCIALIZACAO.md) — comercialização e novos clientes
+- [BIO-JSON.md](./BIO-JSON.md) — referência do `bio.json`
+- [EDITOR.md](./EDITOR.md) — editor visual
+- [HOSTGATOR.md](./HOSTGATOR.md) — deploy HostGator
+- [COMERCIALIZACAO.md](./COMERCIALIZACAO.md) — comercialização
+- [PLATAFORMA.md](./PLATAFORMA.md) — multi-cliente

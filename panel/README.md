@@ -18,7 +18,33 @@ Login dev padrão (criado automaticamente):
 
 Clientes criados em dev ficam em `panel/data/platform/{slug}/` e são acessíveis em `http://localhost:5175/{slug}/`.
 
+Em desenvolvimento, o editor do cliente (`/{slug}/editor/`) é **proxy para o Vite na porta 5180** — você sempre vê o código atual sem rodar sync. A bio pública do cliente continua vindo da pasta estática do template (atualize com **Atualizar sites** ou `npm run sync:clients` quando mudar só a bio buildada).
+
+### Problemas comuns no dev local
+
+- **URL do painel:** use `http://localhost:5175/panel/` (com barra no final).
+- **Porta em uso:** se `make dev-all` avisar que a porta está ocupada, encerre o terminal antigo ou rode `fuser -k 5175/tcp` (e 5173, 5180, 5190).
+- **WSL + Windows:** se `localhost` não abrir no navegador do Windows, use o endereço **Network** que o Vite imprime (ex.: `http://172.x.x.x:5175/panel/`).
+
 ## Produção (HostGator)
+
+### Observabilidade (Sentry)
+
+No diretório `panel/`, instale o SDK:
+
+```bash
+composer install
+# ou: composer require sentry/sentry
+```
+
+Depois, configure o `SENTRY_DSN` em `panel/php/db.config.php`.
+Se `vendor/autoload.php` existir, o painel inicializa o Sentry no `bootstrap.php`.
+
+**O que vai ao Sentry:** apenas erros graves (exceptions e fatals). Warnings PHP **não** são enviados. Exceções capturadas com `platform_capture_exception()` continuam sendo reportadas.
+
+> Em hospedagem compartilhada, a extensão `excimer` normalmente não está disponível. O painel funciona sem ela; apenas profiling pode ficar indisponível.
+
+> Se aparecer `Class "Sentry\Integration\IntegrationRegistry" not found`, o `vendor/` no servidor está incompleto — rode `composer install` em `panel/` e envie a pasta `vendor/` inteira via FTP.
 
 ### 1. Build
 
@@ -51,13 +77,23 @@ VALUES ('seu@email.com', '$2b$...');
 cp panel/php/db.config.example.php panel/php/db.config.php
 ```
 
-Edite com host, banco, usuário, senha. Confirme que `PLATFORM_ROOT` aponta para `public_html` (padrão: dois níveis acima de `panel/php/`).
-
-Copie `db.config.php` para `panel/dist/` antes do upload **ou** edite direto no servidor em `public_html/panel/db.config.php`.
+Edite com host, banco, usuário, senha. O padrão grava clientes em **`panel/sites/`** (pasta gravável pelo PHP na HostGator). As URLs públicas continuam `/{slug}/` via `.htaccess` na raiz.
 
 ### 4. Permissões
 
-O PHP precisa poder **criar pastas** em `public_html/` (cópia do `_template/`). Permissão típica: `755` no `public_html`.
+O PHP precisa poder **criar pastas** em `panel/sites/`. Após o deploy, acesse `/panel/install` — a página informa se o provisionamento automático está OK.
+
+Diagnóstico (logado no painel): `POST /panel/api/provision/check`
+
+### Atualizar sites existentes
+
+Depois de subir um `_template/` novo na raiz do domínio:
+
+1. Acesse o painel → botão **Atualizar sites** (ícone de pastas sincronizadas no topo)
+2. O PHP copia HTML, bundles JS/CSS, editor e arquivos de licença para **todos** os clientes
+3. **Preservado:** `bio.json`, imagens em `assets/`, senha do editor (`auth.config.php`)
+
+Equivalente em CLI (dev): `npm run sync:clients -- --platform-root panel/sites`
 
 ## Fluxo
 

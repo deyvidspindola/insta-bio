@@ -1,8 +1,8 @@
 # Referência do `bio.json`
 
-Este arquivo descreve tudo o que pode ser configurado em `public/bio.json` **sem precisar rebuildar** o projeto (após o deploy inicial).
+Este arquivo descreve tudo o que pode ser configurado em `bio/public/bio.json` **sem precisar rebuildar** o projeto (após o deploy inicial).
 
-> **Modelo padrão:** `public/bio.default.json` é o template comercial do produto (bio do próprio insta-bio). Use como ponto de partida para novos clientes ou restaure pelo editor (**Restaurar modelo padrão**).
+> **Modelo padrão:** `bio/public/bio.default.json` é o template comercial do produto (bio do próprio insta-bio). Use como ponto de partida para novos clientes ou restaure pelo editor (**Restaurar modelo padrão**).
 
 > Após editar o JSON em produção, basta recarregar a página. Se a mudança não aparecer, force refresh (`Ctrl+F5`).
 
@@ -36,8 +36,8 @@ Este arquivo descreve tudo o que pode ser configurado em `public/bio.json` **sem
       "handle": "@igrejaexpressar",
       "url": "https://www.instagram.com/igrejaexpressar"
     },
-    "logo": "/assets/logo-expressar.jpeg",
-    "coverImage": "/assets/capa.jpg",
+    "logo": "assets/logo-expressar.jpeg",
+    "coverImage": "assets/capa.jpg",
     "theme": {
       "primary": "oklch(0.72 0.16 55)",
       "glow": "oklch(0.70 0.18 55 / 0.28)"
@@ -70,13 +70,15 @@ Este arquivo descreve tudo o que pode ser configurado em `public/bio.json` **sem
 
 ### Imagens do `brand`
 
-Coloque arquivos em `public/assets/` e referencie com caminho absoluto a partir da raiz:
+Coloque arquivos em `bio/public/assets/` (dev) ou `assets/` na raiz do site (produção) e referencie no JSON com caminho **relativo**:
 
 ```json
-"logo": "/assets/meu-logo.png"
+"logo": "assets/meu-logo.png"
 ```
 
 Formatos recomendados: `.jpg`, `.jpeg`, `.png`, `.webp`.
+
+Se o `bio.json` estiver em subpasta (ex.: `painel/bio.json`), use caminhos relativos a essa pasta: `assets/logo.png` → `painel/assets/logo.png` no servidor.
 
 ---
 
@@ -213,7 +215,7 @@ Use `"layout": "grid-2"` na seção para exibir cards `square` lado a lado.
   "title": "Café de Novos Membros",
   "description": "Inscrições abertas",
   "url": "https://...",
-  "image": "/assets/cafe.jpg",
+  "image": "assets/cafe.jpg",
   "gradient": "linear-gradient(135deg, oklch(0.70 0.18 55) 0%, oklch(0.55 0.19 40) 100%)"
 }
 ```
@@ -235,7 +237,7 @@ Use `"layout": "grid-2"` na seção para exibir cards `square` lado a lado.
   "title": "Faça parte do Ministério Criativo",
   "description": "Audiovisual, design, comunicação",
   "url": "https://...",
-  "image": "/assets/ministerio-criativo.jpg"
+  "image": "assets/ministerio-criativo.jpg"
 }
 ```
 
@@ -250,7 +252,7 @@ Use `"layout": "grid-2"` na seção para exibir cards `square` lado a lado.
   "description": "Faça parte do time que cuida das crianças e adolescentes.",
   "cta": "Inscrever-se",
   "url": "https://...",
-  "image": "/assets/kids-voluntarios.jpg",
+  "image": "assets/kids-voluntarios.jpg",
   "tags": [
     { "label": "Kids", "icon": "baby" },
     { "label": "High", "icon": "zap" }
@@ -306,7 +308,7 @@ Card simples para links rápidos.
   "title": "Café de Novos Membros",
   "subtitle": "Inscrições abertas",
   "url": "https://...",
-  "image": "/assets/cafe.jpg",
+  "image": "assets/cafe.jpg",
   "gradient": "linear-gradient(...)"
 }
 ```
@@ -415,7 +417,7 @@ Se omitir o `icon`, um ícone padrão é usado conforme o tipo de card.
       "badge": "Novos membros",
       "title": "Café de Novos Membros",
       "url": "https://...",
-      "image": "/assets/cafe.jpg"
+      "image": "assets/cafe.jpg"
     },
     {
       "type": "feature",
@@ -441,14 +443,14 @@ Se omitir o `icon`, um ícone padrão é usado conforme o tipo de card.
 2. Salve (botão no editor ou upload do arquivo)
 3. Recarregue a página no navegador (`Ctrl+F5` se necessário)
 
-O app busca `/bio.json` em tempo de execução com `cache: 'no-store'`.
+O app resolve o caminho do `bio.json` em runtime (`bio-path.json`, `bio-json.php` ou raiz) e busca com `cache: 'no-store'`.
 
 ### O que **exige** rebuild
 
 | Mudança | Rebuild? |
 |---------|----------|
 | Textos, links, seções no `bio.json` | Não |
-| Imagens em `public/assets/` | Não* |
+| Imagens em `bio/public/assets/` | Não* |
 | Código React, CSS, novos tipos de card | Sim |
 | Dependências (`package.json`) | Sim |
 
@@ -462,7 +464,7 @@ O app busca `/bio.json` em tempo de execução com `cache: 'no-store'`.
 |----------|----------------|
 | Página em branco com mensagem de erro | JSON inválido (vírgula extra, aspas faltando) |
 | Card não aparece | `type` incorreto ou typo no JSON |
-| Imagem não carrega | Caminho errado — deve começar com `/assets/` |
+| Imagem não carrega | Caminho errado — use `assets/arquivo.ext` (relativo à pasta do bio.json) |
 | Mudança não reflete | Cache do navegador — use `Ctrl+F5` |
 | Seção sem título mas com espaço | `title` deve ser `""` (string vazia), não omitido se quiser sem label |
 

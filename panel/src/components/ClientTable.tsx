@@ -1,5 +1,5 @@
-import { Copy, ExternalLink, KeyRound, Pause, Pencil, Play, Trash2 } from 'lucide-react'
-import { clientBioHref, clientEditorHref, type Client } from '../lib/clients'
+import { Copy, Download, ExternalLink, KeyRound, Pause, Pencil, Play, Trash2 } from 'lucide-react'
+import { clientBioUrl, clientEditorUrl, deployPathLabel, downloadClientExport, type Client } from '../lib/clients'
 
 type Props = {
   clients: Client[]
@@ -26,6 +26,7 @@ export function ClientTable({ clients, onToggleStatus, onDelete, onViewPassword,
             <th className="px-4 py-3">Cliente</th>
             <th className="px-4 py-3">Slug</th>
             <th className="px-4 py-3">E-mail</th>
+            <th className="px-4 py-3">Hospedagem</th>
             <th className="px-4 py-3">Status</th>
             <th className="px-4 py-3 text-right">Ações</th>
           </tr>
@@ -35,7 +36,7 @@ export function ClientTable({ clients, onToggleStatus, onDelete, onViewPassword,
             <tr key={client.id} className="border-b border-border/60 last:border-0">
               <td className="px-4 py-3 font-medium">
                 <a
-                  href={clientBioHref(client.slug)}
+                  href={clientBioUrl(client)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-foreground transition-colors hover:text-primary hover:underline"
@@ -48,6 +49,20 @@ export function ClientTable({ clients, onToggleStatus, onDelete, onViewPassword,
                 <code className="text-xs">/{client.slug}/</code>
               </td>
               <td className="px-4 py-3 text-muted-foreground">{client.email}</td>
+              <td className="px-4 py-3 text-muted-foreground">
+                {client.self_hosted ? (
+                  <div className="text-xs">
+                    <div>
+                      <code>{client.allowed_host ?? '—'}</code>
+                    </div>
+                    <div className="mt-0.5 text-muted-foreground">
+                      pasta: <code>{deployPathLabel(client.deploy_path)}</code>
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-xs">Plataforma</span>
+                )}
+              </td>
               <td className="px-4 py-3">
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
@@ -73,23 +88,27 @@ export function ClientTable({ clients, onToggleStatus, onDelete, onViewPassword,
                     type="button"
                     className="btn-ghost px-2 py-1"
                     title="Copiar URL da bio"
-                    onClick={() =>
-                      void navigator.clipboard.writeText(
-                        `${window.location.origin}/${client.slug}/`,
-                      )
-                    }
+                    onClick={() => void navigator.clipboard.writeText(clientBioUrl(client))}
                   >
                     <Copy className="h-4 w-4" />
                   </button>
                   <a
                     className="btn-ghost px-2 py-1"
-                    href={clientEditorHref(client.slug, client.email)}
+                    href={clientEditorUrl(client)}
                     target="_blank"
                     rel="noreferrer"
                     title="Abrir editor"
                   >
                     <ExternalLink className="h-4 w-4" />
                   </a>
+                  <button
+                    type="button"
+                    className="btn-ghost px-2 py-1"
+                    title="Baixar ZIP para hospedagem própria"
+                    onClick={() => downloadClientExport(client.id)}
+                  >
+                    <Download className="h-4 w-4" />
+                  </button>
                   <button
                     type="button"
                     className="btn-ghost px-2 py-1"

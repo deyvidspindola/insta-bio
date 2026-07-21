@@ -1,0 +1,46 @@
+# Links na Bio — bio pública do cliente (/{slug}/)
+Options -Indexes -MultiViews
+DirectoryIndex index.php index.html
+
+<Files "license.config.php">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+</Files>
+
+<Files ".license-cache.json">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+</Files>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Cliente suspenso
+  RewriteCond %{REQUEST_URI} !/suspended\.html$ [NC]
+  RewriteCond .suspended -f
+  RewriteRule ^ suspended.html [L]
+
+  # /editor sem barra → /editor/
+  RewriteRule ^editor$ editor/ [R=301,L]
+
+  # Bio pública sempre passa pelo gate de licença
+  RewriteRule ^index\.html$ index.php [L]
+</IfModule>
+
+# bio.json sempre fresco após publicar no editor
+<Files "bio.json">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </IfModule>
+</Files>
+
+# Rascunho só pelo editor autenticado — não expor publicamente
+<Files "bio.draft.json">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+</Files>

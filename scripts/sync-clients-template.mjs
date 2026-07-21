@@ -2,8 +2,16 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execSync } from 'node:child_process'
+import { writeUpdateState } from './lib/write-update-state.mjs'
+import { readVersion } from './lib/read-version.mjs'
+import {
+  isViteBundleFile,
+  removeEditorAssetBundles,
+  removeViteBundles,
+} from './lib/vite-bundles.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const CLIENT_HTACCESS = path.join(ROOT, 'deploy', 'apache', 'client.htaccess')
 const TEMPLATE = path.join(ROOT, 'platform-template', '_template')
 
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'])
@@ -39,17 +47,6 @@ function copyDirExcept(src, dest, skipNames = new Set()) {
   }
 }
 
-function isBundleFile(name) {
-  return /^index-[A-Za-z0-9_-]+\.(js|css)$/.test(name) || /^main-[A-Za-z0-9_-]+\.(js|css)$/.test(name)
-}
-
-function removeBundleFiles(dir) {
-  if (!fs.existsSync(dir)) return
-  for (const name of fs.readdirSync(dir)) {
-    if (isBundleFile(name)) fs.unlinkSync(path.join(dir, name))
-  }
-}
-
 function syncClientBio(clientDir, templateDir) {
   for (const name of ['index.html', 'suspended.html', 'favicon.svg', 'icons.svg', 'logo-instabio.svg']) {
     const src = path.join(templateDir, name)
@@ -60,10 +57,10 @@ function syncClientBio(clientDir, templateDir) {
   const dstAssets = path.join(clientDir, 'assets')
   fs.mkdirSync(dstAssets, { recursive: true })
 
-  removeBundleFiles(dstAssets)
+  removeViteBundles(dstAssets)
 
   for (const name of fs.readdirSync(tplAssets)) {
-    if (isBundleFile(name)) {
+    if (isViteBundleFile(name)) {
       copyFile(path.join(tplAssets, name), path.join(dstAssets, name))
     }
   }
@@ -75,9 +72,13 @@ function syncClientEditor(clientDir, templateDir) {
   if (!fs.existsSync(tplEditor)) return
 
   const assetsDir = path.join(dstEditor, 'assets')
-  removeBundleFiles(assetsDir)
+  removeEditorAssetBundles(assetsDir)
 
   copyDirExcept(tplEditor, dstEditor, new Set(['auth.config.php']))
+
+  if (!fs.existsSync(path.join(dstEditor, 'preview.html'))) {
+    console.warn(`  ⚠ preview.html ausente em ${path.basename(clientDir)}/editor/`)
+  }
 
   const authPath = path.join(dstEditor, 'auth.config.php')
   if (!fs.existsSync(authPath)) {
@@ -86,30 +87,28 @@ function syncClientEditor(clientDir, templateDir) {
 }
 
 function writeClientHtaccess(clientDir) {
-  const content = `# Links na Bio — cliente
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteCond %{REQUEST_URI} !/suspended\\.html$ [NC]
-  RewriteCond .suspended -f
-  RewriteRule ^ suspended.html [L]
-</IfModule>
-
-# bio.json sempre fresco após salvar no editor
-<Files "bio.json">
-  <IfModule mod_headers.c>
-    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
-    Header set Pragma "no-cache"
-    Header set Expires "0"
-  </IfModule>
-</Files>
-`
-  fs.writeFileSync(path.join(clientDir, '.htaccess'), content)
+  fs.writeFileSync(path.join(clientDir, '.htaccess'), fs.readFileSync(CLIENT_HTACCESS, 'utf8'))
 }
 
 function syncClient(clientDir, templateDir) {
+  const editorDir = path.join(clientDir, 'editor')
+  const stateFile = path.join(editorDir, 'update-state.json')
+  let previousVersion = null
+  if (fs.existsSync(stateFile)) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(stateFile, 'utf8'))
+      previousVersion = raw.version ?? null
+    } catch {
+      // ignore
+    }
+  }
+
   syncClientBio(clientDir, templateDir)
   syncClientEditor(clientDir, templateDir)
   writeClientHtaccess(clientDir)
+
+  const version = readVersion(ROOT)
+  writeUpdateState(editorDir, version, { previousVersion })
 }
 
 function listClientSlugs(platformRoot) {
@@ -142,7 +141,7 @@ console.log('')
 console.log(`Sincronizando template em ${slugs.length} cliente(s)…`)
 console.log(`  origem: ${TEMPLATE}`)
 console.log(`  destino: ${platformRoot}`)
-console.log('  preservado: bio.json, assets de imagem, auth.config.php, .suspended')
+console.log('  preservado: bio.json, bio.draft.json, assets de imagem, auth.config.php, .suspended')
 console.log('')
 
 for (const slug of slugs) {
