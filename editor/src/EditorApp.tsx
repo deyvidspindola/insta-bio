@@ -735,7 +735,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                   onAdd={addSection}
                   onReorder={reorderSections}
                 />
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-[210px_minmax(0,1fr)]">
+                <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-[210px_minmax(0,1fr)]">
                   <div className="hidden md:block">
                     <SectionSidebar
                       sections={config.sections}
@@ -834,7 +834,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
           </main>
 
           <div
-            className={`editor-preview-col hidden border-l border-border p-3 md:col-start-2 md:row-start-2 md:block md:sticky md:overflow-y-auto md:p-4 xl:col-start-3 xl:row-start-1 ${
+            className={`editor-preview-col hidden min-w-0 overflow-x-hidden border-l border-border p-3 md:col-start-2 md:row-start-2 md:block md:sticky md:overflow-y-auto md:p-4 xl:col-start-3 xl:row-start-1 ${
               isDemo
                 ? 'md:top-[6.75rem] md:max-h-[calc(100vh-6.75rem)]'
                 : 'md:top-14 md:max-h-[calc(100vh-3.5rem)]'

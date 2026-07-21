@@ -140,6 +140,14 @@ export type AppHeroLayout = 'default' | 'compact' | 'condensed'
 /** Alinhamento do conteúdo (ícone ao lado vs centralizado). */
 export type FeatureCardAlign = 'side' | 'center'
 
+/** Agendamento opcional (timezone America/Sao_Paulo). */
+export type CardSchedule = {
+  /** ISO datetime — início da exibição na bio pública */
+  from?: string
+  /** ISO datetime — fim da exibição (instante exclusivo) */
+  until?: string
+}
+
 export interface WhatsAppHero {
   type: 'whatsapp-hero'
   badge: string
@@ -149,6 +157,7 @@ export interface WhatsAppHero {
   url: string
   layout?: AppHeroLayout
   align?: FeatureCardAlign
+  schedule?: CardSchedule
 }
 
 export interface AppHero {
@@ -162,6 +171,7 @@ export interface AppHero {
   icon?: IconName
   layout?: AppHeroLayout
   align?: FeatureCardAlign
+  schedule?: CardSchedule
 }
 
 export interface FeatureCard {
@@ -184,6 +194,7 @@ export interface FeatureCard {
   tags?: Array<{ label: string; icon?: IconName }>
   /** Metade da largura — 2 cards por linha (fora da grade da seção). */
   width?: CardWidth
+  schedule?: CardSchedule
 }
 
 export interface LinkCard {
@@ -193,6 +204,7 @@ export interface LinkCard {
   url: string
   icon?: IconName
   width?: CardWidth
+  schedule?: CardSchedule
 }
 
 export interface GridCard {
@@ -204,6 +216,7 @@ export interface GridCard {
   image?: string
   gradient?: string
   width?: CardWidth
+  schedule?: CardSchedule
 }
 
 export interface InstagramCard {
@@ -214,6 +227,7 @@ export interface InstagramCard {
   url: string
   gradient: string
   icon?: IconName
+  schedule?: CardSchedule
 }
 
 export interface LocationCard {
@@ -221,6 +235,7 @@ export interface LocationCard {
   title: string
   address: string
   mapUrl: string
+  schedule?: CardSchedule
 }
 
 import type { MediaCardVariant } from '../lib/mediaCardLayout'
@@ -243,6 +258,7 @@ export interface SlideCard {
   variant?: MediaCardVariant
   slides: SlideStoryItem[]
   autoplay?: boolean
+  schedule?: CardSchedule
 }
 
 /** @deprecated use variant — mantido para bios antigas */
@@ -259,6 +275,7 @@ export interface VideoCard {
   width?: CardWidth
   /** @deprecated use variant */
   aspectRatio?: VideoAspectRatio
+  schedule?: CardSchedule
 }
 
 export interface ProductItem {
@@ -272,12 +289,14 @@ export interface ProductsCard {
   type: 'products'
   title?: string
   products: ProductItem[]
+  schedule?: CardSchedule
 }
 
 export interface YoutubeEmbedCard {
   type: 'youtube-embed'
   title?: string
   url: string
+  schedule?: CardSchedule
 }
 
 export type SpotifyEmbedTheme = 'dark' | 'light'
@@ -293,6 +312,42 @@ export interface SpotifyEmbedCard {
   theme?: SpotifyEmbedTheme
   /** @deprecated legado */
   size?: 'compact' | 'default'
+  schedule?: CardSchedule
+}
+
+export type TextAlignment = 'left' | 'center' | 'right' | 'justify'
+
+/** Bloco de texto livre, sem superfície de card. */
+export interface TextBlock {
+  type: 'text'
+  /** Limite aplicado também no editor. */
+  text: string
+  align?: TextAlignment
+  bold?: boolean
+  italic?: boolean
+  underline?: boolean
+  /** Texto mantém fundo transparente por padrão. */
+  backgroundMode?: 'template' | 'transparent' | 'custom'
+  backgroundColor?: string
+  /** Opacidade somente do fundo, de 0 a 100. */
+  backgroundOpacity?: number
+  schedule?: CardSchedule
+}
+
+export type ListStyle = 'number' | 'bullet' | 'letter' | 'plain'
+
+/** Lista com superfície de card e marcadores configuráveis. */
+export interface ListCard {
+  type: 'list'
+  title?: string
+  items: string[]
+  style?: ListStyle
+  /** Superfície padrão do template, sem fundo, ou cor personalizada. */
+  backgroundMode?: 'template' | 'transparent' | 'custom'
+  backgroundColor?: string
+  /** Opacidade somente do fundo, de 0 a 100. */
+  backgroundOpacity?: number
+  schedule?: CardSchedule
 }
 
 export interface BioSection {
@@ -316,6 +371,8 @@ export type SectionItem =
   | ProductsCard
   | YoutubeEmbedCard
   | SpotifyEmbedCard
+  | TextBlock
+  | ListCard
 
 export interface BioConfig {
   brand: BioBrand

@@ -124,8 +124,106 @@ Todo card precisa do campo `"type"`. Os tipos disponíveis hoje:
 | `app-hero` | Destaque padronizado por app (WhatsApp, YouTube, Instagram, Formulário, Telegram, Personalizado) |
 | `feature` | Card de destaque (gradiente, quadrado, compacto, retrato, banner) |
 | `link` | Card simples com ícone, título e subtítulo |
+| `text` | Bloco de texto livre com alinhamento e formatação |
+| `list` | Card de lista com marcadores configuráveis |
 | `location` | Endereço com link para o mapa |
 | `grid` | **Legado** — use `feature` com `variant: "square"` |
+
+### Campo comum: `schedule` (agendamento)
+
+Opcional em **qualquer** card. Controla quando o item aparece na **bio pública**. No editor e no preview, o card continua listado para edição.
+
+```json
+{
+  "type": "link",
+  "title": "Campanha de páscoa",
+  "url": "https://exemplo.com/pascoa",
+  "schedule": {
+    "from": "2026-04-01T08:00:00-03:00",
+    "until": "2026-04-20T23:59:00-03:00"
+  }
+}
+```
+
+| Campo | Obrigatório | Descrição |
+|-------|-------------|-----------|
+| `schedule` | Não | Objeto de agendamento. Omitir = sempre visível |
+| `schedule.from` | Não | ISO datetime — início da exibição |
+| `schedule.until` | Não | ISO datetime — fim da exibição (instante exclusivo) |
+
+**Timezone:** `America/Sao_Paulo`. Prefira gravar com offset (`-03:00`). Strings sem offset são interpretadas nesse fuso.
+
+**Regras na bio pública:**
+
+| Preenchimento | Comportamento |
+|---------------|---------------|
+| Sem `schedule` | Sempre visível |
+| Só `from` | Visível a partir de `from` (permanece até remover o card ou definir `until`) |
+| Só `until` | Visível até `until` |
+| `from` + `until` | Visível enquanto `from <= agora < until` |
+
+No editor: ative **Agendar exibição** no card para editar data/hora de início e fim.
+
+---
+
+### `text`
+
+Bloco de texto livre, sem fundo de card. Aceita até **300 caracteres** e usa automaticamente uma cor legível de acordo com o fundo do template.
+
+```json
+{
+  "type": "text",
+  "text": "Um texto livre para apresentar informações importantes.",
+  "align": "justify",
+  "bold": false,
+  "italic": false,
+  "underline": false,
+  "backgroundMode": "transparent",
+  "backgroundOpacity": 100
+}
+```
+
+| Campo | Obrigatório | Valores |
+|-------|-------------|---------|
+| `text` | Sim | Texto com até 300 caracteres |
+| `align` | Não | `left` (padrão), `center`, `right`, `justify` |
+| `bold` | Não | `true` para negrito |
+| `italic` | Não | `true` para itálico |
+| `underline` | Não | `true` para sublinhado |
+| `backgroundMode` | Não | `transparent` (padrão), `template`, `custom` |
+| `backgroundColor` | Se personalizado | Cor CSS usada no fundo |
+| `backgroundOpacity` | Não | Opacidade do fundo entre 0 e 100 |
+
+A formatação é aplicada ao bloco inteiro. HTML inserido no texto não é interpretado.
+
+### `list`
+
+Card para listas. O título é opcional e os itens vazios não aparecem na bio.
+
+```json
+{
+  "type": "list",
+  "title": "O que você vai encontrar",
+  "style": "letter",
+  "backgroundMode": "custom",
+  "backgroundColor": "#1f2937",
+  "backgroundOpacity": 80,
+  "items": [
+    "Conteúdo exclusivo",
+    "Atualizações semanais",
+    "Contato com a comunidade"
+  ]
+}
+```
+
+| Campo | Obrigatório | Valores |
+|-------|-------------|---------|
+| `title` | Não | Título do card |
+| `items` | Sim | Array de textos |
+| `style` | Não | `number`, `bullet` (padrão), `letter`, `plain` |
+| `backgroundMode` | Não | `template` (padrão), `transparent`, `custom` |
+| `backgroundColor` | Se personalizado | Cor CSS usada quando `backgroundMode` é `custom` |
+| `backgroundOpacity` | Não | Opacidade do fundo entre 0 e 100 |
 
 ---
 
@@ -463,10 +561,11 @@ O app resolve o caminho do `bio.json` em runtime (`bio-path.json`, `bio-json.php
 | Problema | Causa provável |
 |----------|----------------|
 | Página em branco com mensagem de erro | JSON inválido (vírgula extra, aspas faltando) |
-| Card não aparece | `type` incorreto ou typo no JSON |
+| Card não aparece | `type` incorreto, typo no JSON, ou fora da janela de `schedule` |
 | Imagem não carrega | Caminho errado — use `assets/arquivo.ext` (relativo à pasta do bio.json) |
 | Mudança não reflete | Cache do navegador — use `Ctrl+F5` |
 | Seção sem título mas com espaço | `title` deve ser `""` (string vazia), não omitido se quiser sem label |
+| Card agendado some “do nada” | Confira `schedule.from` / `schedule.until` e o fuso `America/Sao_Paulo` |
 
 Valide o JSON em [jsonlint.com](https://jsonlint.com) antes de salvar em produção.
 

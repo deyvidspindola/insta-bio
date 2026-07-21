@@ -163,6 +163,8 @@ Schema TypeScript do JSON. Atualize ao adicionar campos ou tipos de card.
 | `WhatsAppHeroCard.tsx` | `whatsapp-hero` | Card verde do WhatsApp |
 | `FeatureCard.tsx` | `feature` | Variantes gradient, square, compact, portrait, banner |
 | `LinkCard.tsx` | `link` | Linha com ícone + título |
+| `TextBlock.tsx` | `text` | Texto livre com alinhamento e formatação |
+| `ListCard.tsx` | `list` | Lista com números, pontos, letras ou sem marcador |
 | `VideoCard.tsx` | `video` | Vídeo com mute estilo Reels |
 | `ProductsCard.tsx` | `products` | Grade de produtos |
 | `SlideCard.tsx` | `slides` | Carrossel de imagens/vídeos |
@@ -233,6 +235,18 @@ Ver [PLATAFORMA.md](./PLATAFORMA.md).
 ```bash
 npm run build:platform
 ```
+
+---
+
+## Como adicionar um campo comum a todos os cards
+
+Ex.: `schedule` (agendamento).
+
+1. Tipo compartilhado + campo opcional em cada interface / união em `bio/src/types/bio.ts`
+2. Helper de runtime (ex.: `bio/src/lib/cardSchedule.ts`) se houver regra na bio pública
+3. Bloco compartilhado no formulário de `editor/src/components/ItemEditor.tsx` (fora do `switch` por tipo)
+4. Documente em `docs/BIO-JSON.md` (seção de campo comum)
+5. Rebuild e deploy
 
 ---
 

@@ -151,12 +151,16 @@ export function SectionEditor({
   const pendingItemTitle =
     pendingItem && 'title' in pendingItem && pendingItem.title
       ? pendingItem.title
-      : pendingItem
-        ? 'este card'
-        : ''
+      : pendingItem?.type === 'text'
+        ? pendingItem.text.trim() || 'este texto'
+        : pendingItem?.type === 'list'
+          ? pendingItem.items.find((entry) => entry.trim())?.trim() || 'esta lista'
+          : pendingItem
+            ? 'este card'
+            : ''
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       <div className="card">
         <div className="mb-4 flex items-start justify-between gap-3">
           <h3 className="text-sm font-semibold">Configuração da seção</h3>

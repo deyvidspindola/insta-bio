@@ -87,13 +87,13 @@ export function PreviewPanel({
 
   return (
     <div
-      className={`mx-auto w-full overflow-hidden bg-black shadow-2xl ${
+      className={`mx-auto flex w-full flex-col overflow-hidden bg-black shadow-2xl ${
         compact
           ? 'max-w-full rounded-2xl border-2 border-border'
           : 'max-w-[390px] rounded-[2rem] border-4 border-border'
       }`}
     >
-      <div className="flex justify-center bg-black py-2">
+      <div className="flex shrink-0 justify-center bg-black py-2">
         <div className="h-1 w-16 rounded-full bg-muted" />
       </div>
       <iframe
@@ -102,8 +102,8 @@ export function PreviewPanel({
         title="Preview da bio"
         className={`w-full border-0 bg-background ${
           compact
-            ? 'h-[min(560px,calc(100vh-11rem))]'
-            : 'h-[min(680px,calc(100vh-9rem))]'
+            ? 'h-[clamp(380px,calc(100vh-10rem),700px)]'
+            : 'h-[min(calc(100vh-7.5rem),860px)] min-h-[640px]'
         }`}
       />
     </div>

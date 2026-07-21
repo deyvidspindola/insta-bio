@@ -4,10 +4,29 @@ import type {
   AppHeroLayout,
   FeatureCardAlign,
   IconName,
+  ListStyle,
   SectionItem,
+  TextAlignment,
   WhatsAppHero,
 } from '@bio-types'
+import {
+  AlignCenter,
+  AlignJustify,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  CalendarClock,
+  Italic,
+  Plus,
+  Trash2,
+  Underline,
+} from 'lucide-react'
 import { APP_HERO_PRESETS } from '@site/lib/appHeroPresets'
+import {
+  itemHasScheduleWindow,
+  localInputToScheduleIso,
+  scheduleIsoToLocalInput,
+} from '@site/lib/cardSchedule'
 import { parseSpotifyEmbed } from '@site/lib/embedUrls'
 import {
   APP_HERO_PRESET_LIST,
@@ -20,6 +39,7 @@ import {
   resolveHeroLayout,
 } from '../lib/bio'
 import { GradientField } from './GradientField'
+import { ColorField } from './ColorField'
 import { IconPicker } from './IconPicker'
 import { ImageField } from './ImageField'
 import { ProductsField } from './ProductsField'
@@ -48,7 +68,7 @@ function Field({
   children: ReactNode
 }) {
   return (
-    <div className="field">
+    <div className="field min-w-0">
       <label>{label}</label>
       {children}
     </div>
@@ -64,12 +84,215 @@ function FieldGroup({ title, children }: { title: string; children: ReactNode })
   )
 }
 
+const TEXT_ALIGNMENT_OPTIONS = [
+  { value: 'left', label: 'Esquerda', Icon: AlignLeft },
+  { value: 'center', label: 'Centralizado', Icon: AlignCenter },
+  { value: 'right', label: 'Direita', Icon: AlignRight },
+  { value: 'justify', label: 'Justificado', Icon: AlignJustify },
+] as const
+
+const LIST_STYLE_OPTIONS = [
+  { value: 'number', label: 'Números', sample: '1.' },
+  { value: 'bullet', label: 'Pontos', sample: '•' },
+  { value: 'letter', label: 'Letras', sample: 'a.' },
+  { value: 'plain', label: 'Simples', sample: '—' },
+] as const
+
+type BackgroundMode = 'template' | 'transparent' | 'custom'
+
+function BackgroundFields({
+  mode,
+  color,
+  opacity,
+  defaultMode,
+  onChange,
+}: {
+  mode?: BackgroundMode
+  color?: string
+  opacity?: number
+  defaultMode: BackgroundMode
+  onChange: (patch: {
+    backgroundMode?: BackgroundMode
+    backgroundColor?: string
+    backgroundOpacity?: number
+  }) => void
+}) {
+  const resolvedMode = mode ?? defaultMode
+  const resolvedOpacity = Math.max(0, Math.min(100, opacity ?? 100))
+
+  return (
+    <FieldGroup title="Aparência">
+      <Field label="Fundo">
+        <div className="grid grid-cols-3 gap-1.5">
+          {[
+            { value: 'template', label: 'Template' },
+            { value: 'transparent', label: 'Sem fundo' },
+            { value: 'custom', label: 'Personalizado' },
+          ].map((option) => {
+            const selected = resolvedMode === option.value
+            return (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={selected}
+                className={`rounded-lg border px-2 py-2 text-[10px] font-medium transition-colors ${
+                  selected
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-background/40 text-muted-foreground hover:border-primary/40'
+                }`}
+                onClick={() =>
+                  onChange({
+                    backgroundMode: option.value as BackgroundMode,
+                  })
+                }
+              >
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
+      </Field>
+
+      {resolvedMode === 'custom' && (
+        <ColorField
+          label="Cor personalizada"
+          value={color ?? '#1f2937'}
+          onChange={(backgroundColor) => onChange({ backgroundColor })}
+          hint="A cor do texto é ajustada automaticamente para manter o contraste."
+        />
+      )}
+
+      {resolvedMode !== 'transparent' && (
+        <Field label={`Opacidade do fundo: ${Math.round(resolvedOpacity)}%`}>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={resolvedOpacity}
+            onChange={(event) =>
+              onChange({ backgroundOpacity: Number(event.target.value) })
+            }
+            aria-label="Opacidade do fundo"
+          />
+        </Field>
+      )}
+    </FieldGroup>
+  )
+}
+
 /** Define ou remove o ícone sem deixar `icon: undefined` no objeto. */
 function withOptionalIcon<T extends { icon?: IconName }>(item: T, icon?: IconName): T {
   if (icon) return { ...item, icon }
   if (!('icon' in item)) return item
   const { icon: _removed, ...rest } = item
   return rest as T
+}
+
+function ScheduleFields({
+  item,
+  onChange,
+}: {
+  item: SectionItem
+  onChange: (item: SectionItem) => void
+}) {
+  const enabled = item.schedule !== undefined
+  const fromLocal = scheduleIsoToLocalInput(item.schedule?.from)
+  const untilLocal = scheduleIsoToLocalInput(item.schedule?.until)
+  const rangeInvalid = Boolean(fromLocal && untilLocal) && untilLocal <= fromLocal
+
+  function patchSchedule(next: { from?: string; until?: string } | undefined) {
+    if (next === undefined) {
+      const { schedule: _s, ...rest } = item as SectionItem & { schedule?: unknown }
+      onChange(rest as SectionItem)
+      return
+    }
+    const schedule: { from?: string; until?: string } = {}
+    if (next.from) schedule.from = next.from
+    if (next.until) schedule.until = next.until
+    onChange({ ...item, schedule })
+  }
+
+  return (
+    <FieldGroup title="Agendamento">
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <CalendarClock className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-medium text-foreground">Agendar exibição</span>
+            <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
+            Defina quando este card deve aparecer ou sair do ar.
+            </span>
+          </span>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          aria-label="Agendar exibição deste card"
+          onClick={() => patchSchedule(enabled ? undefined : {})}
+          className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+            enabled ? 'border-primary bg-primary/25' : 'border-border bg-muted'
+          }`}
+        >
+          <span
+            aria-hidden="true"
+            className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full shadow-sm transition-transform ${
+              enabled ? 'translate-x-5 bg-primary' : 'translate-x-0 bg-muted-foreground'
+            }`}
+          />
+        </button>
+      </div>
+      {enabled && (
+        <div className="space-y-3">
+          <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(12rem,100%),1fr))] gap-3">
+            <Field label="Aparecer a partir de">
+              <input
+                type="datetime-local"
+                className="min-w-0"
+                value={fromLocal}
+                onChange={(e) =>
+                  patchSchedule({
+                    from: localInputToScheduleIso(e.target.value),
+                    until: item.schedule?.until,
+                  })
+                }
+              />
+            </Field>
+            <Field label="Remover em">
+              <input
+                type="datetime-local"
+                className="min-w-0"
+                value={untilLocal}
+                onChange={(e) =>
+                  patchSchedule({
+                    from: item.schedule?.from,
+                    until: localInputToScheduleIso(e.target.value),
+                  })
+                }
+              />
+            </Field>
+          </div>
+          <p className="text-[10px] leading-relaxed text-muted-foreground">
+            Fuso: America/Sao_Paulo. Se só o início estiver preenchido, o card aparece naquela data e
+            permanece até ser removido ou ter data de fim.
+          </p>
+          {rangeInvalid && (
+            <p className="text-[10px] text-red-400">
+              A data de remoção deve ser posterior à de início.
+            </p>
+          )}
+          {!fromLocal && !untilLocal && (
+            <p className="text-[10px] text-amber-500/90">
+              Agendamento ativo sem datas — o card continua visível até preencher início e/ou fim.
+            </p>
+          )}
+        </div>
+      )}
+    </FieldGroup>
+  )
 }
 
 type Tag = { label: string; icon?: IconName }
@@ -328,7 +551,7 @@ export function ItemEditor({
 
   return (
     <div
-      className={`card ${collapsed ? '' : 'space-y-3'} ${
+      className={`card min-w-0 ${collapsed ? '' : 'space-y-3'} ${
         !collapsed ? 'ring-1 ring-primary/35' : ''
       }`}
       onFocusCapture={() => onFocus?.()}
@@ -381,18 +604,27 @@ export function ItemEditor({
             <p className="truncate font-medium">
               {'title' in item && item.title
                 ? item.title
-                : item.type === 'video'
-                  ? 'Vídeo'
-                  : item.type === 'slide'
-                    ? 'Slides'
-                    : item.type === 'products'
-                      ? 'Produtos'
-                      : item.type === 'youtube-embed'
-                        ? 'YouTube'
-                        : item.type === 'spotify-embed'
-                          ? 'Spotify'
-                          : item.type}
+                : item.type === 'text'
+                  ? item.text.trim() || 'Texto'
+                  : item.type === 'list'
+                    ? item.items.find((entry) => entry.trim())?.trim() || 'Lista'
+                    : item.type === 'video'
+                      ? 'Vídeo'
+                      : item.type === 'slide'
+                        ? 'Slides'
+                        : item.type === 'products'
+                          ? 'Produtos'
+                          : item.type === 'youtube-embed'
+                            ? 'YouTube'
+                            : item.type === 'spotify-embed'
+                              ? 'Spotify'
+                              : item.type}
             </p>
+            {(item.schedule !== undefined || itemHasScheduleWindow(item)) && (
+              <p className="mt-0.5 text-[10px] font-medium text-primary">
+                {itemHasScheduleWindow(item) ? 'Agendado' : 'Agendamento (sem datas)'}
+              </p>
+            )}
           </button>
         </div>
         <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -417,6 +649,8 @@ export function ItemEditor({
 
       {collapsed ? null : (
         <>
+          <ScheduleFields item={item} onChange={onChange} />
+
           {'url' in item &&
             item.type !== 'video' &&
             item.type !== 'youtube-embed' &&
@@ -429,6 +663,194 @@ export function ItemEditor({
                 />
               </Field>
             )}
+
+          {item.type === 'text' && (
+            <>
+              <FieldGroup title="Formatação">
+                <Field label="Alinhamento">
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {TEXT_ALIGNMENT_OPTIONS.map(({ value, label, Icon }) => {
+                      const selected = (item.align ?? 'left') === value
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          title={label}
+                          aria-label={`Alinhar texto: ${label}`}
+                          aria-pressed={selected}
+                          className={`flex min-w-0 items-center justify-center rounded-lg border px-2 py-2 transition-colors ${
+                            selected
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-border bg-background/40 text-muted-foreground hover:border-primary/40'
+                          }`}
+                          onClick={() => onChange({ ...item, align: value as TextAlignment })}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Field>            
+                <Field label="Estilo">
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { key: 'bold', label: 'Negrito', Icon: Bold },
+                      { key: 'italic', label: 'Itálico', Icon: Italic },
+                      { key: 'underline', label: 'Sublinhado', Icon: Underline },
+                    ].map(({ key, label, Icon }) => {
+                      const selected = Boolean(item[key as 'bold' | 'italic' | 'underline'])
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          title={label}
+                          aria-label={label}
+                          aria-pressed={selected}
+                          className={`flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-[11px] transition-colors ${
+                            selected
+                              ? 'border-primary bg-primary/10 font-semibold text-primary'
+                              : 'border-border bg-background/40 text-muted-foreground hover:border-primary/40'
+                          }`}
+                          onClick={() =>
+                            onChange({
+                              ...item,
+                              [key]: !selected,
+                            })
+                          }
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">{label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Field>
+                <p className="text-[10px] leading-relaxed text-muted-foreground">
+                  A cor acompanha automaticamente o contraste definido pelo template.
+                </p>
+              </FieldGroup>
+              <FieldGroup title="Conteúdo">
+                <Field label="Texto">
+                  <textarea
+                    rows={6}
+                    maxLength={300}
+                    value={item.text}
+                    placeholder="Digite até 300 caracteres"
+                    onChange={(e) => onChange({ ...item, text: e.target.value.slice(0, 300) })}
+                  />
+                  <p className="mt-1 text-right text-[10px] text-muted-foreground">
+                    {item.text.length}/300
+                  </p>
+                </Field>
+              </FieldGroup>                  
+              <BackgroundFields
+                mode={item.backgroundMode}
+                color={item.backgroundColor}
+                opacity={item.backgroundOpacity}
+                defaultMode="transparent"
+                onChange={(patch) => onChange({ ...item, ...patch })}
+              />
+            </>
+          )}
+
+          {item.type === 'list' && (
+            <>
+              <FieldGroup title="Conteúdo">
+                <Field label="Título (opcional)">
+                  <input
+                    maxLength={80}
+                    value={item.title ?? ''}
+                    onChange={(e) => onChange({ ...item, title: e.target.value })}
+                  />
+                </Field>
+                <Field label="Formato da lista">
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {LIST_STYLE_OPTIONS.map(({ value, label, sample }) => {
+                      const selected = (item.style ?? 'bullet') === value
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          title={label}
+                          aria-label={`Formato: ${label}`}
+                          aria-pressed={selected}
+                          className={`rounded-lg border px-1.5 py-2 text-center transition-colors ${
+                            selected
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-border bg-background/40 text-muted-foreground hover:border-primary/40'
+                          }`}
+                          onClick={() => onChange({ ...item, style: value as ListStyle })}
+                        >
+                          <span className="block text-sm font-bold leading-none">{sample}</span>
+                          <span className="mt-1 block truncate text-[9px]">{label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Field>
+
+                <div className="field min-w-0">
+                  <label>Itens</label>
+                  <div className="space-y-2">
+                    {item.items.map((entry, index) => (
+                      <div key={index} className="flex min-w-0 items-center gap-2">
+                        <span className="w-5 shrink-0 text-right text-xs font-semibold text-primary">
+                          {item.style === 'number'
+                            ? `${index + 1}.`
+                            : item.style === 'letter'
+                              ? `${String.fromCharCode(97 + (index % 26))}.`
+                              : item.style === 'plain'
+                                ? '—'
+                                : '•'}
+                        </span>
+                        <input
+                          className="min-w-0 flex-1"
+                          maxLength={160}
+                          value={entry}
+                          placeholder={`Item ${index + 1}`}
+                          onChange={(e) => {
+                            const items = [...item.items]
+                            items[index] = e.target.value
+                            onChange({ ...item, items })
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn-ghost shrink-0 p-2 text-muted-foreground hover:text-red-400"
+                          aria-label={`Remover item ${index + 1}`}
+                          title="Remover item"
+                          onClick={() =>
+                            onChange({
+                              ...item,
+                              items: item.items.filter((_, itemIndex) => itemIndex !== index),
+                            })
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-secondary mt-2 flex w-full items-center justify-center gap-1.5 py-1.5 text-xs"
+                    onClick={() => onChange({ ...item, items: [...item.items, ''] })}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Adicionar item
+                  </button>
+                </div>
+              </FieldGroup>
+
+              <BackgroundFields
+                mode={item.backgroundMode}
+                color={item.backgroundColor}
+                opacity={item.backgroundOpacity}
+                defaultMode="template"
+                onChange={(patch) => onChange({ ...item, ...patch })}
+              />
+            </>
+          )}
 
           {item.type === 'whatsapp-hero' && (
             <HeroLayoutFields

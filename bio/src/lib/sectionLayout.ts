@@ -13,7 +13,13 @@ export function itemCardWidth(item: SectionItem): CardWidth {
 }
 
 export function itemSpansFullInGrid(item: SectionItem): boolean {
-  if (item.type === 'products' || item.type === 'youtube-embed' || item.type === 'spotify-embed') {
+  if (
+    item.type === 'products' ||
+    item.type === 'youtube-embed' ||
+    item.type === 'spotify-embed' ||
+    item.type === 'text' ||
+    item.type === 'list'
+  ) {
     return true
   }
   if (item.type === 'video' || item.type === 'slide') {

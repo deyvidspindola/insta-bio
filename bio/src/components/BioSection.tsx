@@ -1,15 +1,18 @@
 import type { CSSProperties, MouseEvent, ReactNode } from 'react'
 import type { BioSection, SectionItem } from '../types/bio'
+import { filterVisibleItems, itemHasScheduleWindow, isItemVisibleNow } from '../lib/cardSchedule'
 import { itemSpansFullInGrid, groupStackSectionItems } from '../lib/sectionLayout'
 import { contrastTextOn } from '../lib/colorEngine'
 import { AppHeroCard } from './AppHeroCard'
 import { FeatureCard } from './FeatureCard'
 import { GridCard } from './GridCard'
 import { LinkCard } from './LinkCard'
+import { ListCard } from './ListCard'
 import { LocationCard } from './LocationCard'
 import { ProductsCard } from './ProductsCard'
 import { SlideCard } from './SlideCard'
 import { SpotifyEmbedCard } from './SpotifyEmbedCard'
+import { TextBlock } from './TextBlock'
 import { VideoCard } from './VideoCard'
 import { YoutubeEmbedCard } from './YoutubeEmbedCard'
 
@@ -24,6 +27,8 @@ function wrapPreviewItem({
   label,
   className,
   style,
+  scheduled = false,
+  scheduleLive = true,
   children,
 }: {
   sectionId: string
@@ -32,6 +37,9 @@ function wrapPreviewItem({
   label?: string
   className: string
   style?: CSSProperties
+  scheduled?: boolean
+  /** false = agendado mas fora da janela agora */
+  scheduleLive?: boolean
   children: ReactNode
 }) {
   const preview = isPreviewMode()
@@ -52,10 +60,21 @@ function wrapPreviewItem({
       data-preview-item={`${sectionId}:${index}`}
       data-item-type={itemType}
       data-item-label={label || undefined}
-      className={`${className}${preview ? ' bio-preview-selectable' : ''}`}
+      className={`relative ${className}${preview ? ' bio-preview-selectable' : ''}${
+        preview && scheduled && !scheduleLive ? ' bio-preview-scheduled-hidden' : ''
+      }`}
       style={style}
       onClickCapture={preview ? onClickCapture : undefined}
     >
+      {preview && scheduled && (
+        <span
+          className={`bio-preview-schedule-tag${
+            scheduleLive ? '' : ' bio-preview-schedule-tag--hidden'
+          }`}
+        >
+          {scheduleLive ? 'Agendado' : 'Agendado · oculto'}
+        </span>
+      )}
       {children}
     </div>
   )
@@ -70,6 +89,9 @@ function itemTrackLabel(item: SectionItem): string | undefined {
   }
   if ('badge' in item && typeof item.badge === 'string' && item.badge.trim()) {
     return item.badge.trim()
+  }
+  if ('text' in item && typeof item.text === 'string' && item.text.trim()) {
+    return item.text.trim().slice(0, 80)
   }
   return undefined
 }
@@ -124,6 +146,9 @@ function renderItem(
   const spanClass = grid && itemSpansFullInGrid(item) ? 'col-span-2' : ''
   const focusClass = focused ? 'bio-preview-focus' : ''
   const shell = `animate-fade-up ${spanClass} ${focusClass}`.trim()
+  const scheduled = itemHasScheduleWindow(item)
+  const scheduleLive = !scheduled || isItemVisibleNow(item)
+  const scheduleProps = { scheduled, scheduleLive }
 
   switch (item.type) {
     case 'whatsapp-hero':
@@ -135,6 +160,7 @@ function renderItem(
         label: itemTrackLabel(item),
         className: `${shell} h-full`,
         style: delay,
+        ...scheduleProps,
         children: <AppHeroCard item={item} grid={grid} pageBackground={pageBackground} />,
       })
     case 'feature':
@@ -145,6 +171,7 @@ function renderItem(
         label: itemTrackLabel(item),
         className: `${shell} h-full`,
         style: delay,
+        ...scheduleProps,
         children: <FeatureCard item={item} grid={inGrid} pageBackground={pageBackground} />,
       })
     case 'link':
@@ -155,6 +182,7 @@ function renderItem(
         label: itemTrackLabel(item),
         className: `${shell} h-full`,
         style: delay,
+        ...scheduleProps,
         children: <LinkCard item={item} grid={inGrid} />,
       })
     case 'grid':
@@ -165,6 +193,7 @@ function renderItem(
         label: itemTrackLabel(item),
         className: `${shell} h-full`,
         style: delay,
+        ...scheduleProps,
         children: <GridCard item={item} pageBackground={pageBackground} />,
       })
     case 'location':
@@ -175,6 +204,7 @@ function renderItem(
         label: itemTrackLabel(item),
         className: shell,
         style: delay,
+        ...scheduleProps,
         children: <LocationCard item={item} />,
       })
     case 'video':
@@ -185,6 +215,7 @@ function renderItem(
         label: itemTrackLabel(item),
         className: shell,
         style: delay,
+        ...scheduleProps,
         children: <VideoCard item={item} />,
       })
     case 'slide':
@@ -195,6 +226,7 @@ function renderItem(
         label: itemTrackLabel(item),
         className: shell,
         style: delay,
+        ...scheduleProps,
         children: <SlideCard item={item} />,
       })
     case 'products':
@@ -205,6 +237,7 @@ function renderItem(
         label: itemTrackLabel(item),
         className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
         style: delay,
+        ...scheduleProps,
         children: <ProductsCard item={item} />,
       })
     case 'youtube-embed':
@@ -215,6 +248,7 @@ function renderItem(
         label: itemTrackLabel(item),
         className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
         style: delay,
+        ...scheduleProps,
         children: <YoutubeEmbedCard item={item} />,
       })
     case 'spotify-embed':
@@ -225,7 +259,30 @@ function renderItem(
         label: itemTrackLabel(item),
         className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
         style: delay,
+        ...scheduleProps,
         children: <SpotifyEmbedCard item={item} />,
+      })
+    case 'text':
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
+        className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
+        style: delay,
+        ...scheduleProps,
+        children: <TextBlock item={item} pageBackground={pageBackground} />,
+      })
+    case 'list':
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
+        className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
+        style: delay,
+        ...scheduleProps,
+        children: <ListCard item={item} pageBackground={pageBackground} />,
       })
     default:
       return null
@@ -243,6 +300,13 @@ export function BioSectionBlock({
   focusItemIndex?: number | null
 }) {
   const isGrid = section.layout === 'grid-2'
+  // Preview do editor: mostra todos (incl. fora da janela). Bio pública: filtra schedule.
+  const items = isPreviewMode() ? section.items : filterVisibleItems(section.items)
+
+  function originalIndex(item: SectionItem, fallback: number) {
+    const idx = section.items.indexOf(item)
+    return idx >= 0 ? idx : fallback
+  }
 
   return (
     <section>
@@ -253,20 +317,27 @@ export function BioSectionBlock({
       />
       {isGrid ? (
         <div className="mb-3 grid grid-cols-2 items-stretch gap-3">
-          {section.items.map((item, index) =>
-            renderItem(item, index, true, section.id, focusItemIndex === index, pageBackground),
+          {items.map((item, index) =>
+            renderItem(
+              item,
+              originalIndex(item, index),
+              true,
+              section.id,
+              focusItemIndex === originalIndex(item, index),
+              pageBackground,
+            ),
           )}
         </div>
       ) : (
         <div className="mb-3 space-y-3">
-          {groupStackSectionItems(section.items).map((row, rowIndex) => {
+          {groupStackSectionItems(items).map((row, rowIndex) => {
             if (row.length === 1 && itemUsesGridLayout(row[0], false)) {
-              const itemIndex = section.items.indexOf(row[0])
+              const itemIndex = originalIndex(row[0], rowIndex)
               return (
                 <div key={`row-${rowIndex}`} className="grid grid-cols-2 items-stretch gap-3">
                   {renderItem(
                     row[0],
-                    itemIndex >= 0 ? itemIndex : rowIndex,
+                    itemIndex,
                     false,
                     section.id,
                     focusItemIndex === itemIndex,
@@ -280,10 +351,10 @@ export function BioSectionBlock({
               return (
                 <div key={`row-${rowIndex}`} className="grid grid-cols-2 items-stretch gap-3">
                   {row.map((item) => {
-                    const itemIndex = section.items.indexOf(item)
+                    const itemIndex = originalIndex(item, 0)
                     return renderItem(
                       item,
-                      itemIndex >= 0 ? itemIndex : 0,
+                      itemIndex,
                       false,
                       section.id,
                       focusItemIndex === itemIndex,
@@ -294,10 +365,10 @@ export function BioSectionBlock({
               )
             }
 
-            const itemIndex = section.items.indexOf(row[0])
+            const itemIndex = originalIndex(row[0], rowIndex)
             return renderItem(
               row[0],
-              itemIndex >= 0 ? itemIndex : rowIndex,
+              itemIndex,
               false,
               section.id,
               focusItemIndex === itemIndex,
