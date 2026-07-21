@@ -182,10 +182,13 @@ function build_client_license_config_content(
   bool $selfhost = false,
   string $allowedHost = '',
   string $deployPath = '',
+  string $analyticsKey = '',
 ): string {
   $slugEsc = addslashes($slug);
   $tokenEsc = addslashes($token);
-  $apiEsc = addslashes(rtrim($platformBaseUrl, '/') . '/panel/api/license/check');
+  $base = rtrim($platformBaseUrl, '/');
+  $apiEsc = addslashes($base . '/panel/api/license/check');
+  $analyticsApiEsc = addslashes($base . '/panel/api/analytics/track');
   $selfhostLiteral = $selfhost ? 'true' : 'false';
   $allowedHost = normalize_license_host($allowedHost);
   $allowedHostEsc = addslashes($allowedHost);
@@ -200,6 +203,12 @@ function build_client_license_config_content(
     ? "define('LICENSE_DEPLOY_PATH', '{$deployPathEsc}');\n"
     : '';
 
+  $analyticsKey = trim($analyticsKey);
+  $analyticsKeyEsc = addslashes($analyticsKey);
+  $analyticsLines = $analyticsKey !== ''
+    ? "define('ANALYTICS_KEY', '{$analyticsKeyEsc}');\ndefine('ANALYTICS_API', '{$analyticsApiEsc}');\n"
+    : '';
+
   return <<<PHP
 <?php
 // Gerado pelo painel — não remova. Sem este arquivo a bio não carrega.
@@ -207,7 +216,7 @@ define('LICENSE_SLUG', '{$slugEsc}');
 define('LICENSE_TOKEN', '{$tokenEsc}');
 define('LICENSE_SELFHOST', {$selfhostLiteral});
 {$allowedHostLine}{$deployPathLine}define('LICENSE_API', '{$apiEsc}');
-
+{$analyticsLines}
 PHP;
 }
 
@@ -265,6 +274,7 @@ function write_client_license_config(
   bool $selfhost = false,
   string $allowedHost = '',
   string $deployPath = '',
+  string $analyticsKey = '',
 ): void {
   $content = build_client_license_config_content(
     $slug,
@@ -273,6 +283,7 @@ function write_client_license_config(
     $selfhost,
     $allowedHost,
     $deployPath,
+    $analyticsKey,
   );
 
   if (file_put_contents($clientDir . DIRECTORY_SEPARATOR . 'license.config.php', $content) === false) {
@@ -373,6 +384,8 @@ function install_client_license_gate_files(string $clientDir): void
 function sync_client_license_files(PDO $pdo, string $platformRoot, array $client): string
 {
   platform_ensure_license_column($pdo);
+  require_once __DIR__ . '/analytics.php';
+  platform_ensure_analytics_schema($pdo);
 
   $token = trim((string) ($client['license_token'] ?? ''));
   if ($token === '') {
@@ -383,6 +396,8 @@ function sync_client_license_files(PDO $pdo, string $platformRoot, array $client
       [$token, $client['id']],
     );
   }
+
+  $analyticsKey = ensure_client_analytics_key($pdo, $client);
 
   $slug = normalize_slug((string) $client['slug']);
   $clientDir = rtrim($platformRoot, '/\\') . DIRECTORY_SEPARATOR . $slug;
@@ -401,6 +416,7 @@ function sync_client_license_files(PDO $pdo, string $platformRoot, array $client
     $selfHosted,
     $allowedHost,
     $deployPath,
+    $analyticsKey,
   );
   install_client_license_gate_files($clientDir);
   write_client_htaccess($clientDir);

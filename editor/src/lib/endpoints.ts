@@ -16,4 +16,7 @@ export const ENDPOINTS = {
   updateStatus: 'api/update/status',
   updateCheck: 'api/update/check',
   updateApply: 'api/update/apply',
+  analyticsSummary: 'api/analytics/summary',
+  analyticsTimeseries: 'api/analytics/timeseries',
+  analyticsClicks: 'api/analytics/clicks',
 } as const

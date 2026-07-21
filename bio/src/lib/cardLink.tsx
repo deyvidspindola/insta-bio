@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { trackClick, trackMetaFromElement } from './analytics'
 
 export function hasClickableUrl(url?: string): boolean {
   const value = url?.trim() ?? ''
@@ -36,15 +37,24 @@ export function CardLink({
   style,
 }: CardLinkProps) {
   if (hasClickableUrl(url)) {
+    const href = resolveCardHref(url!)
+
     return (
       <a
-        href={resolveCardHref(url!)}
+        href={href}
         target="_blank"
         rel="noopener noreferrer"
         className={className}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         style={style}
+        onClick={(event) => {
+          const fromDom = trackMetaFromElement(event.currentTarget)
+          trackClick({
+            ...fromDom,
+            url: href,
+          })
+        }}
       >
         {children}
       </a>

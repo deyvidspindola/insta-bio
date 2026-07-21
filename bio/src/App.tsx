@@ -1,17 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BioPage } from './components/BioPage'
+import { trackPageview } from './lib/analytics'
 import { loadBioConfig } from './lib/loadBioConfig'
 import type { BioConfig } from './types/bio'
 
 function App() {
   const [config, setConfig] = useState<BioConfig | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const pageviewSent = useRef(false)
 
   useEffect(() => {
     loadBioConfig()
       .then(setConfig)
       .catch((err: Error) => setError(err.message))
   }, [])
+
+  useEffect(() => {
+    if (!config || pageviewSent.current) return
+    pageviewSent.current = true
+    trackPageview()
+  }, [config])
 
   if (error) {
     return (

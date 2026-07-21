@@ -2,6 +2,7 @@
 require __DIR__ . '/bootstrap.php';
 require __DIR__ . '/lib/platform.php';
 require __DIR__ . '/lib/license.php';
+require __DIR__ . '/lib/analytics.php';
 require __DIR__ . '/lib/instagram.php';
 platform_require_auth();
 header('Content-Type: application/json');
@@ -34,6 +35,7 @@ try {
   platform_load_config();
   $pdo = platform_db();
   platform_ensure_license_column($pdo);
+  platform_ensure_analytics_schema($pdo);
 
   $hosting = resolve_client_hosting_input($selfHosted, $allowedHost, $deployPath);
 
@@ -52,6 +54,7 @@ try {
   $passwordHash = password_hash($plainPassword, PASSWORD_BCRYPT);
   $passwordEnc = app_encrypt($plainPassword);
   $licenseToken = generate_license_token();
+  $analyticsKey = generate_uuid_v4();
 
   $provision = provision_client(
     PLATFORM_ROOT,
@@ -77,7 +80,7 @@ try {
 
   platform_db_execute(
     $pdo,
-    'INSERT INTO clients (slug, name, email, password_hash, password_enc, status, license_token, allowed_host, self_hosted, deploy_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO clients (slug, name, email, password_hash, password_enc, status, license_token, analytics_key, allowed_host, self_hosted, deploy_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       $slug,
       $name,
@@ -86,6 +89,7 @@ try {
       $passwordEnc,
       'active',
       $licenseToken,
+      $analyticsKey,
       $hosting['allowed_host'],
       $hosting['self_hosted'] ? 1 : 0,
       $hosting['deploy_path'],
@@ -98,6 +102,7 @@ try {
     'id' => $clientId,
     'slug' => $slug,
     'license_token' => $licenseToken,
+    'analytics_key' => $analyticsKey,
     'allowed_host' => $hosting['allowed_host'],
     'self_hosted' => $hosting['self_hosted'],
     'deploy_path' => $hosting['deploy_path'],

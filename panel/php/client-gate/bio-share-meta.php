@@ -115,9 +115,36 @@ function bio_share_json_relative_path(string $clientRoot): string
 
 function bio_share_inject_runtime(string $html, string $relativeBioPath): string
 {
-  $script = '    <script>window.__BIO_JSON_PATH__='
-    . json_encode($relativeBioPath, JSON_UNESCAPED_SLASHES)
-    . ";</script>\n";
+  $payload = [
+    '__BIO_JSON_PATH__' => $relativeBioPath,
+  ];
+
+  if (defined('ANALYTICS_KEY') && ANALYTICS_KEY !== '') {
+    $payload['__ANALYTICS_KEY__'] = (string) ANALYTICS_KEY;
+  }
+
+  $analyticsUrl = '';
+  if (defined('ANALYTICS_API') && ANALYTICS_API !== '') {
+    $analyticsUrl = (string) ANALYTICS_API;
+  } elseif (defined('LICENSE_API') && LICENSE_API !== '' && function_exists('analytics_track_url_from_license_api')) {
+    $analyticsUrl = analytics_track_url_from_license_api((string) LICENSE_API);
+  } elseif (defined('LICENSE_API') && LICENSE_API !== '') {
+    $api = rtrim((string) LICENSE_API, '/');
+    if (str_ends_with($api, '/api/license/check')) {
+      $analyticsUrl = substr($api, 0, -strlen('/api/license/check')) . '/api/analytics/track';
+    }
+  }
+
+  if ($analyticsUrl !== '') {
+    $payload['__ANALYTICS_URL__'] = $analyticsUrl;
+  }
+
+  $assignments = [];
+  foreach ($payload as $key => $value) {
+    $assignments[] = 'window.' . $key . '=' . json_encode($value, JSON_UNESCAPED_SLASHES);
+  }
+
+  $script = '    <script>' . implode(';', $assignments) . ";</script>\n";
 
   return preg_replace('/<\/head>/i', $script . '  </head>', $html, 1) ?? $html;
 }

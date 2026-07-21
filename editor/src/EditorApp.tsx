@@ -4,6 +4,7 @@ import {
   Globe,
   Images,
   Layers,
+  LayoutDashboard,
   LogOut,
   Moon,
   Palette,
@@ -21,6 +22,7 @@ import type { BioConfig } from '@bio-types'
 import { AdvancedPanel } from './components/AdvancedPanel'
 import { AppearanceForm } from './components/AppearanceForm'
 import { ConfirmDialog } from './components/ConfirmDialog'
+import { DashboardPanel } from './components/DashboardPanel'
 import { IdentityForm } from './components/IdentityForm'
 import { ImagesGallery } from './components/ImagesGallery'
 import { LoginScreen } from './components/LoginScreen'
@@ -52,7 +54,7 @@ import { applyTheme, getStoredTheme, type Theme } from './lib/theme'
 import { checkForUpdates } from './lib/updates'
 import { syncBrandSeo } from '@site/lib/pageMeta'
 
-type Tab = 'identity' | 'appearance' | 'sections' | 'images' | 'advanced'
+type Tab = 'dashboard' | 'identity' | 'appearance' | 'sections' | 'images' | 'advanced'
 type EditorMode = 'full' | 'demo'
 
 const HISTORY_LIMIT = 50
@@ -68,7 +70,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   const [config, setConfig] = useState<BioConfig | null>(null)
   const [past, setPast] = useState<BioConfig[]>([])
   const [future, setFuture] = useState<BioConfig[]>([])
-  const [activeTab, setActiveTab] = useState<Tab>('identity')
+  const [activeTab, setActiveTab] = useState<Tab>('dashboard')
   const [activeSection, setActiveSection] = useState(0)
   const [status, setStatus] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -447,6 +449,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   }
 
   const allRailTabs: { id: Tab; label: string; shortLabel: string; icon: typeof User }[] = [
+    { id: 'dashboard', label: 'Dashboard', shortLabel: 'Stats', icon: LayoutDashboard },
     { id: 'identity', label: 'Identidade', shortLabel: 'Perfil', icon: User },
     { id: 'appearance', label: 'Aparência', shortLabel: 'Visual', icon: Palette },
     { id: 'sections', label: 'Conteúdo', shortLabel: 'Cards', icon: Layers },
@@ -710,6 +713,8 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
           </aside>
 
           <main className="min-w-0 p-4 sm:p-6 md:col-start-1 md:row-start-2 xl:col-start-2 xl:row-start-1">
+            {activeTab === 'dashboard' && <DashboardPanel />}
+
             {activeTab === 'identity' && (
               <IdentityForm brand={config.brand} onChange={(brand) => commit((prev) => ({ ...prev, brand }))} />
             )}

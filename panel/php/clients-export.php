@@ -35,6 +35,9 @@ try {
 
   sync_client_license_files($pdo, PLATFORM_ROOT, $client);
 
+  require_once __DIR__ . '/lib/analytics.php';
+  ensure_client_analytics_key($pdo, $client);
+
   if (empty($client['self_hosted'])) {
     throw new RuntimeException(
       'Este cliente está configurado só na plataforma. Ative "Hospedagem própria" para exportar o ZIP.',
@@ -103,6 +106,7 @@ try {
           true,
           $allowedHost,
           $deployPath,
+          (string) ($client['analytics_key'] ?? ''),
         ),
       );
       continue;

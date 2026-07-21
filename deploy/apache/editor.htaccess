@@ -30,6 +30,7 @@ Options -Indexes -MultiViews
   RewriteRule ^api/update/status$ update-status.php [L,QSA]
   RewriteRule ^api/update/check$ update-check.php [L,QSA]
   RewriteRule ^api/update/apply$ update-apply.php [L,QSA]
+  RewriteRule ^api/analytics/(summary|timeseries|clicks)$ analytics-report.php?report=$1 [L,QSA]
   RewriteRule ^api/assets/upload$ upload.php [L,QSA]
   RewriteRule ^api/assets/list$ list-images.php [L,QSA]
   RewriteRule ^api/assets/delete$ delete-image.php [L,QSA]

@@ -256,6 +256,82 @@ function compareSemver(a: string, b: string): number {
   return 0
 }
 
+// --- Analytics (dev): dados de exemplo determinísticos por dia/hora ---
+function analyticsDevSeed(str: string): number {
+  let h = 2166136261
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return (h >>> 0) / 4294967295
+}
+
+function analyticsDevDays(from: string, to: string): string[] {
+  const out: string[] = []
+  const start = new Date(`${from}T00:00:00Z`)
+  const end = new Date(`${to}T00:00:00Z`)
+  for (let d = start; d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    out.push(d.toISOString().slice(0, 10))
+  }
+  return out
+}
+
+function analyticsDevDayBucket(day: string) {
+  const pageviews = Math.floor(analyticsDevSeed(`pv-${day}`) * 60) + 5
+  const clicks = Math.floor(analyticsDevSeed(`cl-${day}`) * pageviews * 0.4)
+  const uniques = Math.max(1, Math.floor(pageviews * (0.6 + analyticsDevSeed(`un-${day}`) * 0.3)))
+  return { pageviews, clicks, uniques }
+}
+
+function analyticsDevPeriod(from: string, to: string) {
+  let pageviews = 0
+  let clicks = 0
+  let uniques = 0
+  for (const day of analyticsDevDays(from, to)) {
+    const b = analyticsDevDayBucket(day)
+    pageviews += b.pageviews
+    clicks += b.clicks
+    uniques += b.uniques
+  }
+  const ctr = pageviews > 0 ? Math.round((clicks / pageviews) * 10000) / 10000 : null
+  return { pageviews, uniques, clicks, ctr }
+}
+
+function analyticsDevShiftRange(from: string, to: string) {
+  const days = analyticsDevDays(from, to).length
+  const prevTo = new Date(`${from}T00:00:00Z`)
+  prevTo.setUTCDate(prevTo.getUTCDate() - 1)
+  const prevFrom = new Date(prevTo)
+  prevFrom.setUTCDate(prevFrom.getUTCDate() - (days - 1))
+  return { from: prevFrom.toISOString().slice(0, 10), to: prevTo.toISOString().slice(0, 10) }
+}
+
+function analyticsDevDelta(cur: number, prev: number): number | null {
+  if (prev === 0) return cur > 0 ? 1 : 0
+  return Math.round(((cur - prev) / prev) * 10000) / 10000
+}
+
+const ANALYTICS_DEV_CLICKS = [
+  { section_id: 'links', item_index: 0, item_type: 'link', label: 'WhatsApp', target_url: 'https://wa.me/5511999999999' },
+  { section_id: 'links', item_index: 1, item_type: 'link', label: 'Loja online', target_url: 'https://loja.exemplo.com' },
+  { section_id: 'redes', item_index: 0, item_type: 'feature', label: 'Instagram', target_url: 'https://instagram.com/exemplo' },
+  { section_id: 'links', item_index: 2, item_type: 'link', label: 'Catálogo PDF', target_url: 'https://exemplo.com/catalogo.pdf' },
+  { section_id: 'contato', item_index: 0, item_type: 'location', label: 'Como chegar', target_url: 'https://maps.google.com/?q=exemplo' },
+]
+
+function analyticsDevQuery(req: import('http').IncomingMessage): URLSearchParams {
+  const url = req.url ?? ''
+  const qIndex = url.indexOf('?')
+  return new URLSearchParams(qIndex >= 0 ? url.slice(qIndex + 1) : '')
+}
+
+function analyticsDevDefaultRange(): { from: string; to: string } {
+  const to = new Date()
+  const from = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate()))
+  from.setUTCDate(from.getUTCDate() - 6)
+  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }
+}
+
 function listAssetFiles(assetsDir = getEditorStoragePaths().assetsDir) {
   if (!fs.existsSync(assetsDir)) return []
   return fs
@@ -432,6 +508,102 @@ function uploadPlugin(): Plugin {
         } catch {
           sendJson(res, 500, { error: 'Não foi possível salvar o caminho' })
         }
+      })
+
+      // Analytics (dev) — dados de exemplo; produção usa PHP no painel.
+      server.middlewares.use('/api/analytics/summary', (req, res) => {
+        if (!getSessionFromRequest(req)) {
+          sendJson(res, 401, { ok: false, error: 'Não autenticado' })
+          return
+        }
+        const q = analyticsDevQuery(req)
+        const fallback = analyticsDevDefaultRange()
+        const from = q.get('from') || fallback.from
+        const to = q.get('to') || fallback.to
+        const prev = analyticsDevShiftRange(from, to)
+        const period = analyticsDevPeriod(from, to)
+        const previous = analyticsDevPeriod(prev.from, prev.to)
+        const todayStr = new Date().toISOString().slice(0, 10)
+        const todayBucket = analyticsDevDayBucket(todayStr)
+        const topClick = ANALYTICS_DEV_CLICKS[0]
+
+        sendJson(res, 200, {
+          ok: true,
+          from,
+          to,
+          period,
+          previous,
+          delta: {
+            pageviews: analyticsDevDelta(period.pageviews, previous.pageviews),
+            uniques: analyticsDevDelta(period.uniques, previous.uniques),
+            clicks: analyticsDevDelta(period.clicks, previous.clicks),
+          },
+          today: {
+            pageviews: todayBucket.pageviews,
+            uniques: todayBucket.uniques,
+            clicks: todayBucket.clicks,
+            ctr: todayBucket.pageviews > 0 ? todayBucket.clicks / todayBucket.pageviews : null,
+          },
+          top_click: {
+            label: topClick.label,
+            item_type: topClick.item_type,
+            target_url: topClick.target_url,
+            count: Math.max(1, Math.floor(period.clicks * 0.3)),
+          },
+        })
+      })
+
+      server.middlewares.use('/api/analytics/timeseries', (req, res) => {
+        if (!getSessionFromRequest(req)) {
+          sendJson(res, 401, { ok: false, error: 'Não autenticado' })
+          return
+        }
+        const q = analyticsDevQuery(req)
+        const fallback = analyticsDevDefaultRange()
+        const from = q.get('from') || fallback.from
+        const to = q.get('to') || fallback.to
+        const grain = q.get('grain') === 'hour' ? 'hour' : 'day'
+        const prev = analyticsDevShiftRange(from, to)
+
+        if (grain === 'hour') {
+          const build = (label: string) =>
+            Array.from({ length: 24 }, (_, h) => {
+              const key = String(h).padStart(2, '0')
+              const peak = h >= 8 && h <= 22 ? 1 : 0.2
+              const pv = Math.floor(analyticsDevSeed(`${label}-h-${key}`) * 30 * peak)
+              return { bucket: key, pageviews: pv, clicks: Math.floor(pv * 0.35) }
+            })
+          sendJson(res, 200, { ok: true, from, to, grain, current: build(from), previous: build(prev.from) })
+          return
+        }
+
+        const current = analyticsDevDays(from, to).map((day) => {
+          const b = analyticsDevDayBucket(day)
+          return { bucket: day, pageviews: b.pageviews, clicks: b.clicks }
+        })
+        const previous = analyticsDevDays(prev.from, prev.to).map((day) => {
+          const b = analyticsDevDayBucket(day)
+          return { bucket: day, pageviews: b.pageviews, clicks: b.clicks }
+        })
+        sendJson(res, 200, { ok: true, from, to, grain, current, previous })
+      })
+
+      server.middlewares.use('/api/analytics/clicks', (req, res) => {
+        if (!getSessionFromRequest(req)) {
+          sendJson(res, 401, { ok: false, error: 'Não autenticado' })
+          return
+        }
+        const q = analyticsDevQuery(req)
+        const fallback = analyticsDevDefaultRange()
+        const from = q.get('from') || fallback.from
+        const to = q.get('to') || fallback.to
+        const period = analyticsDevPeriod(from, to)
+        const weights = [0.34, 0.24, 0.18, 0.14, 0.1]
+        const items = ANALYTICS_DEV_CLICKS.map((click, index) => {
+          const count = Math.max(0, Math.floor(period.clicks * weights[index]))
+          return { ...click, count, pct: period.clicks > 0 ? count / period.clicks : 0 }
+        }).filter((item) => item.count > 0)
+        sendJson(res, 200, { ok: true, from, to, items })
       })
 
       // Fase B — só leitura (espelha editor/php/update-status.php)

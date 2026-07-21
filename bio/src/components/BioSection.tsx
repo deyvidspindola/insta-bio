@@ -20,12 +20,16 @@ function isPreviewMode() {
 function wrapPreviewItem({
   sectionId,
   index,
+  itemType,
+  label,
   className,
   style,
   children,
 }: {
   sectionId: string
   index: number
+  itemType: string
+  label?: string
   className: string
   style?: CSSProperties
   children: ReactNode
@@ -46,6 +50,8 @@ function wrapPreviewItem({
     <div
       key={`${sectionId}:${index}`}
       data-preview-item={`${sectionId}:${index}`}
+      data-item-type={itemType}
+      data-item-label={label || undefined}
       className={`${className}${preview ? ' bio-preview-selectable' : ''}`}
       style={style}
       onClickCapture={preview ? onClickCapture : undefined}
@@ -53,6 +59,19 @@ function wrapPreviewItem({
       {children}
     </div>
   )
+}
+
+function itemTrackLabel(item: SectionItem): string | undefined {
+  if ('title' in item && typeof item.title === 'string' && item.title.trim()) {
+    return item.title.trim()
+  }
+  if ('cta' in item && typeof item.cta === 'string' && item.cta.trim()) {
+    return item.cta.trim()
+  }
+  if ('badge' in item && typeof item.badge === 'string' && item.badge.trim()) {
+    return item.badge.trim()
+  }
+  return undefined
 }
 
 function SectionTitle({
@@ -112,6 +131,8 @@ function renderItem(
       return wrapPreviewItem({
         sectionId,
         index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
         className: `${shell} h-full`,
         style: delay,
         children: <AppHeroCard item={item} grid={grid} pageBackground={pageBackground} />,
@@ -120,6 +141,8 @@ function renderItem(
       return wrapPreviewItem({
         sectionId,
         index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
         className: `${shell} h-full`,
         style: delay,
         children: <FeatureCard item={item} grid={inGrid} pageBackground={pageBackground} />,
@@ -128,6 +151,8 @@ function renderItem(
       return wrapPreviewItem({
         sectionId,
         index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
         className: `${shell} h-full`,
         style: delay,
         children: <LinkCard item={item} grid={inGrid} />,
@@ -136,6 +161,8 @@ function renderItem(
       return wrapPreviewItem({
         sectionId,
         index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
         className: `${shell} h-full`,
         style: delay,
         children: <GridCard item={item} pageBackground={pageBackground} />,
@@ -144,6 +171,8 @@ function renderItem(
       return wrapPreviewItem({
         sectionId,
         index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
         className: shell,
         style: delay,
         children: <LocationCard item={item} />,
@@ -152,6 +181,8 @@ function renderItem(
       return wrapPreviewItem({
         sectionId,
         index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
         className: shell,
         style: delay,
         children: <VideoCard item={item} />,
@@ -160,6 +191,8 @@ function renderItem(
       return wrapPreviewItem({
         sectionId,
         index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
         className: shell,
         style: delay,
         children: <SlideCard item={item} />,
@@ -168,6 +201,8 @@ function renderItem(
       return wrapPreviewItem({
         sectionId,
         index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
         className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
         style: delay,
         children: <ProductsCard item={item} />,
@@ -176,6 +211,8 @@ function renderItem(
       return wrapPreviewItem({
         sectionId,
         index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
         className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
         style: delay,
         children: <YoutubeEmbedCard item={item} />,
@@ -184,6 +221,8 @@ function renderItem(
       return wrapPreviewItem({
         sectionId,
         index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
         className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
         style: delay,
         children: <SpotifyEmbedCard item={item} />,
