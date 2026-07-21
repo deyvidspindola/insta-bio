@@ -156,7 +156,7 @@ export function SectionEditor({
         : ''
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       <div className="card">
         <div className="mb-4 flex items-start justify-between gap-3">
           <h3 className="text-sm font-semibold">Configuração da seção</h3>

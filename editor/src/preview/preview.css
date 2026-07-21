@@ -38,3 +38,55 @@ html[data-bio-preview] .bio-preview-selectable:hover {
   outline-offset: 3px;
   border-radius: calc(var(--bio-card-radius, 1rem) + 2px);
 }
+
+/* Tag flutuante de agendamento — só no preview do editor */
+html[data-bio-preview] .bio-preview-schedule-tag {
+  position: absolute;
+  top: auto;
+  bottom: 0;
+  left: 1rem;
+  right: auto;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: calc(100% - 1rem);
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: #f8fafc;
+  background: rgb(15 23 42 / 0.94);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 0.35);
+  transform: translateY(50%);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+html[data-bio-preview] .bio-preview-schedule-tag::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  flex: none;
+  border-radius: 999px;
+  background: #fb923c;
+  box-shadow: 0 0 0 2px rgb(251 146 60 / 0.2);
+}
+
+html[data-bio-preview] .bio-preview-schedule-tag--hidden {
+  color: #f8fafc;
+  background: rgb(51 65 85 / 0.94);
+}
+
+html[data-bio-preview] .bio-preview-schedule-tag--hidden::before {
+  background: #94a3b8;
+  box-shadow: 0 0 0 2px rgb(148 163 184 / 0.2);
+}
+
+html[data-bio-preview] .bio-preview-scheduled-hidden > :not(.bio-preview-schedule-tag) {
+  opacity: 0.55;
+}

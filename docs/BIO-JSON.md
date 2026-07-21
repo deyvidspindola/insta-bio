@@ -127,6 +127,41 @@ Todo card precisa do campo `"type"`. Os tipos disponíveis hoje:
 | `location` | Endereço com link para o mapa |
 | `grid` | **Legado** — use `feature` com `variant: "square"` |
 
+### Campo comum: `schedule` (agendamento)
+
+Opcional em **qualquer** card. Controla quando o item aparece na **bio pública**. No editor e no preview, o card continua listado para edição.
+
+```json
+{
+  "type": "link",
+  "title": "Campanha de páscoa",
+  "url": "https://exemplo.com/pascoa",
+  "schedule": {
+    "from": "2026-04-01T08:00:00-03:00",
+    "until": "2026-04-20T23:59:00-03:00"
+  }
+}
+```
+
+| Campo | Obrigatório | Descrição |
+|-------|-------------|-----------|
+| `schedule` | Não | Objeto de agendamento. Omitir = sempre visível |
+| `schedule.from` | Não | ISO datetime — início da exibição |
+| `schedule.until` | Não | ISO datetime — fim da exibição (instante exclusivo) |
+
+**Timezone:** `America/Sao_Paulo`. Prefira gravar com offset (`-03:00`). Strings sem offset são interpretadas nesse fuso.
+
+**Regras na bio pública:**
+
+| Preenchimento | Comportamento |
+|---------------|---------------|
+| Sem `schedule` | Sempre visível |
+| Só `from` | Visível a partir de `from` (permanece até remover o card ou definir `until`) |
+| Só `until` | Visível até `until` |
+| `from` + `until` | Visível enquanto `from <= agora < until` |
+
+No editor: ative **Agendar exibição** no card para editar data/hora de início e fim.
+
 ---
 
 ### `app-hero`
@@ -463,10 +498,11 @@ O app resolve o caminho do `bio.json` em runtime (`bio-path.json`, `bio-json.php
 | Problema | Causa provável |
 |----------|----------------|
 | Página em branco com mensagem de erro | JSON inválido (vírgula extra, aspas faltando) |
-| Card não aparece | `type` incorreto ou typo no JSON |
+| Card não aparece | `type` incorreto, typo no JSON, ou fora da janela de `schedule` |
 | Imagem não carrega | Caminho errado — use `assets/arquivo.ext` (relativo à pasta do bio.json) |
 | Mudança não reflete | Cache do navegador — use `Ctrl+F5` |
 | Seção sem título mas com espaço | `title` deve ser `""` (string vazia), não omitido se quiser sem label |
+| Card agendado some “do nada” | Confira `schedule.from` / `schedule.until` e o fuso `America/Sao_Paulo` |
 
 Valide o JSON em [jsonlint.com](https://jsonlint.com) antes de salvar em produção.
 

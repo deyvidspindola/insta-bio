@@ -887,6 +887,11 @@ input[type='range'] {
   height: min(360px, calc(48vh - 5.5rem)) !important;
 }
 
+/* Permite que as colunas internas encolham sem ampliar a página. */
+.editor-shell {
+  min-width: 0;
+}
+
 .editor-shell--preview-dock {
   padding-bottom: calc(min(48vh, 26rem) + 4.5rem);
 }

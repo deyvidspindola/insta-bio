@@ -236,6 +236,18 @@ npm run build:platform
 
 ---
 
+## Como adicionar um campo comum a todos os cards
+
+Ex.: `schedule` (agendamento).
+
+1. Tipo compartilhado + campo opcional em cada interface / união em `bio/src/types/bio.ts`
+2. Helper de runtime (ex.: `bio/src/lib/cardSchedule.ts`) se houver regra na bio pública
+3. Bloco compartilhado no formulário de `editor/src/components/ItemEditor.tsx` (fora do `switch` por tipo)
+4. Documente em `docs/BIO-JSON.md` (seção de campo comum)
+5. Rebuild e deploy
+
+---
+
 ## Como adicionar um novo tipo de card
 
 1. Defina o tipo em `bio/src/types/bio.ts`
