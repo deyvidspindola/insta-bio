@@ -7,7 +7,7 @@ declare global {
     __BIO_JSON_PATH__?: string
     /** UUID de telemetria — nunca é o license_token */
     __ANALYTICS_KEY__?: string
-    /** POST /panel/api/analytics/track */
+    /** @deprecated Preferir proxy same-origin api/analytics/track */
     __ANALYTICS_URL__?: string
   }
 }

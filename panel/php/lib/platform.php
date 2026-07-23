@@ -254,6 +254,9 @@ DirectoryIndex index.php index.html
   # /editor sem barra → /editor/
   RewriteRule ^editor$ editor/ [R=301,L]
 
+  # Proxy de analytics (same-origin → painel no servidor)
+  RewriteRule ^api/analytics/track$ index.php?__ib_analytics_track=1 [L,QSA]
+
   # Bio pública sempre passa pelo gate de licença
   RewriteRule ^index\.html$ index.php [L]
 </IfModule>

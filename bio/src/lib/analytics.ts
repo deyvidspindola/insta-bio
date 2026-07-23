@@ -2,6 +2,7 @@ declare global {
   interface Window {
     __BIO_JSON_PATH__?: string
     __ANALYTICS_KEY__?: string
+    /** @deprecated URL do painel não deve aparecer no HTML; use o proxy same-origin. */
     __ANALYTICS_URL__?: string
   }
 }
@@ -38,9 +39,19 @@ export function getAnalyticsKey(): string | null {
   return key || null
 }
 
+/** Endpoint same-origin no site do cliente (proxy PHP → painel). */
 export function getAnalyticsUrl(): string | null {
-  const url = window.__ANALYTICS_URL__?.trim()
-  return url || null
+  if (typeof window === 'undefined') return null
+
+  // Legado: só se o gate antigo ainda injetar a URL absoluta.
+  const legacy = window.__ANALYTICS_URL__?.trim()
+  if (legacy) return legacy
+
+  try {
+    return new URL('api/analytics/track', window.location.href).href
+  } catch {
+    return 'api/analytics/track'
+  }
 }
 
 export function getVisitorId(): string {
@@ -72,6 +83,7 @@ function sendEvent(payload: Record<string, unknown>): void {
 
   const analyticsKey = getAnalyticsKey()
   const endpoint = getAnalyticsUrl()
+  // Sem chave injetada pelo gate, o proxy também não tem o que encaminhar.
   if (!analyticsKey || !endpoint) return
 
   const body = JSON.stringify({
@@ -86,7 +98,8 @@ function sendEvent(payload: Record<string, unknown>): void {
 
   try {
     if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-      const blob = new Blob([body], { type: 'application/json' })
+      // text/plain evita preflight; o proxy e o painel leem o corpo bruto.
+      const blob = new Blob([body], { type: 'text/plain;charset=UTF-8' })
       if (navigator.sendBeacon(endpoint, blob)) return
     }
   } catch {
@@ -99,7 +112,7 @@ function sendEvent(payload: Record<string, unknown>): void {
       headers: { 'Content-Type': 'application/json' },
       body,
       keepalive: true,
-      mode: 'cors',
+      mode: 'same-origin',
       credentials: 'omit',
     })
   } catch {

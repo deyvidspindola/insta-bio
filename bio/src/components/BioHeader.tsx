@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { BioBrand } from '../types/bio'
+import { trackClick } from '../lib/analytics'
 import { resolvePublicUrl } from '../lib/publicUrl'
 import { InstagramIcon } from './icons'
 import { collectSocialLinks, SocialLinksRow } from './SocialLinksRow'
@@ -82,6 +83,15 @@ export function BioHeader({ brand }: BioHeaderProps) {
           target="_blank"
           rel="noopener noreferrer"
           className="bio-header-instagram mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-3.5 py-1.5 text-xs font-medium text-foreground/85 backdrop-blur-md transition-colors hover:border-primary/50 hover:text-foreground"
+          onClick={() => {
+            trackClick({
+              sectionId: 'social',
+              itemIndex: 0,
+              itemType: 'instagram',
+              label: 'Instagram',
+              url: brand.instagram.url,
+            })
+          }}
         >
           <InstagramIcon className="h-3.5 w-3.5" />
           {brand.instagram.handle}

@@ -9,23 +9,19 @@ Options -Indexes -MultiViews
   RewriteRule ^_template(/|$) - [F,L]
 
   # Canonical: só quando o navegador pediu .html (evita loop com rewrite interno)
-  RewriteCond %{THE_REQUEST} \s/demo\.html[\s?] [NC]
-  RewriteRule ^demo\.html$ /demo [R=301,L]
-
   RewriteCond %{THE_REQUEST} \s/preview\.html[\s?] [NC]
   RewriteRule ^preview\.html$ /preview [R=301,L]
 
   # Painel sem barra final
   RewriteRule ^panel$ panel/ [R=301,L]
 
-  # Demo/preview: HTML na raiz, bundles em /editor/assets/ (build do editor)
+  # Preview do editor: HTML na raiz, bundles em /editor/assets/ (build do editor)
   RewriteRule ^editor/preview/?$ preview.html [L]
   RewriteRule ^editor/assets/(.*)$ assets/$1 [L]
-  RewriteRule ^editor/demo-bio\.json$ demo-bio.json [L]
 
   # /{slug} e /{slug}/editor com barra final (clientes em panel/sites/)
   RewriteCond %{REQUEST_URI} ^/([^/.]+)$ [NC]
-  RewriteCond %1 !^(panel|assets|demo|preview|_template|template|images)$ [NC]
+  RewriteCond %1 !^(panel|assets|preview|_template|template|images)$ [NC]
   RewriteCond %{DOCUMENT_ROOT}/panel/sites/%1/index.html -f [OR]
   RewriteCond %{DOCUMENT_ROOT}/panel/sites/%1/index.php -f
   RewriteRule ^([^/.]+)$ /$1/ [R=301,L]
@@ -36,7 +32,7 @@ Options -Indexes -MultiViews
 
   # Bios dos clientes — arquivos ficam em panel/sites/{slug}/
   RewriteCond %{REQUEST_URI} ^/([^/]+)(/.*)?$ [NC]
-  RewriteCond %1 !^(panel|assets|demo|preview|_template|template|images)$ [NC]
+  RewriteCond %1 !^(panel|assets|preview|_template|template|images)$ [NC]
   RewriteCond %{DOCUMENT_ROOT}/panel/sites/%1/index.html -f [OR]
   RewriteCond %{DOCUMENT_ROOT}/panel/sites/%1/index.php -f
   RewriteRule ^([^/]+)(/.*)?$ panel/sites/$1$2 [L]
@@ -47,6 +43,5 @@ Options -Indexes -MultiViews
   RewriteRule ^ - [L]
 
   # Rotas amigáveis da plataforma
-  RewriteRule ^demo/?$ demo.html [L,NC]
   RewriteRule ^preview/?$ preview.html [L,NC]
 </IfModule>

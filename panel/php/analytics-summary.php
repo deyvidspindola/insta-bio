@@ -27,12 +27,13 @@ try {
   $period = analytics_reports_period_stats($pdo, $clientId, $range['fromDt'], $range['toDt']);
   $previous = analytics_reports_period_stats($pdo, $clientId, $prev['fromDt'], $prev['toDt']);
 
-  $today = (new DateTimeImmutable('today', new DateTimeZone('UTC')))->format('Y-m-d');
+  $todayLocal = new DateTimeImmutable('today', new DateTimeZone(analytics_display_offset()));
+  $todayRange = analytics_reports_range_from_local($todayLocal, $todayLocal, 1);
   $todayStats = analytics_reports_period_stats(
     $pdo,
     $clientId,
-    $today . ' 00:00:00',
-    $today . ' 23:59:59',
+    $todayRange['fromDt'],
+    $todayRange['toDt'],
   );
 
   $topClick = analytics_reports_top_click($pdo, $clientId, $range['fromDt'], $range['toDt']);
@@ -54,6 +55,10 @@ try {
 } catch (InvalidArgumentException $e) {
   analytics_reports_send_json(['ok' => false, 'error' => $e->getMessage()], 400);
 } catch (Throwable $e) {
-  platform_capture_exception($e);
+  platform_capture_exception($e, [
+    'endpoint' => 'analytics/summary',
+    'slug' => $auth['slug'] ?? null,
+    'error' => $e->getMessage(),
+  ]);
   analytics_reports_send_json(['ok' => false, 'error' => 'Erro ao montar resumo'], 500);
 }

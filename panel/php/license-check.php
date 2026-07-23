@@ -2,6 +2,7 @@
 require __DIR__ . '/bootstrap.php';
 require __DIR__ . '/lib/platform.php';
 require __DIR__ . '/lib/license.php';
+require __DIR__ . '/lib/analytics.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');
@@ -29,6 +30,7 @@ try {
 
   $pdo = platform_db();
   platform_ensure_license_column($pdo);
+  platform_ensure_analytics_schema($pdo);
 
   $client = lookup_client_license($pdo, $slug, $token, $deploy, $host);
   if (!$client) {
@@ -37,11 +39,23 @@ try {
     exit;
   }
 
+  // Garante a chave de telemetria e devolve para o gate injetar na bio,
+  // mesmo em clientes cujo license.config.php ainda não define ANALYTICS_KEY.
+  $analyticsKey = ensure_client_analytics_key($pdo, $client);
+  $analyticsUrl = analytics_track_url_from_license_api(
+    (defined('LICENSE_API') && LICENSE_API !== '')
+      ? (string) LICENSE_API
+      : ((string) ($_SERVER['REQUEST_SCHEME'] ?? 'https') . '://'
+        . (string) ($_SERVER['HTTP_HOST'] ?? '') . '/panel/api/license/check'),
+  );
+
   echo json_encode([
     'ok' => true,
     'active' => $client['status'] === 'active',
     'status' => $client['status'],
     'slug' => $client['slug'],
+    'analytics_key' => $analyticsKey,
+    'analytics_url' => $analyticsUrl,
   ]);
 } catch (InvalidArgumentException $e) {
   http_response_code(400);

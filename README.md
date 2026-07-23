@@ -21,30 +21,28 @@ npm run panel        # Painel → http://localhost:5175/panel/
 npm run site         # Landing → http://localhost:5190
 ```
 
-**Login local do editor:** `admin` / `troque-esta-senha` (arquivo `editor/auth.json`).
+**Login local do editor:** `admin@local.dev` / `admin123` (arquivo `editor/auth.json`).
+
+Na primeira abertura, se não existir `bio/public/bio.json`, o Vite cria um a partir de `editor/public/demo-bio.json`. Dashboard em `:5180` usa analytics mockados.
 
 **Demo do editor:** [http://localhost:5180/demo.html](http://localhost:5180/demo.html)
 
 ---
 
-## Publicar na HostGator
+## Publicar (produção)
 
-Hospedagem compartilhada **sem Node** — o editor usa **PHP** para login, salvar e upload.
+Dois comandos — o resto está em [docs/DEPLOY-ATUALIZACAO.md](./docs/DEPLOY-ATUALIZACAO.md).
 
 ```bash
-npm run build                  # gera dist/ na raiz (bio pública)
-npm run editor:hostgator       # gera editor/dist/ (editor + PHP)
-# ou pacote único:
-make package
+make platform-core      # plataforma → platform-release/  (sobe no /panel/)
+make update-package     # ZIP de update → clientes atualizam pelo editor
 ```
 
-**Guia completo:** [docs/HOSTGATOR.md](./docs/HOSTGATOR.md)
+**Guia “o que subir onde”:** [docs/DEPLOY-ATUALIZACAO.md](./docs/DEPLOY-ATUALIZACAO.md)
 
-**O que subir após o build:** [docs/DEPLOY-ATUALIZACAO.md](./docs/DEPLOY-ATUALIZACAO.md)
-
-**Vender / instalar para clientes:** [docs/COMERCIALIZACAO.md](./docs/COMERCIALIZACAO.md)
-
-**Plataforma multi-cliente:** [docs/PLATAFORMA.md](./docs/PLATAFORMA.md)
+**HostGator / single-tenant:** [docs/HOSTGATOR.md](./docs/HOSTGATOR.md)  
+**Plataforma multi-cliente:** [docs/PLATAFORMA.md](./docs/PLATAFORMA.md)  
+**Vender / instalar clientes:** [docs/COMERCIALIZACAO.md](./docs/COMERCIALIZACAO.md)
 
 ---
 
@@ -81,27 +79,20 @@ A raiz do repositório é só **orquestração** (`package.json`, `Makefile`, `d
 
 ---
 
-## Comandos úteis
+## Comandos úteis (`make`)
 
 | Comando | O que faz |
 |---------|-----------|
 | `make install` | Instala deps de bio, editor, panel e site |
-| `make dev-all` | Sobe os quatro apps de desenvolvimento |
-| `npm run dev` / `npm run bio` | Bio local (porta 5173) |
-| `npm run build` | Build da bio → `dist/` |
-| `npm run preview` | Testa o `dist/` localmente |
-| `npm run editor` | Editor local (porta 5180) |
-| `npm run editor:hostgator` | Build do editor + PHP |
-| `make package` | Pacote unificado em `release/` |
-| `npm run build:platform` | Plataforma → `platform-release/` |
-| `npm run build:template` | Template de cliente → `platform-template/_template/` |
-| `npm run sync:clients` | Atualiza sites locais a partir do template |
-| `npm run build:update-package` | Gera `dist/updates/insta-bio-{VERSION}.zip` + `updates.json` |
-| `make update-package` | Atalho para o comando acima |
+| `make dev-all` | Sobe bio + editor + painel + landing |
+| `make site` | Sobe só a landing (dev) |
+| `make site-build` | Build da landing → `site/dist/` |
+| `make platform-core` | Build da plataforma → `platform-release/` |
+| `make update-package` | ZIP de update remoto (bump + changelog) |
 | `make hash-password PASSWORD="..."` | Hash bcrypt para `auth.config.php` |
-| `make clean` | Remove pastas de build |
+| `make lint` / `make clean` | Linter / limpa builds |
 
-**Aliases legados:** `npm run admin` = `npm run editor`, `make admin` = `make editor`.
+Apps avulsos no dia a dia: `npm run bio` · `npm run editor` · `npm run panel` · `npm run site`.
 
 ---
 

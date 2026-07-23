@@ -72,11 +72,42 @@ function platform_init_observability(): void
   ]);
 }
 
-function platform_capture_exception(Throwable $exception): void
+/**
+ * Registra a exceção no Sentry (quando configurado) e SEMPRE no log de erros do
+ * PHP — assim há rastro da causa real mesmo sem Sentry (ex.: cPanel error_log),
+ * já que as respostas ao cliente usam mensagens genéricas.
+ *
+ * @param array<string, mixed> $context
+ */
+function platform_capture_exception(Throwable $exception, array $context = []): void
 {
-  if (function_exists('\\Sentry\\captureException')) {
-    \Sentry\captureException($exception);
+  $contextJson = $context !== []
+    ? json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+    : '';
+  error_log(sprintf(
+    '[insta-bio] %s: %s @ %s:%d %s',
+    get_class($exception),
+    $exception->getMessage(),
+    $exception->getFile(),
+    $exception->getLine(),
+    is_string($contextJson) ? $contextJson : '',
+  ));
+
+  if (!function_exists('\\Sentry\\captureException')) {
+    return;
   }
+
+  if ($context !== [] && function_exists('\\Sentry\\withScope')) {
+    \Sentry\withScope(function ($scope) use ($exception, $context): void {
+      foreach ($context as $key => $value) {
+        $scope->setExtra((string) $key, $value);
+      }
+      \Sentry\captureException($exception);
+    });
+    return;
+  }
+
+  \Sentry\captureException($exception);
 }
 
 platform_init_observability();

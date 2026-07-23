@@ -3,9 +3,11 @@ import type { CSSProperties } from 'react'
 import type { BioConfig } from '../types/bio'
 import { resolveBackgroundPreset } from '../lib/backgroundPresets'
 import {
+  contrastTextOn,
   extractGradientEndColor,
   resolveEffectiveBioBackground,
 } from '../lib/colorEngine'
+import { formatBioFooter } from '../lib/footer'
 import { resolvePrimarySurfaceColors } from '../lib/contrastColor'
 import { resolveBioTemplate } from '../lib/templates'
 import { resolveCardRadiusPx } from '../lib/cardRadius'
@@ -33,6 +35,8 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
     backgroundPresetColor: bgPreset?.edgeColor,
     hasBackgroundImage: hasBgImage,
   })
+  const footerColors = contrastTextOn(pageBackground)
+  const footerText = formatBioFooter(brand.footer)
 
   // Cor para a variável CSS --color-background (cards, overlays)
   let bgColorForVars: string | undefined
@@ -159,14 +163,17 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
         ))}
 
         <footer className="mt-10 text-center space-y-1.5">
-          <p className="text-[11px] text-muted-foreground/70">{brand.footer}</p>
-          <p className="text-[11px] text-muted-foreground/80">
+          <p className="text-[11px] font-medium" style={{ color: footerColors.body }}>
+            {footerText}
+          </p>
+          <p className="text-[11px]" style={{ color: footerColors.muted }}>
             by{' '}
             <a
               href="https://linksnabio.app.br"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-muted-foreground underline-offset-2 transition-colors hover:text-primary hover:underline"
+              className="font-medium underline-offset-2 transition-opacity hover:underline"
+              style={{ color: footerColors.body }}
             >
               linksnabio
             </a>

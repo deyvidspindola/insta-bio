@@ -194,28 +194,28 @@ function build_client_license_config_content(
   $allowedHostEsc = addslashes($allowedHost);
 
   $allowedHostLine = $allowedHost !== ''
-    ? "define('LICENSE_ALLOWED_HOST', '{$allowedHostEsc}');\n"
+    ? "if (!defined('LICENSE_ALLOWED_HOST')) define('LICENSE_ALLOWED_HOST', '{$allowedHostEsc}');\n"
     : '';
 
   $deployPath = normalize_deploy_path($deployPath);
   $deployPathEsc = addslashes($deployPath);
   $deployPathLine = $selfhost
-    ? "define('LICENSE_DEPLOY_PATH', '{$deployPathEsc}');\n"
+    ? "if (!defined('LICENSE_DEPLOY_PATH')) define('LICENSE_DEPLOY_PATH', '{$deployPathEsc}');\n"
     : '';
 
   $analyticsKey = trim($analyticsKey);
   $analyticsKeyEsc = addslashes($analyticsKey);
   $analyticsLines = $analyticsKey !== ''
-    ? "define('ANALYTICS_KEY', '{$analyticsKeyEsc}');\ndefine('ANALYTICS_API', '{$analyticsApiEsc}');\n"
+    ? "if (!defined('ANALYTICS_KEY')) define('ANALYTICS_KEY', '{$analyticsKeyEsc}');\nif (!defined('ANALYTICS_API')) define('ANALYTICS_API', '{$analyticsApiEsc}');\n"
     : '';
 
   return <<<PHP
 <?php
 // Gerado pelo painel — não remova. Sem este arquivo a bio não carrega.
-define('LICENSE_SLUG', '{$slugEsc}');
-define('LICENSE_TOKEN', '{$tokenEsc}');
-define('LICENSE_SELFHOST', {$selfhostLiteral});
-{$allowedHostLine}{$deployPathLine}define('LICENSE_API', '{$apiEsc}');
+if (!defined('LICENSE_SLUG')) define('LICENSE_SLUG', '{$slugEsc}');
+if (!defined('LICENSE_TOKEN')) define('LICENSE_TOKEN', '{$tokenEsc}');
+if (!defined('LICENSE_SELFHOST')) define('LICENSE_SELFHOST', {$selfhostLiteral});
+{$allowedHostLine}{$deployPathLine}if (!defined('LICENSE_API')) define('LICENSE_API', '{$apiEsc}');
 {$analyticsLines}
 PHP;
 }
@@ -308,7 +308,7 @@ function lookup_client_license(PDO $pdo, string $slug, string $token, string $de
 
   $stmt = platform_db_execute(
     $pdo,
-    'SELECT id, slug, status, allowed_host, self_hosted, deploy_path FROM clients WHERE slug = ? AND license_token = ? LIMIT 1',
+    'SELECT id, slug, status, allowed_host, self_hosted, deploy_path, analytics_key FROM clients WHERE slug = ? AND license_token = ? LIMIT 1',
     [normalize_slug($slug), $token],
   );
   $row = $stmt->fetch();
@@ -378,6 +378,11 @@ function install_client_license_gate_files(string $clientDir): void
   $bioJsonPhp = $gateDir . '/bio-json.php';
   if (file_exists($bioJsonPhp)) {
     copy($bioJsonPhp, $clientDir . DIRECTORY_SEPARATOR . 'bio-json.php');
+  }
+
+  $analyticsTrackPhp = $gateDir . '/analytics-track.php';
+  if (file_exists($analyticsTrackPhp)) {
+    copy($analyticsTrackPhp, $clientDir . DIRECTORY_SEPARATOR . 'analytics-track.php');
   }
 }
 
@@ -465,6 +470,9 @@ DirectoryIndex index.php index.html
   RewriteRule ^ suspended.html [L]
 
   RewriteRule ^editor$ editor/ [R=301,L]
+
+  # Proxy de analytics (same-origin → painel no servidor)
+  RewriteRule ^api/analytics/track$ index.php?__ib_analytics_track=1 [L,QSA]
 
   # Bio pública sempre passa pelo gate de licença
   RewriteRule ^index\.html$ index.php [L]

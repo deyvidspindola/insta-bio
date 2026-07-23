@@ -1,4 +1,5 @@
 import type { SocialLink, SocialNetwork } from '../types/bio'
+import { trackClick } from '../lib/analytics'
 import {
   EmailIcon,
   FacebookIcon,
@@ -74,19 +75,33 @@ export function SocialLinksRow({ links, className = '' }: SocialLinksRowProps) {
 
   return (
     <div className={`bio-social-links flex flex-wrap items-center justify-center gap-3 ${className}`}>
-      {visible.map((link, index) => (
-        <a
-          key={`${link.network}-${index}`}
-          href={normalizeUrl(link)}
-          target={link.network === 'email' ? undefined : '_blank'}
-          rel={link.network === 'email' ? undefined : 'noopener noreferrer'}
-          className="bio-social-links__btn"
-          aria-label={LABELS[link.network]}
-          title={LABELS[link.network]}
-        >
-          <SocialIcon network={link.network} className="h-[18px] w-[18px]" />
-        </a>
-      ))}
+      {visible.map((link, index) => {
+        const href = normalizeUrl(link)
+        const label = LABELS[link.network]
+
+        return (
+          <a
+            key={`${link.network}-${index}`}
+            href={href}
+            target={link.network === 'email' ? undefined : '_blank'}
+            rel={link.network === 'email' ? undefined : 'noopener noreferrer'}
+            className="bio-social-links__btn"
+            aria-label={label}
+            title={label}
+            onClick={() => {
+              trackClick({
+                sectionId: 'social',
+                itemIndex: index,
+                itemType: link.network,
+                label,
+                url: href,
+              })
+            }}
+          >
+            <SocialIcon network={link.network} className="h-[18px] w-[18px]" />
+          </a>
+        )
+      })}
     </div>
   )
 }

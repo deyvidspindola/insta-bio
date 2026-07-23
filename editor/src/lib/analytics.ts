@@ -62,17 +62,18 @@ export type AnalyticsClicks = {
 export type DateRangePreset = 7 | 30 | 90
 
 function toYmd(date: Date): string {
-  const y = date.getUTCFullYear()
-  const m = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const d = String(date.getUTCDate()).padStart(2, '0')
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
 }
 
 export function rangeForDays(days: number): { from: string; to: string } {
   const safeDays = Math.max(1, Math.min(366, Math.floor(days)))
   const to = new Date()
-  const from = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate()))
-  from.setUTCDate(from.getUTCDate() - (safeDays - 1))
+  // Datas locais (o backend interpreta from/to no fuso de exibição).
+  const from = new Date(to.getFullYear(), to.getMonth(), to.getDate())
+  from.setDate(from.getDate() - (safeDays - 1))
   return { from: toYmd(from), to: toYmd(to) }
 }
 

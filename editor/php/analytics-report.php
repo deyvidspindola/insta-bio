@@ -3,6 +3,7 @@
  * Proxy autenticado do editor → painel (summary | timeseries | clicks).
  * Rotas: api/analytics/summary|timeseries|clicks
  */
+ini_set('display_errors', '0');
 require __DIR__ . '/auth.config.php';
 require __DIR__ . '/client-guard.php';
 require_client_active();

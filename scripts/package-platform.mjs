@@ -28,7 +28,7 @@ function mergeDir(src, dest) {
 }
 
 console.log('')
-console.log('links na bio — pacote da plataforma (landing + panel + template + demo)')
+console.log('links na bio — pacote da plataforma (landing + panel + template)')
 console.log('')
 
 execSync('node scripts/package-template.mjs', { cwd: ROOT, stdio: 'inherit' })
@@ -86,9 +86,8 @@ if (fs.existsSync(editorDist)) {
   const editorAssetsOut = path.join(editorOut, 'assets')
   const editorAssets = path.join(editorDist, 'assets')
 
-  if (fs.existsSync(path.join(editorDist, 'demo.html'))) {
-    fs.copyFileSync(path.join(editorDist, 'demo.html'), path.join(OUT, 'demo.html'))
-  }
+  // preview.html do editor (iframe do editor do cliente) — NÃO publicar demo.html
+  // (editor público facilitaria cópia do produto).
   if (fs.existsSync(path.join(editorDist, 'preview.html'))) {
     fs.copyFileSync(path.join(editorDist, 'preview.html'), path.join(OUT, 'preview.html'))
     fs.mkdirSync(editorOut, { recursive: true })
@@ -109,21 +108,7 @@ if (fs.existsSync(editorDist)) {
     }
   }
 
-  const demoBio = path.join(ROOT, 'editor', 'public', 'demo-bio.json')
-  if (fs.existsSync(demoBio)) {
-    fs.copyFileSync(demoBio, path.join(OUT, 'demo-bio.json'))
-    fs.mkdirSync(editorOut, { recursive: true })
-    fs.copyFileSync(demoBio, path.join(editorOut, 'demo-bio.json'))
-  }
-
-  const demoBundles = fs.existsSync(editorAssetsOut)
-    ? fs.readdirSync(editorAssetsOut).filter((f) => /^demo-.*\.js$/.test(f))
-    : []
-  if (demoBundles.length === 0) {
-    console.error('ERRO: editor/assets sem demo-*.js. A página /demo ficará em branco.')
-    process.exit(1)
-  }
-  console.log(`  /demo → editor/assets/${demoBundles[0]}`)
+  console.log('  /demo          → não publicado (agendar via WhatsApp na landing)')
 
   if (!fs.existsSync(path.join(OUT, 'preview.html'))) {
     console.error('ERRO: preview.html ausente na raiz do release.')
@@ -175,7 +160,7 @@ if (fs.existsSync(updatesSrc)) {
 console.log('')
 console.log('Pronto em: platform-release/')
 console.log('  /              → landing comercial')
-console.log('  /demo          → editor de demonstração')
+console.log('  /demo          → não publicado')
 console.log('  /panel/        → super-admin')
 console.log('  /panel/data/updates/ → ZIP + updates.json (self-hosted)')
 console.log('  /_template/    → modelo (bloqueado via .htaccess)')

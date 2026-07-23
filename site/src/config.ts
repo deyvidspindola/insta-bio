@@ -1,10 +1,6 @@
 /** URLs e contatos comerciais da landing */
 export const WHATSAPP_NUMBER = '5519982624408'
 
-export const DEMO_URL = import.meta.env.DEV
-  ? 'http://localhost:5180/demo.html'
-  : '/demo'
-
 const wa = (text: string) =>
   `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
 
@@ -17,11 +13,12 @@ export const WHATSAPP_URLS = {
   orcamento: wa('Olá! Gostaria de solicitar um orçamento.'),
   /** CTA final */
   especialista: wa('Olá! Quero falar com um especialista sobre minha página.'),
+  /** Agendar demonstração (sem editor público) */
+  demo: wa('Olá! Quero agendar uma demonstração.'),
   /** Legado / compatibilidade */
   default: wa('Olá! Quero saber mais sobre links na bio'),
   proposta: wa('Quero uma proposta do links na bio'),
   valores: wa('Quero saber os valores do links na bio'),
-  demo: wa('Quero ver uma demonstração'),
 } as const
 
 export const SITE_TITLE = 'Página profissional para Instagram | links na bio'

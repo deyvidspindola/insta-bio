@@ -146,6 +146,11 @@ try {
     $zip->addFromString('bio-json.php', (string) file_get_contents($bioJsonPhp));
   }
 
+  $analyticsTrackPhp = __DIR__ . '/client-gate/analytics-track.php';
+  if (is_file($analyticsTrackPhp)) {
+    $zip->addFromString('analytics-track.php', (string) file_get_contents($analyticsTrackPhp));
+  }
+
   $authFile = $clientDir . DIRECTORY_SEPARATOR . 'editor' . DIRECTORY_SEPARATOR . 'auth.config.php';
   if (is_file($authFile)) {
     require_once __DIR__ . '/lib/bio-path.php';

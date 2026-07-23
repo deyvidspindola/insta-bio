@@ -32,8 +32,6 @@ console.log('Verificando platform-release/…\n')
 
 const checks = [
   ['.htaccess', path.join(OUT, '.htaccess')],
-  ['demo.html', path.join(OUT, 'demo.html')],
-  ['demo-bio.json', path.join(OUT, 'demo-bio.json')],
   ['preview.html (raiz)', path.join(OUT, 'preview.html')],
   ['editor/preview.html', path.join(OUT, 'editor', 'preview.html')],
   ['_template/index.html', path.join(OUT, '_template', 'index.html')],
@@ -46,10 +44,11 @@ for (const [label, file] of checks) {
   else fail(label)
 }
 
-const demoHtml = readHtml(path.join(OUT, 'demo.html'))
-const demoJs = bundleExists(path.join(OUT, 'editor', 'assets'), /^demo-.*\.js$/)
-if (demoJs && demoHtml.includes(demoJs)) ok(`/demo carrega editor/assets/${demoJs}`)
-else fail('demo.html não referencia bundle demo-*.js em editor/assets/')
+if (fs.existsSync(path.join(OUT, 'demo.html'))) {
+  fail('demo.html não deve ser publicado na plataforma')
+} else {
+  ok('demo.html ausente (ok)')
+}
 
 const previewJs = bundleExists(path.join(OUT, 'editor', 'assets'), /^preview-.*\.js$/)
 const previewHtml = readHtml(path.join(OUT, 'preview.html'))

@@ -97,11 +97,13 @@ export function UpdatesCard() {
       setState((prev) =>
         prev ? { ...prev, version: result.version, updatedAt: result.updatedAt } : null,
       )
-      setCheckMessage(`Atualização concluída! Versão ${result.version}`)
       setUpdateAvailable(false)
+      setCheckMessage(`Atualização concluída! Versão ${result.version}. Recarregando…`)
+      window.setTimeout(() => {
+        window.location.reload()
+      }, 900)
     } catch (err) {
       setCheckError(err instanceof Error ? err.message : 'Erro ao aplicar atualização')
-    } finally {
       setApplying(false)
     }
   }
@@ -174,6 +176,18 @@ export function UpdatesCard() {
                 {applying ? 'Aplicando…' : 'Atualizar agora'}
               </button>
             </div>
+          )}
+
+          {!updateAvailable && checkMessage && !checkError && !applying && (
+            <button
+              type="button"
+              className="btn-secondary inline-flex items-center gap-2 px-3 py-2 text-xs"
+              onClick={() => void handleApply()}
+              disabled={applying}
+              title="Baixa e reaplica o pacote mais recente mesmo se a versão já estiver marcada como atual"
+            >
+              Reaplicar pacote (bio + editor)
+            </button>
           )}
         </div>
       )}

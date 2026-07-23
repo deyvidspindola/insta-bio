@@ -11,7 +11,7 @@ npm run editor       # http://localhost:5180
 make dev-all         # bio + editor + panel + site
 ```
 
-**Login dev:** copie `editor/auth.example.json` → `editor/auth.json` (usuário `admin`).
+**Login dev:** copie `editor/auth.example.json` → `editor/auth.json` (`admin@local.dev` / `admin123`).
 
 **Demo:** [http://localhost:5180/demo.html](http://localhost:5180/demo.html) — bio de exemplo em `editor/public/demo-bio.json`.
 

@@ -22,7 +22,11 @@ function editor_load_license_config(): ?array
     return null;
   }
 
-  require $configFile;
+  // require_once: o gate (client-license) pode já ter carregado o mesmo arquivo
+  // no mesmo request — redefine de constantes corrompe respostas JSON (gráficos).
+  if (!defined('LICENSE_SLUG')) {
+    require_once $configFile;
+  }
 
   if (!defined('LICENSE_SLUG') || !defined('LICENSE_TOKEN') || !defined('LICENSE_API')) {
     $cache = false;

@@ -1,5 +1,13 @@
 <?php
 require __DIR__ . '/client-license.php';
+
+// Tracking via rewrite → index.php (não depende de analytics-track.php no disco).
+if (isset($_GET['__ib_analytics_track'])) {
+  ini_set('display_errors', '0');
+  client_analytics_proxy_run();
+  exit;
+}
+
 require_once __DIR__ . '/bio-share-meta.php';
 
 require_client_license_active();

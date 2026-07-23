@@ -318,17 +318,19 @@ function deployPathMatchesRequest(expectedPath, requestDeploy) {
 function buildLicenseConfigContent(slug, token, { selfhost = false, allowedHost = '', deployPath = '' } = {}) {
   const api = 'http://localhost:5175/panel/api/license/check'
   const allowed = normalizeLicenseHost(allowedHost)
-  const allowedLine = allowed ? `define('LICENSE_ALLOWED_HOST', '${allowed.replace(/'/g, "\\'")}');\n` : ''
+  const allowedLine = allowed
+    ? `if (!defined('LICENSE_ALLOWED_HOST')) define('LICENSE_ALLOWED_HOST', '${allowed.replace(/'/g, "\\'")}');\n`
+    : ''
   const deploy = normalizeDeployPath(deployPath)
   const deployLine = selfhost
-    ? `define('LICENSE_DEPLOY_PATH', '${deploy.replace(/'/g, "\\'")}');\n`
+    ? `if (!defined('LICENSE_DEPLOY_PATH')) define('LICENSE_DEPLOY_PATH', '${deploy.replace(/'/g, "\\'")}');\n`
     : ''
   return `<?php
 // Gerado pelo painel — não remova. Sem este arquivo a bio não carrega.
-define('LICENSE_SLUG', '${slug.replace(/'/g, "\\'")}');
-define('LICENSE_TOKEN', '${token.replace(/'/g, "\\'")}');
-define('LICENSE_SELFHOST', ${selfhost ? 'true' : 'false'});
-${allowedLine}${deployLine}define('LICENSE_API', '${api.replace(/'/g, "\\'")}');
+if (!defined('LICENSE_SLUG')) define('LICENSE_SLUG', '${slug.replace(/'/g, "\\'")}');
+if (!defined('LICENSE_TOKEN')) define('LICENSE_TOKEN', '${token.replace(/'/g, "\\'")}');
+if (!defined('LICENSE_SELFHOST')) define('LICENSE_SELFHOST', ${selfhost ? 'true' : 'false'});
+${allowedLine}${deployLine}if (!defined('LICENSE_API')) define('LICENSE_API', '${api.replace(/'/g, "\\'")}');
 `
 }
 
@@ -362,8 +364,20 @@ DirectoryIndex index.php index.html
   RewriteRule ^ suspended.html [L]
 
   RewriteRule ^editor$ editor/ [R=301,L]
+
+  # Proxy de analytics (same-origin → painel no servidor; via index.php)
+  RewriteRule ^api/analytics/track$ index.php?__ib_analytics_track=1 [L,QSA]
+
   RewriteRule ^index\\.html$ index.php [L]
 </IfModule>
+
+<Files "bio.json">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </IfModule>
+</Files>
 
 <Files "bio.draft.json">
   <IfModule mod_authz_core.c>
@@ -488,6 +502,10 @@ function createZipBuffer(clientDir, client) {
   if (fs.existsSync(verify)) {
     fs.copyFileSync(verify, path.join(staging, 'verificar-ambiente.php'))
   }
+  const analyticsTrack = path.join(GATE_DIR, 'analytics-track.php')
+  if (fs.existsSync(analyticsTrack)) {
+    fs.copyFileSync(analyticsTrack, path.join(staging, 'analytics-track.php'))
+  }
 
   const buffer = zipDirectoryToBuffer(staging)
   fs.rmSync(tmp, { recursive: true, force: true })
@@ -552,6 +570,10 @@ function installGateFiles(clientDir) {
   const bioJson = path.join(GATE_DIR, 'bio-json.php')
   if (fs.existsSync(bioJson)) {
     fs.copyFileSync(bioJson, path.join(clientDir, 'bio-json.php'))
+  }
+  const analyticsTrack = path.join(GATE_DIR, 'analytics-track.php')
+  if (fs.existsSync(analyticsTrack)) {
+    fs.copyFileSync(analyticsTrack, path.join(clientDir, 'analytics-track.php'))
   }
 }
 
@@ -1141,11 +1163,17 @@ export function platformDevPlugin() {
             if (!client) {
               return json(res, 401, { ok: false, error: 'Licença inválida para esta instalação' })
             }
+            if (!client.analytics_key) {
+              client.analytics_key = crypto.randomUUID()
+              writeDb(db)
+            }
             return json(res, 200, {
               ok: true,
               active: client.status === 'active',
               status: client.status,
               slug: client.slug,
+              analytics_key: client.analytics_key,
+              analytics_url: `http://${req.headers.host ?? 'localhost:5175'}/panel/api/analytics/track`,
             })
           }
 

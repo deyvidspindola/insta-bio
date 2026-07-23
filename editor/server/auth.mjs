@@ -33,7 +33,9 @@ export function loadCredentials() {
 
 export async function verifyLogin(username, password) {
   const creds = loadCredentials()
-  if (username !== creds.username) return false
+  const email = String(username ?? '').trim().toLowerCase()
+  const expected = String(creds.username ?? '').trim().toLowerCase()
+  if (!email || email !== expected) return false
 
   if (creds.passwordHash) {
     return bcrypt.compare(password, creds.passwordHash)

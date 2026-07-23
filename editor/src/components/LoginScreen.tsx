@@ -15,13 +15,20 @@ function prefillUsername(): string {
 export function LoginScreen({ onSuccess }: Props) {
   const [username, setUsername] = useState(prefillUsername)
   const [password, setPassword] = useState('')
-  const passwordRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (username) passwordRef.current?.focus()
-  }, [username])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const passwordRef = useRef<HTMLInputElement>(null)
+  const usernameRef = useRef<HTMLInputElement>(null)
+
+  // Só no mount: se a URL já trouxe o e-mail (?user= / ?email=), vai para a senha.
+  // Não depende de `username` — senão cada tecla rouba o foco do e-mail.
+  useEffect(() => {
+    if (prefillUsername()) {
+      passwordRef.current?.focus()
+    } else {
+      usernameRef.current?.focus()
+    }
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -76,12 +83,13 @@ export function LoginScreen({ onSuccess }: Props) {
           <div className="field mb-0">
             <label htmlFor="login-username">E-mail</label>
             <input
+              ref={usernameRef}
               id="login-username"
               type="email"
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="cliente@email.com"
+              placeholder="seu@email.com"
               required
             />
           </div>

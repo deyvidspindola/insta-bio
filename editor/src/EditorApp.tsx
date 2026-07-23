@@ -612,7 +612,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
         {status && (
           <div
             className={`pointer-events-none fixed left-4 z-50 ${
-              previewOpen ? 'bottom-[min(52vh,28rem)]' : 'bottom-20'
+              previewOpen ? 'bottom-[min(62vh,34rem)]' : 'bottom-20'
             } md:bottom-5`}
           >
             <div className="pointer-events-auto rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-sm text-primary shadow-lg backdrop-blur">
@@ -624,7 +624,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
         {isDirty && !status && !actionError && (
           <div
             className={`pointer-events-none fixed left-4 z-40 ${
-              previewOpen ? 'bottom-[min(52vh,28rem)]' : 'bottom-20'
+              previewOpen ? 'bottom-[min(62vh,34rem)]' : 'bottom-20'
             } md:bottom-5`}
           >
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200/95 shadow backdrop-blur">

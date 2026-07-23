@@ -104,7 +104,11 @@ export function IdentityForm({ brand, onChange }: IdentityFormProps) {
             <input
               value={brand.footer}
               onChange={(e) => onChange(update(brand, 'footer', e.target.value))}
+              placeholder="Nome ou marca"
             />
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              O ano do copyright é preenchido automaticamente na bio (não precisa colocar o ano aqui).
+            </p>
           </div>
         </div>
       </div>

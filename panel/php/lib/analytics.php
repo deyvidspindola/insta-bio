@@ -107,6 +107,24 @@ function ensure_client_analytics_key(PDO $pdo, array &$client): string
   return $key;
 }
 
+/**
+ * Fuso de exibição dos relatórios. Eventos são gravados em UTC; a agregação por
+ * dia/hora e a deduplicação "único por dia" usam este offset. America/Sao_Paulo
+ * não tem horário de verão desde 2019, então um offset fixo é seguro e dispensa
+ * as tabelas de timezone do MySQL (CONVERT_TZ com offset numérico sempre funciona).
+ * Pode ser sobrescrito via constante ANALYTICS_DISPLAY_OFFSET (ex.: '-02:00').
+ */
+function analytics_display_offset(): string
+{
+  if (defined('ANALYTICS_DISPLAY_OFFSET')) {
+    $custom = trim((string) ANALYTICS_DISPLAY_OFFSET);
+    if (preg_match('/^[+-]\d{2}:\d{2}$/', $custom)) {
+      return $custom;
+    }
+  }
+  return '-03:00';
+}
+
 function analytics_track_url_from_license_api(string $licenseApi): string
 {
   $api = rtrim(trim($licenseApi), '/');
@@ -124,8 +142,31 @@ function analytics_track_url_from_license_api(string $licenseApi): string
 
 function analytics_client_ip(): string
 {
+  // Proxy same-origin do cliente (hospedagem externa) envia X-Forwarded-For.
+  $xff = trim((string) ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
+  if ($xff !== '') {
+    $first = trim(explode(',', $xff)[0]);
+    if ($first !== '' && filter_var($first, FILTER_VALIDATE_IP)) {
+      return $first;
+    }
+  }
+
   $ip = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
   return $ip !== '' ? $ip : '0.0.0.0';
+}
+
+/**
+ * UA do visitante: preferir o encaminhado pelo proxy do cliente
+ * (senão o painel só vê curl/ e descarta como bot).
+ */
+function analytics_request_user_agent(): string
+{
+  $forwarded = trim((string) ($_SERVER['HTTP_X_FORWARDED_USER_AGENT'] ?? ''));
+  if ($forwarded !== '') {
+    return mb_substr($forwarded, 0, 255);
+  }
+
+  return mb_substr(trim((string) ($_SERVER['HTTP_USER_AGENT'] ?? '')), 0, 255);
 }
 
 function analytics_ip_hash(string $ip): string

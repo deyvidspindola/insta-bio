@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import rawTemplate from './template-home.html?raw'
-import { DEMO_URL } from './config'
+import { WHATSAPP_URLS } from './config'
 
 const VENDOR_SCRIPTS = [
   '/template/vendor/swiper.min.js',
@@ -67,7 +67,7 @@ export default function App() {
     loadScriptsSequentially(VENDOR_SCRIPTS).then(() => {
       if (cancelled) return
         document.querySelectorAll<HTMLAnchorElement>('[data-demo-link]').forEach((link) => {
-        link.href = DEMO_URL
+        link.href = WHATSAPP_URLS.demo
         link.target = '_blank'
         link.rel = 'noopener noreferrer'
       })
@@ -91,15 +91,10 @@ export default function App() {
 
       document.dispatchEvent(new Event('DOMContentLoaded'))
       window.dispatchEvent(new Event('load'))
-      // Tema padrão claro; usuário pode alternar para escuro pelo botão fixo
-      if (localStorage.getItem('color-theme') === 'dark') {
-        document.documentElement.classList.remove('light')
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-        document.documentElement.classList.add('light')
-        localStorage.setItem('color-theme', 'light')
-      }
+      // Landing sempre em modo claro
+      localStorage.setItem('color-theme', 'light')
+      document.documentElement.classList.remove('dark')
+      document.documentElement.classList.add('light')
     })
 
     return () => {

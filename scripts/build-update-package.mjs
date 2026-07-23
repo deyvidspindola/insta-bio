@@ -36,6 +36,7 @@ import {
 import { isViteBundleFile } from './lib/vite-bundles.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const GATE_DIR = path.join(ROOT, 'panel', 'php', 'client-gate')
 const BIO_DIST = path.join(ROOT, 'dist')
 const EDITOR_DIST = path.join(ROOT, 'editor', 'dist')
 const UPDATES_DIR = path.join(ROOT, 'dist', 'updates')
@@ -73,11 +74,27 @@ const PRESERVE_LIST = [
   'bio.json',
   'bio.draft.json',
   'bio-path.json',
+  'license.config.php',
+  '.license-cache.json',
   'assets/**',
   'editor/auth.config.php',
   'editor/platform-api.json',
   'editor/update-state.json',
   'editor/update.log',
+]
+
+// Arquivos de gate genéricos (iguais para todos os clientes) que ficam na RAIZ do
+// site. Vivem em panel/php/client-gate/ e precisam viajar no ZIP de update — senão
+// clientes self-hosted (que só atualizam pelo editor) nunca recebem correções no
+// gate (ex.: injeção de analytics). license.config.php NÃO entra: é específico do
+// cliente e o apply o preserva. Mapa: [origem em client-gate/, destino em site/].
+const GATE_SITE_FILES = [
+  ['index-gate.php', 'index.php'],
+  ['client-license.php', 'client-license.php'],
+  ['bio-share-meta.php', 'bio-share-meta.php'],
+  ['bio-json.php', 'bio-json.php'],
+  ['verificar-ambiente.php', 'verificar-ambiente.php'],
+  ['analytics-track.php', 'analytics-track.php'],
 ]
 
 const MAX_ZIP_SIZE_WARN = 50 * 1024 * 1024 // mesmo limite planejado para o apply (Fase D)
@@ -242,6 +259,15 @@ function stageVersion(version) {
   // sem isso, rodar o script duas vezes zip-aria o próprio zip anterior.
   copyDirExcept(BIO_DIST, siteStage, new Set(['updates']))
   copyDirExcept(EDITOR_DIST, editorStage, new Set())
+
+  // Gate PHP genérico da raiz (o build da bio/dist não contém PHP).
+  for (const [src, dest] of GATE_SITE_FILES) {
+    const from = path.join(GATE_DIR, src)
+    if (!fs.existsSync(from)) {
+      fail(`Arquivo de gate ausente: ${from} — o update não conseguiria atualizar o gate do cliente.`)
+    }
+    fs.copyFileSync(from, path.join(siteStage, dest))
+  }
 
   // Guard-rail: remover defensivamente qualquer arquivo sensível que porventura
   // tenha vazado para dentro do build (não deveria acontecer, mas é barato conferir).

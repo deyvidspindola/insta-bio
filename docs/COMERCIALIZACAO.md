@@ -69,7 +69,7 @@ make install
 
 # 2. Editar conteúdo
 npm run editor          # http://localhost:5180
-# Login dev: admin / troque-esta-senha (editor/auth.json)
+# Login dev: admin@local.dev / admin123 (editor/auth.json)
 
 # 3. Ajustar bio/public/bio.json + bio/public/assets/
 #    (modelo inicial: bio/public/bio.default.json)

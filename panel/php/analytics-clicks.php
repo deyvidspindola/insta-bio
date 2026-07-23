@@ -35,6 +35,10 @@ try {
 } catch (InvalidArgumentException $e) {
   analytics_reports_send_json(['ok' => false, 'error' => $e->getMessage()], 400);
 } catch (Throwable $e) {
-  platform_capture_exception($e);
+  platform_capture_exception($e, [
+    'endpoint' => 'analytics/clicks',
+    'slug' => $auth['slug'] ?? null,
+    'error' => $e->getMessage(),
+  ]);
   analytics_reports_send_json(['ok' => false, 'error' => 'Erro ao montar ranking'], 500);
 }

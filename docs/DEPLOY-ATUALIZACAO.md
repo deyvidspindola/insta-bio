@@ -1,271 +1,146 @@
-# Deploy e atualização — o que buildar e o que subir
+# Deploy — o que buildar e o que subir
 
-Guia operacional: **comandos → pastas geradas → o que enviar no FTP** (e o que nunca sobrescrever).
+Dois destinos. Só isso.
 
-Versão canônica do monorepo: arquivo `VERSION` na raiz (SemVer, ex.: `1.0.0`).
-
----
-
-## Visão rápida: três destinos
-
-| Destino | Para quem | Comando principal | Pasta gerada | Onde sobe no servidor |
-|---------|-----------|-------------------|--------------|------------------------|
-| **Single-tenant** | Cliente em domínio próprio | `make package` | `release/` | Raiz do domínio (`public_html/`) |
-| **Plataforma** | multi-cliente | `make platform-core` | `platform-release/` (inclui ZIP) | Raiz + `/panel/` + `/_template/` |
-| **Updates (fonte única)** | Todos os clientes (editor + painel “atualizar todos” + novos clientes) | incluso no platform-core **ou** `make update-package` | `dist/updates/` → `panel/data/updates/` | Sempre na plataforma |
-
-O ZIP é a **única fonte** de template: apply no editor, sync em massa no painel e provisionamento de novos clientes.
-
-Builds intermediários (úteis para debug):
-
-| Comando | Saída |
-|---------|--------|
-| `npm run build` | `dist/` — bio pública |
-| `npm run editor:hostgator` | `editor/dist/` — editor + PHP |
-| `npm run build:template` | `platform-template/_template/` — modelo de cliente |
+| Destino | Comando | Pasta gerada | Onde sobe |
+|---------|---------|--------------|-----------|
+| **Plataforma** (painel + API + updates) | `make platform-core` | `platform-release/` | Servidor principal (`/panel/`, `/_template/`, landing) |
+| **Clientes** (bio + editor) | `make update-package` | `dist/updates/` | **Só na plataforma** em `panel/data/updates/` — o cliente atualiza pelo editor |
 
 ---
 
-## 1. Single-tenant (domínio do cliente)
+## 1. Plataforma (`make platform-core`)
 
-### Como gerar
+Use quando mudar: painel admin, APIs PHP (`license`, `analytics`, etc.), landing, template de cliente novo, ou quiser republicar o ZIP de updates junto.
 
 ```bash
-# Pacote unificado (bio + editor) — também gera o ZIP de update
-make package
-# ou: npm run build:package
-```
-
-`make package` dispara `build:update-package`, que **incrementa `VERSION` (patch)** e gera o changelog automaticamente (a menos que você use `--no-bump` / `--set-version`).
-
-### Estrutura de `release/`
-
-```
-release/
-├── index.html              ← bio pública
-├── suspended.html
-├── favicon.svg, icons.svg, logo-instabio.svg
-├── assets/                 ← bundles JS/CSS da bio (+ mídia se houver no build)
-├── .htaccess
-├── bio.json / bio.draft.json   ← só no 1º deploy; depois NÃO sobrescrever
-└── editor/
-    ├── index.html
-    ├── preview.html
-    ├── assets/             ← bundles do editor (index-*.js, preview-*.js, …)
-    ├── *.php               ← API (login, save, update-*.php, …)
-    ├── .htaccess
-    ├── update-state.json   ← versão instalada (gerado no package)
-    ├── .update-tmp/        ← temp do apply (Deny)
-    ├── .update-backup/     ← backups do apply (Deny)
-    └── update.log          ← log de check/apply (Deny; gerado em runtime)
-    └── auth.config.php     ← só se existir no build local; no servidor PRESERVAR
-```
-
-### O que subir (FTP)
-
-| Situação | Subir | Preservar no servidor |
-|----------|--------|------------------------|
-| **Primeira instalação** | Todo o conteúdo de `release/` | — |
-| **Atualizar template (FTP manual)** | `index.html`, `suspended.html`, ícones, `assets/` (bundles), pasta `editor/` (HTML/JS/CSS/PHP) | `bio.json`, `bio.draft.json`, `bio-path.json`, imagens do cliente em `assets/`, `editor/auth.config.php`, `editor/platform-api.json` (se houver), `editor/update-state.json` (ou deixe o apply remoto reescrever) |
-| **Atualizar pelo editor** | Nada via FTP — cliente usa **Configurações → Buscar atualizações → Atualizar agora** | O apply já preserva dados |
-
-### Preferência: update remoto (sem FTP no cliente)
-
-1. Gere o ZIP na sua máquina (`make update-package` ou via `make package`).
-2. Suba o ZIP + `updates.json` **só na plataforma** (seção 3).
-3. No editor do cliente: **Buscar atualizações → Atualizar agora**.
-
----
-
-## 2. Plataforma (multi-cliente)
-
-### Como gerar
-
-```bash
-echo "1.0.1" > VERSION
 make platform-core
-# ou com landing: npm run build:platform
 ```
 
-Isso já gera o ZIP de update remoto e coloca em `platform-release/panel/data/updates/`.
+### O que sobe no FTP (servidor da plataforma)
 
-### Estrutura típica de `platform-release/`
+| De `platform-release/` | Para no servidor | Observação |
+|------------------------|------------------|------------|
+| `panel/*` (HTML, JS, PHP, lib/) | `/panel/` | **Preservar** `db.config.php`, `sites/`, dados de clientes |
+| `panel/data/updates/` | `/panel/data/updates/` | ZIP + `updates.json` |
+| `_template/` | `/_template/` | Modelo para **novos** clientes |
+| raiz (`index.html`, assets…) | raiz do domínio | Landing (se existir no pacote) |
 
-```
-platform-release/
-├── index.html / assets/ …     ← landing comercial (raiz do domínio)
-├── panel/
-│   ├── index.html + assets/   ← SPA do painel
-│   ├── *.php / lib/           ← API PHP
-│   ├── .htaccess
-│   ├── db.config.php          ← NÃO vem do build; configurar no servidor
-│   └── data/updates/          ← ZIP + updates.json (gerado no platform-core/platform)
-└── _template/                 ← modelo copiado para cada /{slug}/
-    ├── index.html, assets/, …
-    ├── bio.json (mínimo)
-    └── editor/                ← sem auth.config.php do cliente
-        └── update-state.json
-```
+**Nunca sobrescrever no servidor:** `panel/db.config.php`, pastas `panel/sites/{slug}/` (dados dos clientes).
 
-No servidor, a árvore efetiva costuma ser:
+### Analytics / licença
 
-```
-public_html/
-├── (landing)
-├── panel/
-│   ├── … (código do painel)
-│   ├── sites/{slug}/          ← clientes (criados pelo painel)
-│   └── data/updates/          ← ZIPs + updates.json (updates remotos)
-└── _template/                 ← substituir a cada release de template
-```
+Tudo isso vive **só no `/panel/`** da plataforma:
 
-### O que subir ao atualizar a plataforma
+- `analytics-track.php`, `analytics-*.php`
+- `license-check.php`
+- `lib/analytics*.php`, `lib/license.php`
 
-| Pasta / arquivo | Ação | Preservar |
-|-----------------|------|-----------|
-| Landing (raiz) | Substituir HTML/assets do build | — |
-| `panel/` (código: HTML, JS, PHP, `.htaccess`) | Substituir | `panel/php/db.config.php`, `panel/sites/` (clientes) |
-| `panel/data/updates/` | Substituir/mesclar ZIP + `updates.json` do release | Outros dados em `panel/data/` se houver |
-| `_template/` | **Substituir inteiro** pelo novo build | — |
-| Clientes `/{slug}/` | **Não** subir manualmente | Propagar com **Atualizar sites** no `/panel/` (ou `npm run sync:clients` em dev) |
-
-Depois de trocar `_template/`: no painel, **Sincronizar / Atualizar sites** para copiar bio+editor aos clientes (preserva `bio.json`, imagens, `auth.config.php`).
+Cliente self-hosted **não** recebe esses arquivos. Ele só chama a API da plataforma.
 
 ---
 
-## 3. Pacote de atualização remota (ZIP)
+## 2. Update dos clientes (`make update-package`)
 
-Usado pelos clientes **single-tenant** (licença ativa) via editor. A plataforma **hospeda** o ZIP; o cliente **baixa** com URL assinada.
-
-### Como gerar
+Use quando mudar: bio (cards, preview), editor, PHP do editor (`update-apply.php`, save, gate `index.php` do cliente).
 
 ```bash
-# Builds + bump VERSION (patch) + changelog git + ZIP + updates.json
 make update-package
-
-# Opções:
-npm run build:update-package -- --bump=minor
-npm run build:update-package -- --set-version=1.2.0
-npm run build:update-package -- --no-bump
-npm run build:update-package -- --changelog="Texto manual (opcional)"
-
-# Se dist/ e editor/dist/ já estão frescos:
-npm run build:update-package -- --skip-build
 ```
 
-O changelog entra em `updates.json` e no `manifest.json` — frases para o usuário **só do que mudou desde o último `make update-package`** (stamp local). Sem lista de arquivos.
+Isso gera:
 
-### Estrutura gerada
+- `dist/updates/insta-bio-{versão}.zip`
+- `dist/updates/updates.json`
+- (e copia para `panel/data/updates/` se o painel local existir)
 
-```
-dist/updates/
-├── updates.json                 ← manifesto (latest + histórico)
-└── insta-bio-{VERSION}.zip      ← pacote aplicado no cliente
+### O que fazer depois
 
-panel/data/updates/              ← espelho automático (mesmo conteúdo + .htaccess Deny)
-├── .htaccess
-├── updates.json
-└── insta-bio-{VERSION}.zip
-```
+1. Suba **só** `panel/data/updates/` na plataforma (ZIP + `updates.json`), **ou** rode `make platform-core` e suba o painel completo.
+2. No editor do cliente: **Configurações → Buscar atualizações → Atualizar agora**.
 
-### Dentro do ZIP
+Não precisa FTP em cada cliente. O ZIP já leva bio + editor + gate (`index.php`, `client-license.php`, …).
 
-```
-insta-bio-1.0.1.zip
-├── manifest.json                ← version, lista de arquivos + sha256, preserve[]
-├── site/                        ← o que vai na raiz do cliente (bio)
-│   ├── index.html
-│   ├── assets/                  ← principalmente bundles (index-*.js|css)
-│   └── …
-└── editor/                      ← o que vai em /editor/
-    ├── index.html, preview.html
-    ├── assets/
-    ├── *.php (inclui update-apply.php, …)
-    └── …
-```
+### O que o update **preserva** no cliente
 
-**Não entram no ZIP** (e o apply não sobrescreve no cliente):
-
-- `bio.json`, `bio.draft.json`, `bio-path.json`
-- `editor/auth.config.php`
-- `editor/platform-api.json`
-- `editor/update-state.json` (reescrito só no final do apply)
-
-### O que subir na plataforma
-
-Copie **sempre os dois** para o servidor da plataforma:
-
-| Local (seu PC) | Remoto (plataforma) |
-|----------------|---------------------|
-| `dist/updates/updates.json` | `panel/data/updates/updates.json` |
-| `dist/updates/insta-bio-*.zip` | `panel/data/updates/insta-bio-*.zip` |
-
-Mantenha o `.htaccess` com `Require all denied` nessa pasta (o script de build já grava no espelho local).
-
-**Não** publique o ZIP em URL pública permanente. O download passa por:
-
-`POST /panel/api/updates/package` → URL assinada → `GET /panel/api/updates/download?…`
-
-### Checklist mínimo de release com update remoto
-
-1. `make update-package` (ou `make package`) — bump + changelog + ZIP automáticos
-2. Conferir: `cat VERSION` e `unzip -l dist/updates/insta-bio-$(cat VERSION).zip`
-3. Subir ZIP + `updates.json` → `panel/data/updates/` na plataforma
-4. (Plataforma) Se mudou template multi-cliente: subir `_template/` + sync no painel
-5. Testar em um cliente self-hosted: Buscar atualizações → Atualizar agora
+- `bio.json` / `bio.draft.json`
+- imagens do cliente
+- `license.config.php` / cache de licença
+- `auth.config.php` do editor
 
 ---
 
-## 4. Mapa mental: de onde vem cada pasta
+## 3. Mapa mental (não se perde)
 
 ```
-bio/  ──build──►  dist/  ──────────────┐
-                                       ├── make package ──► release/
-editor/ ──hostgator──► editor/dist/ ───┘         │
-                                                 ├── update-package ──► dist/updates/*.zip
-                                                 └── espelho ──► panel/data/updates/
+Você (dev)
+   │
+   ├─ make platform-core ──► platform-release/
+   │                              │
+   │                              ▼ FTP
+   │                         servidor PLATAFORMA
+   │                         /panel/          ← APIs (analytics, license, admin)
+   │                         /panel/data/updates/  ← ZIPs
+   │                         /_template/      ← só clientes NOVOS
+   │
+   └─ make update-package ──► dist/updates/*.zip
+                                  │
+                                  ▼ sobe em /panel/data/updates/
+                             cliente clica "Atualizar" no editor
+                                  │
+                                  ▼
+                             site do CLIENTE (bio + editor atualizados)
+```
 
-bio + editor (template) ──► platform-template/_template/
-site + panel + _template ──► platform-release/
+| Mudou o quê? | Comando | Sobe onde? |
+|--------------|---------|------------|
+| Analytics, license, dashboard do painel | `platform-core` | `/panel/` na plataforma |
+| Cards da bio, editor, update-apply | `update-package` | ZIP → `panel/data/updates/` → cliente atualiza no editor |
+| Os dois | `platform-core` (já inclui ZIP) | plataforma; depois clientes atualizam no editor |
+
+---
+
+## 4. Comandos make (os que ficaram)
+
+```bash
+make install          # dependências
+make dev-all          # desenvolvimento local
+make platform-core    # build da plataforma
+make update-package   # ZIP de update remoto
+make hash-password PASSWORD="..."
+make lint
+make clean
 ```
 
 ---
 
-## 5. O que **nunca** sobrescrever no servidor do cliente
+## 5. Checklist rápido pós-release
 
-| Arquivo / pasta | Por quê |
-|-----------------|---------|
-| `bio.json` / `bio.draft.json` | Conteúdo do cliente |
-| `assets/` com imagens/vídeos do cliente | Mídia enviada pelo editor |
-| `bio-path.json` | Caminho customizado do JSON |
-| `editor/auth.config.php` | Login / caminhos locais |
-| `editor/platform-api.json` | Clientes da plataforma (login remoto) |
-| `license.config.php` | Licença self-hosted |
-| `editor/.update-backup/` | Backups de applies anteriores |
-| `editor/update.log` | Log de erros/etapas do check e apply (FTP/SSH) |
+1. `make platform-core` (ou só `update-package` se só mudou bio/editor)
+2. FTP: sobe `/panel/` (preservando `db.config.php` e `sites/`)
+3. Confirma `panel/data/updates/` com o ZIP novo
+4. No editor do cliente: **Buscar atualizações → Atualizar agora**
+5. Se a versão já estiver “atual” mas a bio estiver antiga: **Reaplicar pacote (bio + editor)**
+6. O editor recarrega sozinho após sucesso — confira a bio (view-source nos hashes dos assets)
 
-Bundles antigos (`index-OLDHASH.js`, etc.) o apply/sync **remove** de propósito ao instalar os novos.
+### O apply agora exige bio + editor completos
 
----
+`update-apply.php` só grava a nova versão se:
 
-## 6. Comandos de referência
+- `site/index.html` e bundles referenciados foram copiados (hash confere)
+- pasta `editor/` copiada sem falha
+- gate (`index.php`, etc.) e `.htaccess` entram na bio
 
-| Objetivo | Comando |
-|----------|---------|
-| Pacote FTP single-tenant | `make package` |
-| Só bio | `npm run build` → `dist/` |
-| Só editor+PHP | `npm run editor:hostgator` → `editor/dist/` |
-| Template multi-cliente | `npm run build:template` |
-| Plataforma completa | `npm run build:platform` (inclui ZIP updates) |
-| Plataforma sem landing | `make platform-core` (inclui ZIP updates) |
-| ZIP de update remoto (avulso) | `make update-package` |
-| Propagar template → clientes locais | `npm run sync:clients` |
+Falha parcial → erro explícito; a versão **não** sobe.
 
----
+### Clientes “presos” (versão nova, bio antiga)
 
-## Documentos relacionados
+1. Publique ZIP novo na plataforma (`make update-package`)
+2. No cliente: **Buscar** → se não oferecer update, use **Reaplicar pacote**
+3. Se falhar: leia `editor/update.log` e liberar escrita na **raiz** do cliente e em `assets/` (não só em `editor/`)
+4. Último recurso: FTP uma vez de `editor/update-apply.php` novo + **Reaplicar**
 
-- [HOSTGATOR.md](./HOSTGATOR.md) — FTP single-tenant passo a passo
-- [PLATAFORMA.md](./PLATAFORMA.md) — multi-cliente e `_template/`
-- [ATUALIZACOES-REMOTAS.md](./ATUALIZACOES-REMOTAS.md) — fluxo check/apply e segurança
-- [COMERCIALIZACAO.md](./COMERCIALIZACAO.md) — entrega e manutenção comercial
+| Mudança | Como chega |
+|---------|------------|
+| API do painel (analytics, license) | FTP `/panel/` |
+| Bio + editor + gate | ZIP → Atualizar / Reaplicar no editor |

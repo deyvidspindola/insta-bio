@@ -5,7 +5,7 @@
   --color-background: oklch(0.14 0.02 260);
   --color-foreground: oklch(0.97 0.01 260);
   --color-muted: oklch(0.22 0.025 260);
-  --color-muted-foreground: oklch(0.65 0.02 260);
+  --color-muted-foreground: oklch(0.78 0.02 260);
   --color-card: oklch(0.18 0.025 260);
   --color-border: oklch(0.30 0.03 260);
   --color-primary: oklch(0.72 0.16 55);
@@ -826,7 +826,8 @@ input[type='range'] {
 }
 
 .preview-fab--open {
-  bottom: calc(min(48vh, 26rem) + 0.75rem);
+  --preview-dock-height: min(62vh, 34rem);
+  bottom: calc(var(--preview-dock-height) + 0.75rem);
   background: var(--color-card);
   color: var(--color-foreground);
   border-color: var(--color-border);
@@ -844,8 +845,9 @@ input[type='range'] {
 }
 
 .preview-sheet-root--dock {
+  --preview-dock-height: min(62vh, 34rem);
   inset: auto 0 0 0;
-  height: min(48vh, 26rem);
+  height: var(--preview-dock-height);
   pointer-events: none;
 }
 
@@ -884,7 +886,7 @@ input[type='range'] {
 }
 
 .preview-sheet-panel--dock iframe {
-  height: min(360px, calc(48vh - 5.5rem)) !important;
+  height: calc(var(--preview-dock-height) - 5.25rem) !important;
 }
 
 /* Permite que as colunas internas encolham sem ampliar a página. */
@@ -893,7 +895,8 @@ input[type='range'] {
 }
 
 .editor-shell--preview-dock {
-  padding-bottom: calc(min(48vh, 26rem) + 4.5rem);
+  --preview-dock-height: min(62vh, 34rem);
+  padding-bottom: calc(var(--preview-dock-height) + 4.5rem);
 }
 
 .section-mobile-picker select {

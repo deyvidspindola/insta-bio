@@ -59,16 +59,9 @@ try {
     exit;
   }
 
-  $ip = analytics_client_ip();
-  if (!analytics_rate_limit_allow($ip . ':' . $analyticsKey, 60, 60)) {
-    http_response_code(429);
-    echo json_encode(['ok' => false, 'error' => 'Rate limit excedido']);
-    exit;
-  }
-
-  $ua = mb_substr(trim((string) ($_SERVER['HTTP_USER_AGENT'] ?? '')), 0, 255);
+  $ua = analytics_request_user_agent();
   if (analytics_is_bot_user_agent($ua)) {
-    echo json_encode(['ok' => true]);
+    echo json_encode(['ok' => true, 'skipped' => 'bot']);
     exit;
   }
 
@@ -76,6 +69,23 @@ try {
   platform_ensure_analytics_schema($pdo);
 
   $client = lookup_client_by_analytics_key($pdo, $analyticsKey);
+
+  // Proxy self-hosted: license.config pode ter ANALYTICS_KEY órfã (não está no MySQL).
+  // Nesse caso resolve pelo mesmo slug+token do license-check.
+  if (!$client) {
+    $proxySlug = normalize_slug(platform_input_string($input['license_slug'] ?? '', 40));
+    $proxyToken = platform_input_token($input['license_token'] ?? '');
+    $proxyDeploy = normalize_slug(platform_input_string($input['license_deploy'] ?? '', 40));
+    $proxyHost = normalize_license_host(platform_input_string($input['license_host'] ?? '', 255));
+
+    if ($proxySlug !== '' && $proxyToken !== '') {
+      $client = lookup_client_license($pdo, $proxySlug, $proxyToken, $proxyDeploy, $proxyHost);
+      if ($client) {
+        ensure_client_analytics_key($pdo, $client);
+      }
+    }
+  }
+
   if (!$client) {
     http_response_code(404);
     echo json_encode(['ok' => false, 'error' => 'Cliente não encontrado']);
@@ -109,6 +119,13 @@ try {
   }
   if ($sessionId !== '' && !is_valid_uuid($sessionId)) {
     $sessionId = '';
+  }
+
+  $ip = analytics_client_ip();
+  if (!analytics_rate_limit_allow($ip . ':' . $analyticsKey, 120, 60)) {
+    http_response_code(429);
+    echo json_encode(['ok' => false, 'error' => 'Rate limit excedido']);
+    exit;
   }
 
   $sectionId = null;
@@ -160,7 +177,7 @@ try {
     ],
   );
 
-  echo json_encode(['ok' => true]);
+  echo json_encode(['ok' => true, 'inserted' => true, 'event_type' => $eventType]);
 } catch (JsonException $e) {
   http_response_code(400);
   echo json_encode(['ok' => false, 'error' => 'JSON inválido']);
@@ -168,7 +185,11 @@ try {
   http_response_code(400);
   echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
 } catch (Throwable $e) {
-  platform_capture_exception($e);
+  platform_capture_exception($e, [
+    'endpoint' => 'analytics/track',
+    'event_type' => $eventType ?? null,
+    'error' => $e->getMessage(),
+  ]);
   http_response_code(503);
   echo json_encode(['ok' => false, 'error' => 'Erro ao registrar evento']);
 }

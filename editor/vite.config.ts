@@ -206,6 +206,34 @@ function writeJsonFile(filePath: string, data: unknown) {
   fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf-8')
 }
 
+/**
+ * Em dev, se ainda não houver bio.json / rascunho, copia o demo-bio
+ * para o editor local funcionar em http://localhost:5180/ com dados mockados.
+ */
+function ensureDevBioSeed(): boolean {
+  const { bioJsonPath, draftPath } = getEditorStoragePaths()
+  if (fs.existsSync(draftPath) || fs.existsSync(bioJsonPath)) {
+    return false
+  }
+
+  const seeds = [
+    path.join(EDITOR_ROOT, 'public', 'demo-bio.json'),
+    path.join(BIO_ROOT, 'public', 'bio.default.json'),
+  ]
+  for (const seed of seeds) {
+    if (!fs.existsSync(seed)) continue
+    fs.mkdirSync(path.dirname(bioJsonPath), { recursive: true })
+    fs.copyFileSync(seed, bioJsonPath)
+    console.log(
+      `[editor] bio.json criado a partir de ${path.relative(path.resolve(EDITOR_ROOT, '..'), seed)}`,
+    )
+    return true
+  }
+
+  console.warn('[editor] Nenhum seed de bio encontrado (demo-bio.json / bio.default.json)')
+  return false
+}
+
 function jsonUsesAsset(json: string, filename: string): boolean {
   return [`assets/${filename}`, `/assets/${filename}`, filename].some((needle) =>
     json.includes(needle),
@@ -359,6 +387,8 @@ function uploadPlugin(): Plugin {
   return {
     name: 'bio-image-upload',
     configureServer(server) {
+      ensureDevBioSeed()
+
       server.middlewares.use(async (req, res, next) => {
         const handled = await handleAuthRequest(req, res)
         if (handled) return
@@ -390,6 +420,7 @@ function uploadPlugin(): Plugin {
         }
 
         const { bioJsonPath, draftPath } = getEditorStoragePaths()
+        ensureDevBioSeed()
         const draft = readJsonFile(draftPath)
         const published = readJsonFile(bioJsonPath)
         if (draft) {

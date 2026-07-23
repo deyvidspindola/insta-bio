@@ -12,7 +12,7 @@ if (!password) {
 const hash = await bcrypt.hash(password, 10)
 const authPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../auth.json')
 
-let auth = { username: 'admin' }
+let auth = { username: 'admin@local.dev' }
 if (fs.existsSync(authPath)) {
   auth = JSON.parse(fs.readFileSync(authPath, 'utf-8'))
 }

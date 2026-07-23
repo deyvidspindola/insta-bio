@@ -81,26 +81,164 @@ function removeBundleFiles($dir, $editorMode = false) {
     }
 }
 
-function copyDirExcept($src, $dest, $skipNames = []) {
-    if (!is_dir($dest)) mkdir($dest, 0755, true);
+function copyDirExcept($src, $dest, $skipNames = [], &$failures = null, $relPrefix = '') {
+    if (!is_dir($dest) && !@mkdir($dest, 0755, true) && !is_dir($dest)) {
+        if (is_array($failures)) {
+            $failures[] = rtrim($relPrefix, '/') !== '' ? rtrim($relPrefix, '/') : '.';
+        }
+        return;
+    }
     $items = scandir($src);
+    if ($items === false) {
+        if (is_array($failures)) {
+            $failures[] = rtrim($relPrefix, '/') !== '' ? rtrim($relPrefix, '/') : '.';
+        }
+        return;
+    }
     foreach ($items as $item) {
         if ($item === '.' || $item === '..') continue;
         if (in_array($item, $skipNames, true)) continue;
         $srcPath = $src . '/' . $item;
         $destPath = $dest . '/' . $item;
+        $childRel = $relPrefix === '' ? $item : $relPrefix . $item;
         if (is_dir($srcPath)) {
-            copyDirExcept($srcPath, $destPath, $skipNames);
+            copyDirExcept($srcPath, $destPath, $skipNames, $failures, $childRel . '/');
         } else {
-            copy($srcPath, $destPath);
+            $dir = dirname($destPath);
+            if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+                if (is_array($failures)) {
+                    $failures[] = $childRel;
+                }
+                continue;
+            }
+            if (!@copy($srcPath, $destPath)) {
+                if (is_array($failures)) {
+                    $failures[] = $childRel;
+                }
+            }
         }
     }
 }
 
 function copyFile($src, $dest) {
     $dir = dirname($dest);
-    if (!is_dir($dir)) mkdir($dir, 0755, true);
-    copy($src, $dest);
+    if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+        return false;
+    }
+    return @copy($src, $dest);
+}
+
+/**
+ * Arquivos estáticos da bio na raiz do site (não PHP de gate).
+ *
+ * @return list<string>
+ */
+function siteStaticRootFiles() {
+    return ['index.html', 'favicon.svg', 'icons.svg', 'logo-instabio.svg', 'suspended.html', '.htaccess'];
+}
+
+/**
+ * Lista o que deve ir da pasta site/ do pacote para a raiz do cliente:
+ * estáticos conhecidos + TODOS os .php da raiz (gate). Assim arquivos novos
+ * (ex.: analytics-track.php) entram mesmo se o update-apply antigo não listava o nome.
+ *
+ * @return list<string>
+ */
+function sitePackageRootFilesToApply($siteSource) {
+    $files = siteStaticRootFiles();
+    $entries = @scandir($siteSource);
+    if ($entries === false) {
+        return $files;
+    }
+    foreach ($entries as $name) {
+        if ($name === '.' || $name === '..') {
+            continue;
+        }
+        if (!str_ends_with(strtolower($name), '.php')) {
+            continue;
+        }
+        // license.config.php nunca vem no pacote; se vier, ignore.
+        if ($name === 'license.config.php') {
+            continue;
+        }
+        if (is_file($siteSource . '/' . $name)) {
+            $files[] = $name;
+        }
+    }
+    return array_values(array_unique($files));
+}
+
+/**
+ * Copia a raiz do site do pacote e reporta falhas.
+ *
+ * @param list<string> $failures
+ */
+function copySitePackageRoot($siteSource, $siteRoot, array &$failures) {
+    foreach (sitePackageRootFilesToApply($siteSource) as $file) {
+        $src = $siteSource . '/' . $file;
+        if (!is_file($src)) {
+            continue;
+        }
+        if (!copyFile($src, $siteRoot . '/' . $file)) {
+            $failures[] = $file;
+        }
+    }
+}
+
+/**
+ * Garante que todo .php / .htaccess do pacote bateu no destino (hash).
+ *
+ * @param list<string> $failures
+ */
+function verifySitePackageRoot($siteSource, $siteRoot, array &$failures) {
+    foreach (sitePackageRootFilesToApply($siteSource) as $file) {
+        if ($file === 'index.html') {
+            continue; // validado à parte com bundles
+        }
+        $src = $siteSource . '/' . $file;
+        if (!is_file($src)) {
+            continue;
+        }
+        if (!str_ends_with(strtolower($file), '.php') && $file !== '.htaccess') {
+            continue;
+        }
+        $dst = $siteRoot . '/' . $file;
+        $exp = @hash_file('sha256', $src);
+        $act = is_file($dst) ? @hash_file('sha256', $dst) : false;
+        if ($exp === false || $act !== $exp) {
+            $failures[] = $file;
+        }
+    }
+}
+
+/**
+ * Extrai caminhos de bundles referenciados no index.html (assets/…).
+ *
+ * @return list<string>
+ */
+function siteBundlesReferencedInHtml($htmlPath) {
+    $html = @file_get_contents($htmlPath);
+    if ($html === false || $html === '') {
+        return [];
+    }
+    $refs = [];
+    if (preg_match_all('#(?:src|href)=["\']([^"\']*assets/[^"\']+\.(?:js|css))["\']#i', $html, $m)) {
+        foreach ($m[1] as $ref) {
+            $path = parse_url($ref, PHP_URL_PATH);
+            if (!is_string($path) || $path === '') {
+                $path = $ref;
+            }
+            $pos = strpos($path, 'assets/');
+            if ($pos === false) {
+                continue;
+            }
+            $rel = substr($path, $pos);
+            if (isBundleFile(basename($rel))) {
+                $refs[$rel] = true;
+            }
+        }
+    }
+    return array_keys($refs);
 }
 
 function ensureDirectory($dir) {
@@ -258,7 +396,19 @@ try {
 
     editor_update_log('info', 'apply backup_start', ['backupDir' => $backupDir]);
 
-    $siteFilesToBackup = ['index.html', 'favicon.svg', 'icons.svg', 'logo-instabio.svg', 'suspended.html', 'assets/'];
+    // Gate genérico: qualquer .php na raiz do pacote site/ (não hardcodar nomes —
+    // senão update-apply antigo pula arquivos novos como analytics-track.php).
+    $siteSource = $extractDir . '/site';
+    if (!is_dir($siteSource)) {
+        throw new Exception('Pacote inválido: pasta site/ ausente.');
+    }
+
+    $siteFilesToBackup = array_merge(
+        sitePackageRootFilesToApply($siteRoot),
+        sitePackageRootFilesToApply($siteSource),
+        ['assets/'],
+    );
+    $siteFilesToBackup = array_values(array_unique($siteFilesToBackup));
     foreach ($siteFilesToBackup as $rel) {
         $src = $siteRoot . '/' . $rel;
         if (file_exists($src)) {
@@ -273,43 +423,121 @@ try {
     $editorDest = $backupDir . '/editor';
     copyDirExcept($editorRoot, $editorDest, $editorSkip);
 
-    // 15. Aplicar atualização (site)
-    $siteSource = $extractDir . '/site';
-    if (is_dir($siteSource)) {
-        $staticFiles = ['index.html', 'favicon.svg', 'icons.svg', 'logo-instabio.svg', 'suspended.html'];
-        foreach ($staticFiles as $file) {
-            $src = $siteSource . '/' . $file;
-            if (file_exists($src)) {
-                copyFile($src, $siteRoot . '/' . $file);
-            }
-        }
-        $srcAssets = $siteSource . '/assets';
-        $dstAssets = $siteRoot . '/assets';
-        if (is_dir($srcAssets)) {
-            if (!is_dir($dstAssets)) mkdir($dstAssets, 0755, true);
+    // 15. Aplicar atualização (site) — todos os .php da raiz do pacote + estáticos
+    $siteCopyFailures = [];
+    copySitePackageRoot($siteSource, $siteRoot, $siteCopyFailures);
+    $srcAssets = $siteSource . '/assets';
+    $dstAssets = $siteRoot . '/assets';
+    if (is_dir($srcAssets)) {
+        if (!is_dir($dstAssets) && !@mkdir($dstAssets, 0755, true) && !is_dir($dstAssets)) {
+            $siteCopyFailures[] = 'assets/';
+        } else {
             removeBundleFiles($dstAssets);
             $assetFiles = scandir($srcAssets);
-            foreach ($assetFiles as $file) {
-                if ($file === '.' || $file === '..') continue;
-                if (isBundleFile($file)) {
-                    copyFile($srcAssets . '/' . $file, $dstAssets . '/' . $file);
+            if ($assetFiles === false) {
+                $siteCopyFailures[] = 'assets/';
+            } else {
+                foreach ($assetFiles as $file) {
+                    if ($file === '.' || $file === '..') continue;
+                    if (isBundleFile($file)) {
+                        if (!copyFile($srcAssets . '/' . $file, $dstAssets . '/' . $file)) {
+                            $siteCopyFailures[] = 'assets/' . $file;
+                        }
+                    }
                 }
             }
         }
     }
 
-    // 16. Aplicar atualização (editor)
-    $editorSource = $extractDir . '/editor';
-    if (is_dir($editorSource)) {
-        $editorAssets = $editorRoot . '/assets';
-        if (is_dir($editorAssets)) {
-            // Remove TODOS os JS/CSS antigos (EditorApp-*, icons-*, pageMeta-*, …)
-            removeBundleFiles($editorAssets, true);
+    // Bio pública: index.html + bundles referenciados DEVEM bater com o pacote.
+    // Qualquer falha parcial aborta — senão a versão sobe e a bio fica antiga/quebrada.
+    $newIndex = $siteSource . '/index.html';
+    if (!is_file($newIndex)) {
+        throw new Exception('Pacote inválido: site/index.html ausente.');
+    }
+    $expected = @hash_file('sha256', $newIndex);
+    $actual = @hash_file('sha256', $siteRoot . '/index.html');
+    if ($expected === false || $actual !== $expected) {
+        $siteCopyFailures[] = 'index.html';
+    }
+    foreach (siteBundlesReferencedInHtml($newIndex) as $rel) {
+        $pkgFile = $siteSource . '/' . $rel;
+        $dstFile = $siteRoot . '/' . $rel;
+        if (!is_file($pkgFile)) {
+            $siteCopyFailures[] = $rel . ' (ausente no pacote)';
+            continue;
         }
-        copyDirExcept($editorSource, $editorRoot, $editorSkip);
+        $exp = @hash_file('sha256', $pkgFile);
+        $act = @hash_file('sha256', $dstFile);
+        if ($exp === false || $act !== $exp) {
+            $siteCopyFailures[] = $rel;
+        }
+    }
+    verifySitePackageRoot($siteSource, $siteRoot, $siteCopyFailures);
+    if (!empty($siteCopyFailures)) {
+        $unique = array_values(array_unique($siteCopyFailures));
+        editor_update_log('error', 'apply site_not_written', [
+            'siteRoot' => $siteRoot,
+            'failures' => $unique,
+            'writable' => is_writable($siteRoot),
+            'assetsWritable' => is_dir($dstAssets) ? is_writable($dstAssets) : false,
+        ]);
+        throw new Exception(
+            'A bio pública não pôde ser atualizada por completo ('
+            . implode(', ', array_slice($unique, 0, 5))
+            . (count($unique) > 5 ? '…' : '')
+            . '). Verifique a permissão de escrita em '
+            . $siteRoot
+            . ' e em assets/. A versão NÃO foi alterada — tente de novo após corrigir as permissões.'
+        );
     }
 
-    // 17. Atualizar update-state.json
+    // 16. Aplicar atualização (editor)
+    $editorSource = $extractDir . '/editor';
+    if (!is_dir($editorSource)) {
+        throw new Exception('Pacote inválido: pasta editor/ ausente.');
+    }
+    $editorAssets = $editorRoot . '/assets';
+    if (is_dir($editorAssets)) {
+        // Remove TODOS os JS/CSS antigos (EditorApp-*, icons-*, pageMeta-*, …)
+        removeBundleFiles($editorAssets, true);
+    }
+    $editorFailures = [];
+    copyDirExcept($editorSource, $editorRoot, $editorSkip, $editorFailures);
+    if (!empty($editorFailures)) {
+        editor_update_log('error', 'apply editor_partial', [
+            'editorRoot' => $editorRoot,
+            'failures' => $editorFailures,
+            'writable' => is_writable($editorRoot),
+        ]);
+        throw new Exception(
+            'O editor não pôde ser atualizado por completo ('
+            . implode(', ', array_slice($editorFailures, 0, 5))
+            . (count($editorFailures) > 5 ? '…' : '')
+            . '). A versão NÃO foi alterada. Verifique permissões em editor/ e editor/assets/.'
+        );
+    }
+
+    // Reaplica a raiz do site depois do editor: cobre o caso em que o update-apply
+    // que iniciou este request era antigo (lista fixa sem analytics-track.php etc.).
+    // O pacote ainda está extraído; a cópia é idempotente.
+    $siteResyncFailures = [];
+    copySitePackageRoot($siteSource, $siteRoot, $siteResyncFailures);
+    verifySitePackageRoot($siteSource, $siteRoot, $siteResyncFailures);
+    if (!empty($siteResyncFailures)) {
+        $unique = array_values(array_unique($siteResyncFailures));
+        editor_update_log('error', 'apply site_resync_failed', [
+            'siteRoot' => $siteRoot,
+            'failures' => $unique,
+        ]);
+        throw new Exception(
+            'Gate da bio incompleto após sincronizar ('
+            . implode(', ', array_slice($unique, 0, 5))
+            . '). Verifique permissão de escrita na raiz do site.'
+        );
+    }
+
+    // 17. Atualizar update-state.json (só depois de bio + editor ok)
     $stateFile = $editorRoot . '/update-state.json';
     $oldState = [];
     if (file_exists($stateFile)) {
@@ -321,7 +549,9 @@ try {
         'channel' => $oldState['channel'] ?? 'stable',
         'previousVersion' => $oldState['version'] ?? null,
     ];
-    file_put_contents($stateFile, json_encode($newState, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    if (file_put_contents($stateFile, json_encode($newState, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n") === false) {
+        throw new Exception('Não foi possível gravar update-state.json após a atualização.');
+    }
 
     removeTempDir($tempDir);
     $tempDir = null;

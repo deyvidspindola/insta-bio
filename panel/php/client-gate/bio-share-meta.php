@@ -119,25 +119,24 @@ function bio_share_inject_runtime(string $html, string $relativeBioPath): string
     '__BIO_JSON_PATH__' => $relativeBioPath,
   ];
 
-  if (defined('ANALYTICS_KEY') && ANALYTICS_KEY !== '') {
-    $payload['__ANALYTICS_KEY__'] = (string) ANALYTICS_KEY;
+  // Preferir chave da API (MySQL); ANALYTICS_KEY do config pode estar órfã.
+  $remoteMeta = function_exists('client_license_remote_meta')
+    ? client_license_remote_meta()
+    : ['akey' => '', 'aurl' => ''];
+
+  $analyticsKey = '';
+  if (($remoteMeta['akey'] ?? '') !== '') {
+    $analyticsKey = (string) $remoteMeta['akey'];
+  } elseif (defined('ANALYTICS_KEY') && ANALYTICS_KEY !== '') {
+    $analyticsKey = (string) ANALYTICS_KEY;
   }
 
-  $analyticsUrl = '';
-  if (defined('ANALYTICS_API') && ANALYTICS_API !== '') {
-    $analyticsUrl = (string) ANALYTICS_API;
-  } elseif (defined('LICENSE_API') && LICENSE_API !== '' && function_exists('analytics_track_url_from_license_api')) {
-    $analyticsUrl = analytics_track_url_from_license_api((string) LICENSE_API);
-  } elseif (defined('LICENSE_API') && LICENSE_API !== '') {
-    $api = rtrim((string) LICENSE_API, '/');
-    if (str_ends_with($api, '/api/license/check')) {
-      $analyticsUrl = substr($api, 0, -strlen('/api/license/check')) . '/api/analytics/track';
-    }
+  if ($analyticsKey !== '') {
+    $payload['__ANALYTICS_KEY__'] = $analyticsKey;
   }
 
-  if ($analyticsUrl !== '') {
-    $payload['__ANALYTICS_URL__'] = $analyticsUrl;
-  }
+  // URL do painel NÃO vai no HTML — a bio posta em api/analytics/track
+  // (same-origin) e o proxy PHP encaminha usando ANALYTICS_API / LICENSE_API.
 
   $assignments = [];
   foreach ($payload as $key => $value) {

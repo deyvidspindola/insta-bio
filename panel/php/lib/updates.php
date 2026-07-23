@@ -559,8 +559,20 @@ function platform_apply_extracted_package_to_client(
   $editorSource = $extractDir . '/editor';
   $editorDir = rtrim($clientDir, '/\\') . '/editor';
 
-  // Site: estáticos + bundles (ou assets completos no provisionamento)
+  // Site: estáticos + todos os .php da raiz do pacote (gate) + bundles
   $staticFiles = ['index.html', 'favicon.svg', 'icons.svg', 'logo-instabio.svg', 'suspended.html', '.htaccess'];
+  foreach (scandir($siteSource) ?: [] as $name) {
+    if ($name === '.' || $name === '..' || $name === 'license.config.php') {
+      continue;
+    }
+    if (!str_ends_with(strtolower($name), '.php')) {
+      continue;
+    }
+    if (is_file($siteSource . '/' . $name)) {
+      $staticFiles[] = $name;
+    }
+  }
+  $staticFiles = array_values(array_unique($staticFiles));
   foreach ($staticFiles as $file) {
     $src = $siteSource . '/' . $file;
     if (is_file($src)) {

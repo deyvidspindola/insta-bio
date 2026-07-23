@@ -30,11 +30,11 @@ try {
   $prev = analytics_reports_previous_range($range);
 
   if ($grain === 'hour') {
-    $current = analytics_reports_timeseries_hour($pdo, $clientId, $range['fromDt'], $range['toDt']);
-    $previous = analytics_reports_timeseries_hour($pdo, $clientId, $prev['fromDt'], $prev['toDt']);
+    $current = analytics_reports_timeseries_hour($pdo, $clientId, $range);
+    $previous = analytics_reports_timeseries_hour($pdo, $clientId, $prev);
   } else {
-    $current = analytics_reports_timeseries_day($pdo, $clientId, $range['fromDt'], $range['toDt']);
-    $previous = analytics_reports_timeseries_day($pdo, $clientId, $prev['fromDt'], $prev['toDt']);
+    $current = analytics_reports_timeseries_day($pdo, $clientId, $range);
+    $previous = analytics_reports_timeseries_day($pdo, $clientId, $prev);
   }
 
   analytics_reports_send_json([
@@ -48,6 +48,11 @@ try {
 } catch (InvalidArgumentException $e) {
   analytics_reports_send_json(['ok' => false, 'error' => $e->getMessage()], 400);
 } catch (Throwable $e) {
-  platform_capture_exception($e);
+  platform_capture_exception($e, [
+    'endpoint' => 'analytics/timeseries',
+    'slug' => $auth['slug'] ?? null,
+    'grain' => $grain ?? null,
+    'error' => $e->getMessage(),
+  ]);
   analytics_reports_send_json(['ok' => false, 'error' => 'Erro ao montar série'], 500);
 }

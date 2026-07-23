@@ -47,6 +47,31 @@ function analytics_reports_require_client(): array
 }
 
 /**
+ * Monta o intervalo a partir de duas meia-noites locais, devolvendo:
+ * - from/to: datas locais (Y-m-d) para rótulos/preenchimento das séries
+ * - fromDt/toDt: instantes UTC equivalentes (para filtrar occurred_at, que é UTC)
+ *
+ * @return array{from: string, to: string, fromDt: string, toDt: string, days: int}
+ */
+function analytics_reports_range_from_local(
+  DateTimeImmutable $fromLocal,
+  DateTimeImmutable $toLocal,
+  int $days,
+): array {
+  $tzUtc = new DateTimeZone('UTC');
+  $fromLocal = $fromLocal->setTime(0, 0, 0);
+  $toEndLocal = $toLocal->setTime(0, 0, 0)->modify('+1 day')->modify('-1 second');
+
+  return [
+    'from' => $fromLocal->format('Y-m-d'),
+    'to' => $toLocal->format('Y-m-d'),
+    'fromDt' => $fromLocal->setTimezone($tzUtc)->format('Y-m-d H:i:s'),
+    'toDt' => $toEndLocal->setTimezone($tzUtc)->format('Y-m-d H:i:s'),
+    'days' => $days,
+  ];
+}
+
+/**
  * @param array<string, mixed> $input
  * @return array{from: string, to: string, fromDt: string, toDt: string, days: int}
  */
@@ -55,13 +80,16 @@ function analytics_reports_parse_range(array $input, int $defaultDays = 7): arra
   $toRaw = trim((string) ($input['to'] ?? ''));
   $fromRaw = trim((string) ($input['from'] ?? ''));
 
-  $tz = new DateTimeZone('UTC');
+  // from/to chegam como datas locais (fuso de exibição), não UTC.
+  $tz = new DateTimeZone(analytics_display_offset());
   $to = $toRaw !== ''
     ? DateTimeImmutable::createFromFormat('Y-m-d', $toRaw, $tz)
     : new DateTimeImmutable('today', $tz);
   if ($to === false) {
     throw new InvalidArgumentException('Parâmetro to inválido (use Y-m-d)');
   }
+  // createFromFormat sem hora herda a hora atual — normaliza para meia-noite local.
+  $to = $to->setTime(0, 0, 0);
 
   $from = $fromRaw !== ''
     ? DateTimeImmutable::createFromFormat('Y-m-d', $fromRaw, $tz)
@@ -69,6 +97,7 @@ function analytics_reports_parse_range(array $input, int $defaultDays = 7): arra
   if ($from === false) {
     throw new InvalidArgumentException('Parâmetro from inválido (use Y-m-d)');
   }
+  $from = $from->setTime(0, 0, 0);
 
   if ($from > $to) {
     throw new InvalidArgumentException('from deve ser <= to');
@@ -79,13 +108,7 @@ function analytics_reports_parse_range(array $input, int $defaultDays = 7): arra
     throw new InvalidArgumentException('Período máximo: 366 dias');
   }
 
-  return [
-    'from' => $from->format('Y-m-d'),
-    'to' => $to->format('Y-m-d'),
-    'fromDt' => $from->format('Y-m-d') . ' 00:00:00',
-    'toDt' => $to->format('Y-m-d') . ' 23:59:59',
-    'days' => $days,
-  ];
+  return analytics_reports_range_from_local($from, $to, $days);
 }
 
 /**
@@ -93,18 +116,12 @@ function analytics_reports_parse_range(array $input, int $defaultDays = 7): arra
  */
 function analytics_reports_previous_range(array $range): array
 {
-  $tz = new DateTimeZone('UTC');
-  $from = new DateTimeImmutable($range['from'], $tz);
+  $tz = new DateTimeZone(analytics_display_offset());
+  $from = (new DateTimeImmutable($range['from'], $tz))->setTime(0, 0, 0);
   $prevTo = $from->modify('-1 day');
   $prevFrom = $prevTo->modify('-' . ($range['days'] - 1) . ' days');
 
-  return [
-    'from' => $prevFrom->format('Y-m-d'),
-    'to' => $prevTo->format('Y-m-d'),
-    'fromDt' => $prevFrom->format('Y-m-d') . ' 00:00:00',
-    'toDt' => $prevTo->format('Y-m-d') . ' 23:59:59',
-    'days' => $range['days'],
-  ];
+  return analytics_reports_range_from_local($prevFrom, $prevTo, $range['days']);
 }
 
 function analytics_reports_delta(?int $current, ?int $previous): ?float
@@ -175,20 +192,50 @@ function analytics_reports_top_click(PDO $pdo, int $clientId, string $fromDt, st
 }
 
 /**
+ * Compat: aceita $range (array) OU a assinatura antiga ($fromDt, $toDt) em UTC.
+ * Evita erro fatal durante deploys parciais (lib novo + endpoint antigo).
+ *
+ * @param array<string, mixed>|string $range
+ * @return array{from: string, to: string, fromDt: string, toDt: string, days: int}
+ */
+function analytics_reports_normalize_range_arg($range, ?string $toDtLegacy): array
+{
+  if (is_array($range)) {
+    return $range;
+  }
+  $fromDt = (string) $range;
+  $toDt = (string) $toDtLegacy;
+  return [
+    'from' => substr($fromDt, 0, 10),
+    'to' => substr($toDt, 0, 10),
+    'fromDt' => $fromDt,
+    'toDt' => $toDt,
+    'days' => 0,
+  ];
+}
+
+/**
+ * @param array{from: string, to: string, fromDt: string, toDt: string, days: int}|string $range
  * @return list<array{bucket: string, pageviews: int, clicks: int}>
  */
-function analytics_reports_timeseries_day(PDO $pdo, int $clientId, string $fromDt, string $toDt): array
+function analytics_reports_timeseries_day(PDO $pdo, int $clientId, $range, ?string $toDtLegacy = null): array
 {
+  $range = analytics_reports_normalize_range_arg($range, $toDtLegacy);
+  // Offset é validado (^[+-]\d{2}:\d{2}$) — embutido como literal para o
+  // only_full_group_by reconhecer SELECT e GROUP BY como a mesma expressão
+  // (placeholder é opaco e quebra a checagem de dependência funcional).
+  $offset = analytics_display_offset();
+  $conv = "CONVERT_TZ(occurred_at, '+00:00', '" . $offset . "')";
   $stmt = platform_db_execute(
     $pdo,
-    "SELECT DATE(occurred_at) AS bucket,
+    "SELECT DATE($conv) AS bucket,
       SUM(CASE WHEN event_type = 'pageview' THEN 1 ELSE 0 END) AS pageviews,
       SUM(CASE WHEN event_type = 'click' THEN 1 ELSE 0 END) AS clicks
      FROM analytics_events
      WHERE client_id = ? AND occurred_at BETWEEN ? AND ?
-     GROUP BY DATE(occurred_at)
+     GROUP BY DATE($conv)
      ORDER BY bucket ASC",
-    [$clientId, $fromDt, $toDt],
+    [$clientId, $range['fromDt'], $range['toDt']],
   );
 
   $map = [];
@@ -200,9 +247,9 @@ function analytics_reports_timeseries_day(PDO $pdo, int $clientId, string $fromD
     ];
   }
 
-  $tz = new DateTimeZone('UTC');
-  $from = new DateTimeImmutable(substr($fromDt, 0, 10), $tz);
-  $to = new DateTimeImmutable(substr($toDt, 0, 10), $tz);
+  $tz = new DateTimeZone($offset);
+  $from = new DateTimeImmutable($range['from'], $tz);
+  $to = new DateTimeImmutable($range['to'], $tz);
   $out = [];
   for ($d = $from; $d <= $to; $d = $d->modify('+1 day')) {
     $key = $d->format('Y-m-d');
@@ -212,20 +259,24 @@ function analytics_reports_timeseries_day(PDO $pdo, int $clientId, string $fromD
 }
 
 /**
+ * @param array{from: string, to: string, fromDt: string, toDt: string, days: int}|string $range
  * @return list<array{bucket: string, pageviews: int, clicks: int}>
  */
-function analytics_reports_timeseries_hour(PDO $pdo, int $clientId, string $fromDt, string $toDt): array
+function analytics_reports_timeseries_hour(PDO $pdo, int $clientId, $range, ?string $toDtLegacy = null): array
 {
+  $range = analytics_reports_normalize_range_arg($range, $toDtLegacy);
+  // Ver nota em analytics_reports_timeseries_day sobre embutir o offset validado.
+  $conv = "CONVERT_TZ(occurred_at, '+00:00', '" . analytics_display_offset() . "')";
   $stmt = platform_db_execute(
     $pdo,
-    "SELECT HOUR(occurred_at) AS hour_num,
+    "SELECT HOUR($conv) AS hour_num,
       SUM(CASE WHEN event_type = 'pageview' THEN 1 ELSE 0 END) AS pageviews,
       SUM(CASE WHEN event_type = 'click' THEN 1 ELSE 0 END) AS clicks
      FROM analytics_events
      WHERE client_id = ? AND occurred_at BETWEEN ? AND ?
-     GROUP BY HOUR(occurred_at)
+     GROUP BY HOUR($conv)
      ORDER BY hour_num ASC",
-    [$clientId, $fromDt, $toDt],
+    [$clientId, $range['fromDt'], $range['toDt']],
   );
 
   $map = [];

@@ -13,19 +13,19 @@ npm run dev    # http://localhost:5190
 Na raiz do monorepo:
 
 ```bash
-make site          # só a landing
+make site          # só a landing (dev)
+make site-build    # build → site/dist/
 make dev-all       # landing + bio + editor + painel
 ```
 
-**Demo do editor:** com `make dev-all` ou `make editor`, abra [http://localhost:5180/demo.html](http://localhost:5180/demo.html). Os CTAs da landing apontam para essa URL em desenvolvimento.
+**Demonstração:** a landing não abre o editor público. Os CTAs “Agende uma demonstração” vão para o WhatsApp (`site/src/config.ts`).
 
 ## Conteúdo e personalização
 
 | Arquivo | O que mudar |
 |---------|-------------|
 | `site/src/template-home.html` | Textos, seções, FAQ, hero |
-| `site/src/config.ts` | WhatsApp, `DEMO_URL`, Instagram |
-| `editor/public/demo-bio.json` | Bio carregada no modo demonstração |
+| `site/src/config.ts` | WhatsApp, Instagram |
 
 Scripts opcionais de conteúdo (one-off): `site/scripts/apply-landing-brief.py`, `optimize-landing.py`, `patch-content.py`.
 
@@ -43,10 +43,11 @@ Scripts opcionais de conteúdo (one-off): `site/scripts/apply-landing-brief.py`,
 ## Build
 
 ```bash
-npm run site:build    # → site/dist/
+make site-build       # → site/dist/
+# ou: npm run site:build
 ```
 
-Em produção na plataforma, a landing entra em `platform-release/` na raiz do domínio. Para demo do editor, inclua também `editor/dist/demo.html` e assets do editor (ver `npm run build:platform`).
+Em produção na plataforma, a landing entra em `platform-release/` na raiz do domínio (`npm run build:platform`). O editor de demonstração público **não** é publicado.
 
 ## Documentação
 
