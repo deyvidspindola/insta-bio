@@ -31,25 +31,34 @@ export const HERO_BADGES = [
 export type PortfolioItem = {
   name: string
   category: string
-  image: string
+  /**
+   * Print do celular (mockup com moldura).
+   * Omitir ou deixar `undefined` → fallback visual na seção Clientes
+   * (`PortfolioPhoneFallback` em Clients.tsx).
+   */
+  image?: string
 }
 
-/** Prints reais de bio — substitua por fotos de clientes quando tiver. */
+/**
+ * Prints reais de bio — ordem: esquerda | centro | direita.
+ * Se algum `image` faltar, a UI usa o fallback de telefone com gradiente.
+ */
 export const PORTFOLIO: PortfolioItem[] = [
   {
-    name: 'Saúde & Estética',
-    category: 'Clínicas, dentistas, esteticistas',
-    image: '/images/product-bio-mobile.png',
+    name: 'Igreja & comunidade',
+    category: 'Cultos, eventos e conexão',
+    image: '/images/portfolio-igreja-expressar.png',
   },
   {
-    name: 'Serviços executivos',
-    category: 'Advogados, contadores, arquitetos',
-    image: '/images/product-bio-full.png',
+    name: 'Serviços & marcas',
+    category: 'Profissionais e negócios locais',
+    // Centro: print já existente no site (product-bio-mobile)
+    image: '/images/product-bio-mobile.png',
   },
   {
     name: 'Comércio & serviços',
-    category: 'Lojas, óticas, prestadores',
-    image: '/images/product-bio-mobile.png',
+    category: 'Lojas, papelaria, prestadores',
+    image: '/images/portfolio-home-paper.png',
   },
 ]
 

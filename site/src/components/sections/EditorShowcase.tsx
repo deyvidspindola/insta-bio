@@ -57,7 +57,7 @@ export function EditorShowcase() {
             />
             <img
               src="/images/editor-preview-mobile.png"
-              alt="Editor da plataforma em uso no celular"
+              alt="Editor da plataforma no celular, com painel de estatísticas da bio"
               className="relative z-10 mx-auto w-full max-w-[260px] drop-shadow-[0_24px_48px_rgba(0,0,0,0.45)] md:hidden"
               width={504}
               height={1024}

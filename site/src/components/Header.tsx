@@ -47,9 +47,6 @@ export function Header() {
         </nav>
 
         <div className="hidden items-center gap-4 md:flex">
-          <a href={LINKS.login} className="text-sm text-muted transition-colors hover:text-text">
-            Entrar
-          </a>
           <a
             href={LINKS.cta}
             target="_blank"
@@ -83,9 +80,6 @@ export function Header() {
                 {item.label}
               </a>
             ))}
-            <a href={LINKS.login} className="py-3 text-base text-muted" onClick={() => setOpen(false)}>
-              Entrar
-            </a>
             <a
               href={LINKS.cta}
               target="_blank"
