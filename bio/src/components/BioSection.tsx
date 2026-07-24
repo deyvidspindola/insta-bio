@@ -250,7 +250,7 @@ function renderItem(
         className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
         style: delay,
         ...scheduleProps,
-        children: <ProductsCard item={item} />,
+        children: <ProductsCard item={item} pageBackground={pageBackground} />,
       })
     case 'youtube-embed':
       return wrapPreviewItem({

@@ -1,5 +1,5 @@
 import type { PressCard } from '@bio-types'
-import { PRESS_DEFAULT_ACCENT } from '@site/lib/pressTheme'
+import { AccentColorField } from '../AccentColorField'
 import { APP_HERO_LAYOUTS, FEATURE_ALIGNS } from '../../lib/bio'
 import { ImageField } from '../ImageField'
 import { CardWidthField } from './CardWidthField'
@@ -60,27 +60,10 @@ export function PressItemFields({
       </FieldGroup>
 
       <FieldGroup title="Visual">
-        <Field label="Cor de destaque">
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              className="h-9 w-12 cursor-pointer rounded border border-border bg-transparent p-0.5"
-              value={item.accentColor?.startsWith('#') ? item.accentColor : PRESS_DEFAULT_ACCENT}
-              onChange={(e) => onChange({ ...item, accentColor: e.target.value })}
-            />
-            <input
-              className="min-w-0 flex-1"
-              value={item.accentColor ?? ''}
-              onChange={(e) =>
-                onChange({
-                  ...item,
-                  accentColor: e.target.value.trim() ? e.target.value : undefined,
-                })
-              }
-              placeholder={PRESS_DEFAULT_ACCENT}
-            />
-          </div>
-        </Field>
+        <AccentColorField
+          value={item.accentColor}
+          onChange={(accentColor) => onChange({ ...item, accentColor })}
+        />
         <ImageField
           label="Imagem de fundo (opcional)"
           value={item.image}

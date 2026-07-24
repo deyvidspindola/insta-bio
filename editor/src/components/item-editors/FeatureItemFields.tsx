@@ -1,6 +1,7 @@
 import type { FeatureCard } from '@bio-types'
+import { resolveAccentColor } from '@site/lib/accentTheme'
 import { FEATURE_ALIGNS, FEATURE_VARIANTS } from '../../lib/bio'
-import { GradientField } from '../GradientField'
+import { AccentColorField } from '../AccentColorField'
 import { IconPicker } from '../IconPicker'
 import { ImageField } from '../ImageField'
 import { CardWidthField } from './CardWidthField'
@@ -110,7 +111,17 @@ export function FeatureItemFields({
         </Field>
       </FieldGroup>
 
-      <FieldGroup title="Mídia e estilo">
+      <FieldGroup title="Visual">
+        <AccentColorField
+          value={resolveAccentColor(item.accentColor, item.gradient)}
+          onChange={(accentColor) =>
+            onChange({
+              ...item,
+              accentColor,
+              gradient: accentColor ? undefined : item.gradient,
+            })
+          }
+        />
         <IconPicker
           value={item.icon}
           onChange={(icon) => onChange(withOptionalIcon(item, icon))}
@@ -120,13 +131,6 @@ export function FeatureItemFields({
           value={item.image}
           onChange={(image) => onChange({ ...item, image })}
         />
-        {['gradient', 'square'].includes(item.variant ?? 'gradient') && (
-          <GradientField
-            label="Cor do card (usada sem imagem)"
-            value={item.gradient}
-            onChange={(gradient) => onChange({ ...item, gradient })}
-          />
-        )}
         {['banner', 'portrait'].includes(item.variant ?? '') && (
           <TagsField
             value={item.tags ?? []}

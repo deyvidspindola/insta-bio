@@ -190,6 +190,15 @@ export interface FeatureCard {
   align?: FeatureCardAlign
   icon?: IconName
   image?: string
+  /**
+   * Cor de destaque (hex/CSS). Gera borda, badge, ícone, CTA e wash.
+   * @see docs/COR-DE-DESTAQUE-CARDS.md
+   */
+  accentColor?: string
+  /**
+   * @deprecated Preferir `accentColor`. Mantido para bios antigas;
+   * se não houver accent, o primeiro token de cor do gradient é usado.
+   */
   gradient?: string
   tags?: Array<{ label: string; icon?: IconName }>
   /** Metade da largura — 2 cards por linha (fora da grade da seção). */
@@ -236,6 +245,9 @@ export interface GridCard {
   subtitle?: string
   url: string
   image?: string
+  /** Cor de destaque (hex/CSS). @see docs/COR-DE-DESTAQUE-CARDS.md */
+  accentColor?: string
+  /** @deprecated Preferir `accentColor`. */
   gradient?: string
   width?: CardWidth
   schedule?: CardSchedule
@@ -313,6 +325,8 @@ export interface ProductsCard {
   type: 'products'
   title?: string
   products: ProductItem[]
+  /** Cor de destaque do CTA no lightbox. @see docs/COR-DE-DESTAQUE-CARDS.md */
+  accentColor?: string
   schedule?: CardSchedule
 }
 

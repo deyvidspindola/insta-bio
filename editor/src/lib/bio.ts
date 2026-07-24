@@ -1,12 +1,9 @@
 import type { BioBrand, BioConfig, BioSection, SectionItem, AppHeroPreset, AppHeroLayout } from '@bio-types'
 import { bioJsonUrl } from '@site/lib/publicUrl'
 import { normalizeBrandSocial } from '@site/lib/socialLinks'
-import { deriveCardGradientFromTheme } from '@site/lib/colorEngine'
+import { DEFAULT_ACCENT } from '@site/lib/accentTheme'
 import defaultBio from '../../../bio/public/bio.default.json'
 import { APP_HERO_PRESET_LIST, createAppHero } from '@site/lib/appHeroPresets'
-
-const FALLBACK_CARD_GRADIENT =
-  'linear-gradient(135deg, oklch(0.70 0.18 55) 0%, oklch(0.55 0.19 40) 100%)'
 
 export { APP_HERO_PRESET_LIST, createAppHero }
 export type { AppHeroPreset }
@@ -28,7 +25,7 @@ export const CARD_TYPES = [
   {
     value: 'feature',
     label: 'Destaque',
-    hint: 'Card visual com foto, gradiente e CTA — use para links importantes.',
+    hint: 'Card visual com foto, cor de destaque e CTA — use para links importantes.',
   },
   {
     value: 'press',
@@ -96,7 +93,7 @@ export const SECONDARY_CARD_TYPES = CARD_TYPES.filter((type) =>
 export { MEDIA_CARD_VARIANTS } from '@site/lib/mediaCardLayout'
 
 export const FEATURE_VARIANTS = [
-  { value: 'gradient', label: 'Gradiente colorido' },
+  { value: 'gradient', label: 'Card com cor de destaque' },
   { value: 'square', label: 'Quadrado' },
   { value: 'compact', label: 'Compacto' },
   { value: 'portrait', label: 'Retrato (imagem)' },
@@ -230,9 +227,8 @@ export function createItem(
   type: SectionItem['type'],
   theme?: BioBrand['theme'],
 ): SectionItem {
-  const themeGradient = theme
-    ? deriveCardGradientFromTheme(theme)
-    : FALLBACK_CARD_GRADIENT
+  const themeAccent =
+    theme?.primary?.startsWith('#') ? theme.primary : DEFAULT_ACCENT
 
   switch (type) {
     case 'whatsapp-hero':
@@ -253,7 +249,7 @@ export function createItem(
         description: 'Descrição do card',
         url: 'https://',
         variant: 'gradient',
-        gradient: themeGradient,
+        accentColor: themeAccent,
       }
     case 'link':
       return {
@@ -270,14 +266,14 @@ export function createItem(
         description: 'Resumo curto opcional.',
         cta: 'Ler matéria',
         url: 'https://',
-        accentColor: '#2563eb',
+        accentColor: themeAccent,
       }
     case 'grid':
       return {
         type,
         title: 'Novo card',
         url: 'https://',
-        gradient: themeGradient,
+        accentColor: themeAccent,
       }
     case 'location':
       return {
@@ -307,6 +303,7 @@ export function createItem(
         type,
         title: 'Produtos',
         products: [{ image: '', title: '', url: '', cta: 'Compre aqui' }],
+        accentColor: themeAccent,
       }
     case 'youtube-embed':
       return {

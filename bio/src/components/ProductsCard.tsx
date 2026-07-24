@@ -32,7 +32,13 @@ function ProductThumb({
   )
 }
 
-export function ProductsCard({ item }: { item: ProductsCardType }) {
+export function ProductsCard({
+  item,
+  pageBackground = '#000000',
+}: {
+  item: ProductsCardType
+  pageBackground?: string
+}) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   // Mantém itens com campo image (mesmo URL quebrada) — o fallback visual cobre o erro.
   const products = item.products.filter((product) => product.image?.trim())
@@ -68,6 +74,8 @@ export function ProductsCard({ item }: { item: ProductsCardType }) {
           index={activeIndex}
           onIndexChange={setActiveIndex}
           onClose={() => setActiveIndex(null)}
+          accentColor={item.accentColor}
+          pageBackground={pageBackground}
         />
       )}
     </>

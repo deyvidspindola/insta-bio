@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 import type { FeatureCardAlign, PressCard as PressCardType } from '../types/bio'
 import { CardLink, hasClickableUrl } from '../lib/cardLink'
-import { resolveAppHeroTheme, type ResolvedAppHeroTheme } from '../lib/appHeroContrast'
-import { buildPressTheme } from '../lib/pressTheme'
+import { resolveAccentCardTheme } from '../lib/accentTheme'
+import type { ResolvedAppHeroTheme } from '../lib/appHeroContrast'
 import { ArrowIcon, BioIcon } from './icons'
 import { CardCoverImage } from './CardCoverImage'
 
@@ -93,7 +93,6 @@ function PressDefault({
               src={item.image}
               alt={item.title}
               gradient={theme.gradient}
-              icon="newspaper"
               className="absolute inset-0 h-full w-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
@@ -259,7 +258,7 @@ export function PressCard({
   grid?: boolean
   pageBackground?: string
 }) {
-  const theme = resolveAppHeroTheme(buildPressTheme(item.accentColor), pageBackground)
+  const theme = resolveAccentCardTheme(item.accentColor, pageBackground)
   const layout = resolveLayout(item, grid)
   const align = resolveAlign(item)
 

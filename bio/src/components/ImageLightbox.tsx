@@ -2,6 +2,8 @@ import { useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { resolvePublicUrl } from '../lib/publicUrl'
+import { resolveAppHeroTheme } from '../lib/appHeroContrast'
+import { buildAccentTheme } from '../lib/accentTheme'
 
 export interface ImageLightboxProduct {
   image: string
@@ -15,12 +17,25 @@ interface ImageLightboxProps {
   index: number
   onIndexChange: (index: number) => void
   onClose: () => void
+  /** Cor de destaque do CTA (substitui --color-primary neste lightbox). */
+  accentColor?: string
+  pageBackground?: string
 }
 
-export function ImageLightbox({ products, index, onIndexChange, onClose }: ImageLightboxProps) {
+export function ImageLightbox({
+  products,
+  index,
+  onIndexChange,
+  onClose,
+  accentColor,
+  pageBackground = '#000000',
+}: ImageLightboxProps) {
   const product = products[index]
   const hasPrev = index > 0
   const hasNext = index < products.length - 1
+  const theme = accentColor?.trim()
+    ? resolveAppHeroTheme(buildAccentTheme(accentColor), pageBackground)
+    : null
 
   const goPrev = useCallback(() => {
     if (hasPrev) onIndexChange(index - 1)
@@ -50,6 +65,13 @@ export function ImageLightbox({ products, index, onIndexChange, onClose }: Image
   if (!product) return null
 
   const ctaLabel = product.cta?.trim() || 'Compre aqui'
+  const ctaStyle = theme
+    ? {
+        background: theme.ctaBg,
+        color: theme.ctaText,
+        boxShadow: theme.ctaShadow,
+      }
+    : undefined
 
   return createPortal(
     <div
@@ -110,6 +132,7 @@ export function ImageLightbox({ products, index, onIndexChange, onClose }: Image
                       target="_blank"
                       rel="noopener noreferrer"
                       className="bio-lightbox-cta flex w-full items-center justify-center rounded-full px-4 py-2.5 text-sm font-semibold"
+                      style={ctaStyle}
                     >
                       {ctaLabel}
                     </a>

@@ -1,35 +1,13 @@
 import { useEffect, useState } from 'react'
-import type { AppHeroPreset, IconName } from '../types/bio'
+import type { IconName } from '../types/bio'
 import { APP_HERO_PRESETS } from '../lib/appHeroPresets'
 import { resolvePublicUrl } from '../lib/publicUrl'
 import { BioIcon } from './icons'
 
-function presetFromIcon(icon?: IconName): AppHeroPreset {
-  switch (icon) {
-    case 'whatsapp':
-      return 'whatsapp'
-    case 'instagram':
-      return 'instagram'
-    case 'youtube':
-      return 'youtube'
-    case 'telegram':
-      return 'telegram'
-    case 'form':
-      return 'form'
-    default:
-      return 'custom'
-  }
-}
-
-function resolveFallbackIcon(icon: IconName | undefined, preset: AppHeroPreset): IconName {
-  if (icon) return icon
-  const config = APP_HERO_PRESETS[preset]
-  if (config.defaultIcon) return config.defaultIcon
-  if (config.icon !== 'bio') return config.icon
-  return 'sparkles'
-}
-
-/** Gradiente + ícone centralizado quando a mídia falta ou falha. */
+/**
+ * Gradiente (ou wash) quando a mídia falta ou falha.
+ * Ícone só aparece se `icon` for passado explicitamente — sem fallback sparkles.
+ */
 export function CardMediaFallback({
   gradient,
   icon,
@@ -41,9 +19,7 @@ export function CardMediaFallback({
   className?: string
   size?: 'sm' | 'md' | 'lg'
 }) {
-  const preset = presetFromIcon(icon)
-  const theme = APP_HERO_PRESETS[preset].theme
-  const iconName = resolveFallbackIcon(icon, preset)
+  const theme = APP_HERO_PRESETS.custom.theme
 
   const box =
     size === 'sm'
@@ -59,24 +35,26 @@ export function CardMediaFallback({
       style={{ background: gradient ?? theme.gradient }}
       aria-hidden="true"
     >
-      <div
-        className={`flex ${box} items-center justify-center ring-1`}
-        style={{
-          background: theme.iconBg,
-          boxShadow: `inset 0 0 0 1px ${theme.iconRing}`,
-        }}
-      >
-        <span style={{ color: theme.iconColor }}>
-          <BioIcon name={iconName} className={iconSize} />
-        </span>
-      </div>
+      {icon ? (
+        <div
+          className={`flex ${box} items-center justify-center ring-1`}
+          style={{
+            background: theme.iconBg,
+            boxShadow: `inset 0 0 0 1px ${theme.iconRing}`,
+          }}
+        >
+          <span style={{ color: theme.iconColor }}>
+            <BioIcon name={icon} className={iconSize} />
+          </span>
+        </div>
+      ) : null}
     </div>
   )
 }
 
 /**
  * Capa de card: mostra a imagem quando carrega; se ausente ou onError,
- * troca por CardMediaFallback (presets de appHeroPresets).
+ * troca por CardMediaFallback (só wash — ícone só se `icon` for informado).
  */
 export function CardCoverImage({
   src,

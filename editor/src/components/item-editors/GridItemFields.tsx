@@ -1,5 +1,6 @@
 import type { GridCard } from '@bio-types'
-import { GradientField } from '../GradientField'
+import { resolveAccentColor } from '@site/lib/accentTheme'
+import { AccentColorField } from '../AccentColorField'
 import { ImageField } from '../ImageField'
 import { Field } from './Field'
 
@@ -27,15 +28,20 @@ export function GridItemFields({
           onChange={(e) => onChange({ ...item, subtitle: e.target.value })}
         />
       </Field>
+      <AccentColorField
+        value={resolveAccentColor(item.accentColor, item.gradient)}
+        onChange={(accentColor) =>
+          onChange({
+            ...item,
+            accentColor,
+            gradient: accentColor ? undefined : item.gradient,
+          })
+        }
+      />
       <ImageField
         label="Imagem"
         value={item.image}
         onChange={(image) => onChange({ ...item, image })}
-      />
-      <GradientField
-        label="Cor do card (usada sem imagem)"
-        value={item.gradient}
-        onChange={(gradient) => onChange({ ...item, gradient })}
       />
     </>
   )
