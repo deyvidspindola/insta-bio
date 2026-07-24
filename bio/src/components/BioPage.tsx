@@ -135,6 +135,13 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
         <div
           aria-hidden="true"
           className="bio-page-bg-overlay bio-page-bg-overlay--image pointer-events-none fixed inset-0 z-[1]"
+          style={{
+            background: `linear-gradient(
+              to bottom,
+              rgba(0, 0, 0, ${(brand.theme.backgroundOverlayOpacity ?? 0.55) * 0.45}),
+              rgba(0, 0, 0, ${brand.theme.backgroundOverlayOpacity ?? 0.55})
+            )`,
+          }}
         />
       )}
 

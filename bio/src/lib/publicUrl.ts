@@ -117,6 +117,10 @@ export function resolvePublicUrl(path: string | undefined): string {
   if (path.startsWith('http://') || path.startsWith('https://')) return path
 
   const clean = path.replace(/^\//, '')
+  // Assets da plataforma (templates) ficam na raiz do site, não na pasta do cliente.
+  if (clean.startsWith('assets/templates/')) {
+    return pageRelativeUrl(clean)
+  }
   return pageRelativeUrl(`${bioAssetsPrefix()}${clean}`)
 }
 

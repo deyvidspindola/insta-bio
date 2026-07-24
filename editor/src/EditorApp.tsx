@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   ArrowUpRight,
+  Eye,
   Globe,
   Images,
   Layers,
@@ -13,7 +14,6 @@ import {
   Redo2,
   Save,
   Settings,
-  Smartphone,
   Sun,
   Undo2,
   User,
@@ -720,7 +720,16 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
             )}
 
             {activeTab === 'appearance' && (
-              <AppearanceForm brand={config.brand} onChange={(brand) => commit((prev) => ({ ...prev, brand }))} />
+              <AppearanceForm
+                brand={config.brand}
+                sections={config.sections}
+                onChange={(brand) => commit((prev) => ({ ...prev, brand }))}
+                onChangeConfig={(next) => {
+                  commit(next)
+                  setActiveSection(0)
+                  setFocusItemIndex(null)
+                }}
+              />
             )}
 
             {activeTab === 'sections' && config.sections.length > 0 && (
@@ -859,8 +868,8 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
           aria-label={previewOpen ? 'Fechar preview da bio' : 'Abrir preview da bio'}
           aria-pressed={previewOpen}
         >
-          <Smartphone className="h-5 w-5" />
-          {previewOpen ? 'Fechar' : 'Preview'}
+          <Eye className="h-5 w-5" />
+          {previewOpen ? 'Fechar preview' : 'Ver preview da bio'}
         </button>
 
         <PreviewSheet

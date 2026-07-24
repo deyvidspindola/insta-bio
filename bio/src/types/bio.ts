@@ -115,6 +115,8 @@ export interface BioBrand {
   logo: string
   coverImage?: string
   template?: BioTemplate
+  /** ID do pack de tema aplicado na galeria (ex.: dark-agency). */
+  activeTemplateId?: string
   theme: {
     primary: string
     secondary?: string
@@ -123,7 +125,12 @@ export interface BioBrand {
     backgroundImage?: string
     /** ID de gradiente pronto (ver backgroundPresets.ts) */
     backgroundPreset?: string
-    /** 0 = cantos retos, 100 = máximo arredondamento (32px) */
+    /**
+     * Escurecimento sobre a imagem de fundo (0–1).
+     * Default visual ~0.55 se omitido.
+     */
+    backgroundOverlayOpacity?: number
+    /** 0 = cantos retos, 100 = máximo arredondamento */
     cardRadius?: number
   }
   seo: {

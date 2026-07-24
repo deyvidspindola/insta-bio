@@ -156,17 +156,22 @@ interface ColorFieldProps {
 
 export function ColorField({ label, value, onChange, hint }: ColorFieldProps) {
   const pickerValue = useMemo(() => cssToHex(value), [value])
+  const [advanced, setAdvanced] = useState(false)
 
   return (
     <div className="field">
       <label>{label}</label>
       <div className="flex items-center gap-2">
-        <ColorInput value={pickerValue} onChange={onChange} title="Selecionar cor" />
+        <ColorInput
+          value={pickerValue}
+          onChange={(hex) => onChange(hex)}
+          title="Selecionar cor"
+        />
         <input
           type="text"
-          value={value}
+          value={advanced ? value : pickerValue}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="#e8a838 ou oklch(...)"
+          placeholder="#e8a838"
           className="flex-1"
         />
         <span
@@ -175,6 +180,13 @@ export function ColorField({ label, value, onChange, hint }: ColorFieldProps) {
           title="Prévia"
         />
       </div>
+      <button
+        type="button"
+        className="mt-1.5 text-[10px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        onClick={() => setAdvanced((v) => !v)}
+      >
+        {advanced ? 'Ocultar código avançado' : 'Código avançado (oklch / CSS)'}
+      </button>
       {hint && <p className="mt-1 text-[10px] text-muted-foreground/70">{hint}</p>}
     </div>
   )
