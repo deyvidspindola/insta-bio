@@ -167,25 +167,21 @@ export function TemplateCard({
   const name = brandName?.trim() || 'Sua marca'
   const logo = logoUrl?.trim() ? resolvePublicUrl(logoUrl) : null
   const tagline = pack.snapshot.brand?.tagline
-  const location = pack.snapshot.brand?.location
-  const cover = pack.snapshot.brand?.coverImage
-    ? resolvePublicUrl(pack.snapshot.brand.coverImage)
-    : null
   const socialCount = Math.min(pack.snapshot.brand?.socialLinks?.length ?? 0, 4)
   const linkLabels = getPackPreviewLabels(pack).slice(0, 3)
   const caps = getPackCapabilityLabels(pack)
 
   return (
     <article
-      className={`template-card flex w-full flex-col overflow-hidden rounded-xl border text-left transition-shadow ${
+      className={`template-card flex h-full w-full flex-col overflow-hidden rounded-xl border text-left transition-shadow ${
         active
           ? 'border-primary shadow-[0_0_0_1px_color-mix(in_oklch,var(--color-primary)_45%,transparent),0_0_24px_-6px_color-mix(in_oklch,var(--color-primary)_55%,transparent)]'
           : 'border-border bg-background/40'
       }`}
     >
       <div
-        className="relative overflow-hidden px-3 pb-3 pt-7"
-        style={{ background: bg, backgroundSize: 'cover', minHeight: 228 }}
+        className="relative h-[220px] shrink-0 overflow-hidden px-3 pb-3 pt-7"
+        style={{ background: bg, backgroundSize: 'cover' }}
       >
         {active ? (
           <span className="absolute left-2 top-2 z-10 rounded bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary-foreground">
@@ -197,7 +193,7 @@ export function TemplateCard({
           </span>
         )}
 
-        <div className="relative flex flex-col items-center text-center">
+        <div className="relative flex h-full flex-col items-center text-center">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-4 -top-2 h-16 rounded-full opacity-60 blur-2xl"
@@ -210,52 +206,36 @@ export function TemplateCard({
             <img
               src={logo}
               alt=""
-              className="relative size-10 rounded-2xl object-cover shadow-lg ring-1 ring-white/15"
+              className="relative size-9 shrink-0 rounded-2xl object-cover shadow-lg ring-1 ring-white/15"
             />
           ) : (
             <span
-              className="relative flex size-10 items-center justify-center rounded-2xl text-sm font-bold text-white shadow-lg ring-1 ring-white/15"
+              className="relative flex size-9 shrink-0 items-center justify-center rounded-2xl text-sm font-bold text-white shadow-lg ring-1 ring-white/15"
               style={{ background: primary }}
             >
               {name.slice(0, 1).toUpperCase()}
             </span>
           )}
 
-          <p className="relative mt-1.5 max-w-full truncate text-[10px] font-bold text-white drop-shadow">
+          <p className="relative mt-1 max-w-full truncate text-[10px] font-bold text-white drop-shadow">
             {name}
           </p>
-          {tagline && (
-            <p className="relative mt-0.5 line-clamp-1 max-w-[95%] text-[7px] leading-snug text-white/75">
-              {tagline}
-            </p>
-          )}
-          {location && (
-            <p className="relative mt-1 text-[6px] font-medium uppercase tracking-[0.16em] text-white/55">
-              {location}
-            </p>
-          )}
+          <p className="relative mt-0.5 line-clamp-1 min-h-[10px] max-w-[95%] text-[7px] leading-snug text-white/75">
+            {tagline || '\u00a0'}
+          </p>
 
-          {socialCount > 0 && (
-            <div className="relative mt-1.5 flex gap-1">
-              {Array.from({ length: socialCount }).map((_, i) => (
-                <span
-                  key={i}
-                  className="size-3.5 rounded-full border border-white/25 bg-white/10"
-                />
-              ))}
-            </div>
-          )}
+          <div className="relative mt-1.5 flex min-h-3.5 gap-1">
+            {socialCount > 0
+              ? Array.from({ length: socialCount }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="size-3.5 rounded-full border border-white/25 bg-white/10"
+                  />
+                ))
+              : null}
+          </div>
 
-          {cover && (
-            <div
-              className="relative mt-2 w-full overflow-hidden rounded-lg border border-white/15"
-              style={{ height: 36 }}
-            >
-              <img src={cover} alt="" className="h-full w-full object-cover" />
-            </div>
-          )}
-
-          <div className="relative mt-2 w-full space-y-1">
+          <div className="relative mt-auto w-full space-y-1 pb-0.5">
             {linkLabels.map((label, index) => (
               <MockLink
                 key={`${index}-${label}`}
@@ -269,42 +249,44 @@ export function TemplateCard({
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-3">
-        <div>
-          <p className="text-xs font-semibold">{pack.name}</p>
-          <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
+      <div className="flex min-h-0 flex-1 flex-col p-3">
+        <div className="min-h-[3.25rem]">
+          <p className="truncate text-xs font-semibold">{pack.name}</p>
+          <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-muted-foreground">
             {pack.description}
           </p>
         </div>
-        {caps.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {caps.map((cap) => (
-              <span
-                key={cap}
-                className="rounded bg-muted/60 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground"
-              >
-                {cap}
-              </span>
-            ))}
-          </div>
-        )}
-        <div className="flex gap-1.5">
-          {[theme.primary, theme.secondary, theme.glow].map((color, i) => (
+
+        <div className="mt-2 flex min-h-[1.25rem] flex-wrap gap-1">
+          {caps.slice(0, 3).map((cap) => (
             <span
-              key={i}
-              className="size-3.5 rounded-full border border-border"
-              style={{ background: color || '#888' }}
-            />
+              key={cap}
+              className="rounded bg-muted/60 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground"
+            >
+              {cap}
+            </span>
           ))}
         </div>
-        <button
-          type="button"
-          className={`w-full py-1.5 text-xs ${active ? 'btn-secondary' : 'btn-primary'}`}
-          onClick={onApply}
-          disabled={active}
-        >
-          {active ? 'Template ativo' : 'Usar esta bio'}
-        </button>
+
+        <div className="mt-auto flex flex-col gap-2 pt-3">
+          <div className="flex gap-1.5">
+            {[theme.primary, theme.secondary, theme.glow].map((color, i) => (
+              <span
+                key={i}
+                className="size-3.5 rounded-full border border-border"
+                style={{ background: color || '#888' }}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            className={`w-full py-1.5 text-xs ${active ? 'btn-secondary' : 'btn-primary'}`}
+            onClick={onApply}
+            disabled={active}
+          >
+            {active ? 'Template ativo' : 'Usar esta bio'}
+          </button>
+        </div>
       </div>
     </article>
   )

@@ -315,7 +315,7 @@ export function AppearanceForm({
               completos (estilo referência); abaixo, packs mais simples por nicho. Depois edite
               textos e URLs na aba Conteúdo.
             </p>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 items-stretch gap-3 lg:grid-cols-4">
               {THEME_PACKS.map((pack) => (
                 <TemplateCard
                   key={pack.id}
