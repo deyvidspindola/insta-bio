@@ -13,12 +13,15 @@ import {
   THEME_PACKS,
   applyBlankThemeToBrand,
   applySnapshotToConfig,
+  applySnapshotVisualOnly,
+  applyThemePackToBrand,
   applyThemePackToConfig,
   extractThemeSnapshot,
   type ThemePack,
 } from '@site/lib/themePacks'
 import { COLOR_PALETTES, type ColorPalette } from '../lib/colorPalettes'
 import { extractPaletteFromImage, type ExtractedPalette } from '../lib/extractImagePalette'
+import { isStarterBio } from '../lib/bio'
 import {
   deleteSavedThemePack,
   listSavedThemePacks,
@@ -77,6 +80,8 @@ export function AppearanceForm({
   const cardRadiusPx = resolveCardRadiusPx(brand.theme.cardRadius)
   const overlayOpacity = brand.theme.backgroundOverlayOpacity ?? DEFAULT_OVERLAY
   const overlayPercent = Math.round(overlayOpacity * 100)
+  const canReplaceContent = isStarterBio({ brand, sections })
+  const applyMode = canReplaceContent ? 'full' : 'visual'
 
   useEffect(() => {
     setSaved(listSavedThemePacks())
@@ -176,14 +181,22 @@ export function AppearanceForm({
 
   function confirmApplyTemplate() {
     if (pendingPack) {
-      onChangeConfig(applyThemePackToConfig({ brand, sections }, pendingPack))
+      if (canReplaceContent) {
+        onChangeConfig(applyThemePackToConfig({ brand, sections }, pendingPack))
+      } else {
+        onChange(applyThemePackToBrand(brand, pendingPack))
+      }
       setPendingPack(null)
       return
     }
     if (pendingSaved) {
-      onChangeConfig(
-        applySnapshotToConfig({ brand, sections }, pendingSaved.snapshot, pendingSaved.id),
-      )
+      if (canReplaceContent) {
+        onChangeConfig(
+          applySnapshotToConfig({ brand, sections }, pendingSaved.snapshot, pendingSaved.id),
+        )
+      } else {
+        onChange(applySnapshotVisualOnly(brand, pendingSaved.snapshot, pendingSaved.id))
+      }
       setPendingSaved(null)
     }
   }
@@ -311,9 +324,9 @@ export function AppearanceForm({
           <section>
             <h3 className="mb-1 text-sm font-semibold">Bios-modelo da plataforma</h3>
             <p className="mb-3 text-xs text-muted-foreground">
-              Bios-modelo com links, fotos, grids, stories e apps. No topo estão os exemplos
-              completos (estilo referência); abaixo, packs mais simples por nicho. Depois edite
-              textos e URLs na aba Conteúdo.
+              {canReplaceContent
+                ? 'Bio nova: ao usar um template, aplica visual e cards sugestivos. Depois edite textos e URLs na aba Conteúdo.'
+                : 'Sua bio já tem conteúdo: os templates aplicam só o visual (cores, fundo e estilo dos links). Cards e textos permanecem.'}
             </p>
             <div className="grid grid-cols-2 items-stretch gap-3 lg:grid-cols-4">
               {THEME_PACKS.map((pack) => (
@@ -323,6 +336,7 @@ export function AppearanceForm({
                   active={brand.activeTemplateId === pack.id}
                   brandName={brand.name}
                   logoUrl={brand.logo}
+                  applyLabel={applyMode === 'full' ? 'Usar esta bio' : 'Aplicar visual'}
                   onApply={() => requestApplyPack(pack)}
                 />
               ))}
@@ -704,19 +718,30 @@ export function AppearanceForm({
 
       <ConfirmDialog
         open={Boolean(pendingPack || pendingSaved)}
-        title="Usar esta bio-modelo?"
+        title={canReplaceContent ? 'Usar esta bio-modelo?' : 'Aplicar só o visual?'}
         description={
-          <>
-            Isso aplica o visual e <strong>substitui os cards/links atuais</strong> pelos sugestivos
-            do template.
-            <br />
-            <span className="mt-2 block text-muted-foreground">
-              Nome, logo e Instagram da marca são mantidos. URLs de exemplo (WhatsApp, site) você
-              troca depois na aba Conteúdo.
-            </span>
-          </>
+          canReplaceContent ? (
+            <>
+              Sua bio ainda está no início. Isso aplica o visual e{' '}
+              <strong>monta os cards/links sugestivos</strong> do template.
+              <br />
+              <span className="mt-2 block text-muted-foreground">
+                Nome, logo e Instagram são mantidos. Depois você edita textos e URLs na aba
+                Conteúdo.
+              </span>
+            </>
+          ) : (
+            <>
+              Sua bio já tem conteúdo próprio. Isso aplica{' '}
+              <strong>apenas o visual</strong> do template (cores, fundo e estilo dos links).
+              <br />
+              <span className="mt-2 block text-muted-foreground">
+                Cards, textos e URLs atuais <strong>não serão alterados</strong>.
+              </span>
+            </>
+          )
         }
-        confirmLabel="Usar esta bio"
+        confirmLabel={canReplaceContent ? 'Usar esta bio' : 'Aplicar visual'}
         cancelLabel="Cancelar"
         onConfirm={confirmApplyTemplate}
         onCancel={() => {

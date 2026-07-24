@@ -7,7 +7,9 @@ Redesenho conforme `docs/remodelagem-aba-aparencia-editor/redesenho_aba_aparenci
 1. **Templates prontos** — bios-modelo (visual + links sugestivos por nicho)  
 2. **Personalizar** — fine-tuning do tema ativo (fundo, cores, formato dos links)
 
-Aplicar um template **substitui as seções/cards** pelos do modelo (com confirmação). Nome, logo e Instagram são preservados.
+Aplicar um template:
+- **Bio nova** (sem cards, ou demo padrão) → visual + conteúdo sugestivo  
+- **Bio já preenchida** → **somente visual** (cores, fundo, estilo dos links); cards/textos permanecem
 
 ## Packs showcase (topo da galeria)
 

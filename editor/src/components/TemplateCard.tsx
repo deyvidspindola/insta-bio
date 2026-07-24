@@ -150,12 +150,14 @@ export function TemplateCard({
   active,
   brandName,
   logoUrl,
+  applyLabel = 'Usar esta bio',
   onApply,
 }: {
   pack: ThemePack
   active: boolean
   brandName?: string
   logoUrl?: string
+  applyLabel?: string
   onApply: () => void
 }) {
   const theme = pack.snapshot.theme
@@ -284,7 +286,7 @@ export function TemplateCard({
             onClick={onApply}
             disabled={active}
           >
-            {active ? 'Template ativo' : 'Usar esta bio'}
+            {active ? 'Template ativo' : applyLabel}
           </button>
         </div>
       </div>

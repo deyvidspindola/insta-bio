@@ -3,6 +3,7 @@ import { bioJsonUrl } from '@site/lib/publicUrl'
 import { normalizeBrandSocial } from '@site/lib/socialLinks'
 import { deriveCardGradientFromTheme } from '@site/lib/colorEngine'
 import defaultBio from '../../../bio/public/bio.default.json'
+import demoBio from '../../public/demo-bio.json'
 import { APP_HERO_PRESET_LIST, createAppHero } from '@site/lib/appHeroPresets'
 
 const FALLBACK_CARD_GRADIENT =
@@ -212,6 +213,18 @@ export function createDefaultConfig(): BioConfig {
 /** @deprecated Use createDefaultConfig — mantido para compatibilidade */
 export function createEmptyConfig(): BioConfig {
   return createDefaultConfig()
+}
+
+/**
+ * Bio ainda “nova”: sem cards, ou idêntica ao demo padrão.
+ * Nesses casos um template pode trocar o conteúdo; caso contrário, só o visual.
+ */
+export function isStarterBio(config: BioConfig): boolean {
+  const sections = config.sections ?? []
+  if (sections.length === 0) return true
+
+  const demoSections = (demoBio as BioConfig).sections ?? []
+  return JSON.stringify(sections) === JSON.stringify(demoSections)
 }
 
 export function createSection(): BioSection {

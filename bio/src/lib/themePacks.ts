@@ -623,7 +623,7 @@ export function getPackPreviewLabels(pack: ThemePack): string[] {
   return labels.length > 0 ? labels : ['WhatsApp', 'Site']
 }
 
-/** Aplica só o visual (legado / fine-tuning sem trocar conteúdo). */
+/** Aplica só o visual (cores, fundo, estilo dos links) — não mexe no conteúdo. */
 export function applyThemePackToBrand(brand: BioBrand, pack: ThemePack): BioBrand {
   return {
     ...brand,
@@ -633,9 +633,6 @@ export function applyThemePackToBrand(brand: BioBrand, pack: ThemePack): BioBran
       ...brand.theme,
       ...pack.snapshot.theme,
     },
-    ...(pack.snapshot.brand?.coverImage !== undefined
-      ? { coverImage: pack.snapshot.brand.coverImage }
-      : {}),
   }
 }
 
@@ -747,6 +744,23 @@ export function applySnapshotToConfig(
         : config.brand.socialLinks,
     },
     sections: hasSections ? structuredClone(snapshot.sections) : config.sections,
+  }
+}
+
+/** Só visual a partir de um snapshot salvo (mantém cards/links atuais). */
+export function applySnapshotVisualOnly(
+  brand: BioBrand,
+  snapshot: ThemePackSnapshot,
+  activeTemplateId?: string,
+): BioBrand {
+  return {
+    ...brand,
+    activeTemplateId,
+    template: snapshot.template,
+    theme: {
+      ...brand.theme,
+      ...snapshot.theme,
+    },
   }
 }
 
