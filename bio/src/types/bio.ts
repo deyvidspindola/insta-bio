@@ -207,6 +207,28 @@ export interface LinkCard {
   schedule?: CardSchedule
 }
 
+/**
+ * Matéria, prêmio ou menção na imprensa.
+ * Cor de destaque por item (não usa preset de app).
+ */
+export interface PressCard {
+  type: 'press'
+  /** Título da matéria / reconhecimento */
+  title: string
+  /** Nome da fonte, publicação ou instituição */
+  source: string
+  url: string
+  /** Cor de destaque (hex/CSS). Padrão editorial se omitida. */
+  accentColor?: string
+  description?: string
+  cta?: string
+  image?: string
+  layout?: AppHeroLayout
+  align?: FeatureCardAlign
+  width?: CardWidth
+  schedule?: CardSchedule
+}
+
 export interface GridCard {
   type: 'grid'
   badge?: string
@@ -268,6 +290,8 @@ export interface VideoCard {
   type: 'video'
   title?: string
   description?: string
+  /** Legenda sobreposta no vídeo (estilo reels). Se vazia, usa description. */
+  caption?: string
   video: string
   poster?: string
   url?: string
@@ -295,6 +319,8 @@ export interface ProductsCard {
 export interface YoutubeEmbedCard {
   type: 'youtube-embed'
   title?: string
+  /** Legenda sobreposta no player (estilo reels). */
+  caption?: string
   url: string
   schedule?: CardSchedule
 }
@@ -354,6 +380,11 @@ export interface BioSection {
   id: string
   title: string
   subtitle?: string
+  /**
+   * Se true, não mostra título/subtítulo na bio pública.
+   * O título continua no editor para organizar as seções.
+   */
+  hideTitle?: boolean
   items: SectionItem[]
   layout?: 'stack' | 'grid-2' | 'instagram-grid'
 }
@@ -363,6 +394,7 @@ export type SectionItem =
   | AppHero
   | FeatureCard
   | LinkCard
+  | PressCard
   | GridCard
   | InstagramCard
   | LocationCard

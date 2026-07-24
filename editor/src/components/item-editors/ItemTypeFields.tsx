@@ -5,6 +5,7 @@ import { GridItemFields } from './GridItemFields'
 import { LinkItemFields } from './LinkItemFields'
 import { ListItemFields } from './ListItemFields'
 import { LocationItemFields } from './LocationItemFields'
+import { PressItemFields } from './PressItemFields'
 import { ProductsItemFields } from './ProductsItemFields'
 import { SlideItemFields } from './SlideItemFields'
 import { SpotifyItemFields } from './SpotifyItemFields'
@@ -58,6 +59,9 @@ export function ItemTypeFields({
       )}
       {item.type === 'link' && (
         <LinkItemFields item={item} isGridSection={isGridSection} onChange={onChange} />
+      )}
+      {item.type === 'press' && (
+        <PressItemFields item={item} isGridSection={isGridSection} onChange={onChange} />
       )}
       {item.type === 'video' && <VideoItemFields item={item} onChange={onChange} />}
       {item.type === 'slide' && <SlideItemFields item={item} onChange={onChange} />}

@@ -26,6 +26,16 @@ export const CARD_WIDTH_OPTIONS = [
 
 export const CARD_TYPES = [
   {
+    value: 'feature',
+    label: 'Destaque',
+    hint: 'Card visual com foto, gradiente e CTA — use para links importantes.',
+  },
+  {
+    value: 'press',
+    label: 'Imprensa',
+    hint: 'Matéria, prêmio ou menção — com cor de destaque própria.',
+  },
+  {
     value: 'text',
     label: 'Texto',
     hint: 'Texto livre com alinhamento e formatação.',
@@ -34,11 +44,6 @@ export const CARD_TYPES = [
     value: 'list',
     label: 'Lista',
     hint: 'Lista com números, pontos, letras ou sem marcador.',
-  },
-  {
-    value: 'feature',
-    label: 'Destaque',
-    hint: 'Card visual com cor, imagem ou gradiente — o mais versátil.',
   },
   {
     value: 'video',
@@ -68,7 +73,7 @@ export const CARD_TYPES = [
   {
     value: 'link',
     label: 'Link simples',
-    hint: 'Botão clássico de link na bio (estilo da aba Aparência).',
+    hint: 'Botão clássico — reserve para itens secundários/utilitários.',
   },
   {
     value: 'location',
@@ -76,6 +81,17 @@ export const CARD_TYPES = [
     hint: 'Endereço com link para o mapa.',
   },
 ] as const
+
+/** Tipos utilitários (lista/botão fino) — não competem com cards visuais. */
+export const SECONDARY_CARD_TYPE_VALUES = new Set<string>(['link', 'location'])
+
+export const PRIMARY_CARD_TYPES = CARD_TYPES.filter(
+  (type) => !SECONDARY_CARD_TYPE_VALUES.has(type.value),
+)
+
+export const SECONDARY_CARD_TYPES = CARD_TYPES.filter((type) =>
+  SECONDARY_CARD_TYPE_VALUES.has(type.value),
+)
 
 export { MEDIA_CARD_VARIANTS } from '@site/lib/mediaCardLayout'
 
@@ -245,6 +261,16 @@ export function createItem(
         title: 'Novo link',
         subtitle: 'Subtítulo opcional',
         url: 'https://',
+      }
+    case 'press':
+      return {
+        type,
+        title: 'Título da matéria',
+        source: 'Nome da publicação',
+        description: 'Resumo curto opcional.',
+        cta: 'Ler matéria',
+        url: 'https://',
+        accentColor: '#2563eb',
       }
     case 'grid':
       return {

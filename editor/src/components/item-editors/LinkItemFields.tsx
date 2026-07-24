@@ -16,6 +16,11 @@ export function LinkItemFields({
 }) {
   return (
     <>
+      <p className="rounded-lg border border-border/80 bg-muted/30 px-3 py-2 text-[11px] leading-snug text-muted-foreground">
+        Link simples é para itens secundários (mapa, política, “saiba mais”). Para o que
+        converte — WhatsApp, catálogo, CTA — use{' '}
+        <span className="font-medium text-foreground/85">Destaque</span> ou um atalho de app.
+      </p>
       <FieldGroup title="Layout">
         <CardWidthField
           value={item.width}

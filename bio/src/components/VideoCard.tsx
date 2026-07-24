@@ -8,6 +8,7 @@ import {
   resolveMediaCardVariant,
 } from '../lib/mediaCardLayout'
 import { resolvePublicUrl } from '../lib/publicUrl'
+import { BioVideoCaption } from './BioVideoCaption'
 
 function VideoMedia({ item }: { item: VideoCardType }) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -15,6 +16,7 @@ function VideoMedia({ item }: { item: VideoCardType }) {
   const variant = resolveMediaCardVariant(item)
   const aspect = mediaCardAspectClass(variant)
   const maxWidth = mediaCardMaxWidthClass(variant)
+  const caption = item.caption?.trim() || item.description?.trim()
 
   useEffect(() => {
     const video = videoRef.current
@@ -39,10 +41,7 @@ function VideoMedia({ item }: { item: VideoCardType }) {
         preload="metadata"
       />
 
-      <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/20"
-        aria-hidden="true"
-      />
+      <BioVideoCaption title={item.title} caption={caption} />
 
       <button
         type="button"
@@ -55,19 +54,12 @@ function VideoMedia({ item }: { item: VideoCardType }) {
         aria-pressed={!muted}
         aria-label={muted ? 'Ativar som do vídeo' : 'Desativar som do vídeo'}
       >
-        {muted ? <VolumeX className="h-4 w-4" aria-hidden="true" /> : <Volume2 className="h-4 w-4" aria-hidden="true" />}
+        {muted ? (
+          <VolumeX className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          <Volume2 className="h-4 w-4" aria-hidden="true" />
+        )}
       </button>
-
-      {(item.title || item.description) && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] p-4 pr-14">
-          {item.title && (
-            <h3 className="text-base font-bold leading-tight text-white drop-shadow-sm">{item.title}</h3>
-          )}
-          {item.description && (
-            <p className="mt-0.5 text-xs leading-relaxed text-white/85 drop-shadow-sm">{item.description}</p>
-          )}
-        </div>
-      )}
     </div>
   )
 }

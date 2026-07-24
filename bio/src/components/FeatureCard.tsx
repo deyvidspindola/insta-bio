@@ -2,11 +2,11 @@ import type { ReactNode } from 'react'
 import type { FeatureCard as FeatureCardType } from '../types/bio'
 import { CardLink, hasClickableUrl } from '../lib/cardLink'
 import { resolveCardSurface } from '../lib/colorEngine'
-import { resolvePublicUrl } from '../lib/publicUrl'
+import { APP_HERO_PRESETS } from '../lib/appHeroPresets'
 import { ArrowIcon, BioIcon } from './icons'
+import { CardCoverImage } from './CardCoverImage'
 
-const FALLBACK_GRADIENT =
-  'linear-gradient(135deg, oklch(0.70 0.18 55) 0%, oklch(0.55 0.19 40) 100%)'
+const FALLBACK_GRADIENT = APP_HERO_PRESETS.custom.theme.gradient
 
 function ImageOverlay() {
   return <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
@@ -31,7 +31,7 @@ export function FeatureCard({
 }) {
   const clickable = hasClickableUrl(item.url)
   const shellClass = `bio-card bio-card--media group relative block ${grid ? 'h-full' : ''}`
-  const hasImage = Boolean(item.image)
+  const hasImage = Boolean(item.image?.trim())
   // Variantes com imagem/overlay forte ou compact (fundo já escuro) mantêm texto branco.
   const useSurface =
     !hasImage && item.variant !== 'compact' && item.variant !== 'portrait' && item.variant !== 'banner'
@@ -45,24 +45,16 @@ export function FeatureCard({
   if (item.variant === 'square') {
     return (
       <CardLink url={item.url} className={`${shellClass} aspect-square`}>
-        {item.image ? (
-          <>
-            <img
-              src={resolvePublicUrl(item.image)}
-              alt={item.title}
-              loading="lazy"
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10" />
-          </>
-        ) : (
-          <div
-            className="absolute inset-0"
-            style={{
-              background: surface?.background ?? item.gradient ?? FALLBACK_GRADIENT,
-            }}
-          />
-        )}
+        <CardCoverImage
+          src={item.image}
+          alt={item.title}
+          gradient={item.gradient}
+          icon={item.icon}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+        {hasImage ? (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10" />
+        ) : null}
 
         {item.badge && (
           <span className="absolute left-2 top-2 inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white backdrop-blur-md ring-1 ring-white/20">
@@ -88,14 +80,16 @@ export function FeatureCard({
     )
   }
 
-  if (item.variant === 'portrait' && item.image) {
+  if (item.variant === 'portrait') {
     return (
       <CardLink url={item.url} className={shellClass}>
         <div className="relative aspect-[3/4] w-full overflow-hidden sm:aspect-[3/4]">
-          <img
-            src={resolvePublicUrl(item.image)}
+          <CardCoverImage
+            src={item.image}
             alt={item.title}
-            loading="lazy"
+            gradient={item.gradient}
+            icon={item.icon}
+            fallbackSize="lg"
             className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
           />
           <ImageOverlay />
@@ -135,14 +129,16 @@ export function FeatureCard({
     )
   }
 
-  if (item.variant === 'banner' && item.image) {
+  if (item.variant === 'banner') {
     return (
       <CardLink url={item.url} className={shellClass}>
         <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-[16/9]">
-          <img
-            src={resolvePublicUrl(item.image)}
+          <CardCoverImage
+            src={item.image}
             alt={item.title}
-            loading="lazy"
+            gradient={item.gradient}
+            icon={item.icon}
+            fallbackSize="lg"
             className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/10" />

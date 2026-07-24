@@ -7,6 +7,7 @@ import {
   resolveMediaCardVariant,
 } from '../lib/mediaCardLayout'
 import { resolvePublicUrl } from '../lib/publicUrl'
+import { CardCoverImage, CardMediaFallback } from './CardCoverImage'
 
 function slideDurationMs(slide: SlideStoryItem): number {
   if (slide.video) return 0
@@ -101,20 +102,16 @@ function SlideFrame({
 
   if (slide.image) {
     return (
-      <img
-        src={resolvePublicUrl(slide.image)}
+      <CardCoverImage
+        src={slide.image}
         alt={slide.caption ?? ''}
+        fallbackSize="lg"
         className="absolute inset-0 h-full w-full object-cover"
-        loading="lazy"
       />
     )
   }
 
-  return (
-    <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-xs text-white/70">
-      Slide sem mídia
-    </div>
-  )
+  return <CardMediaFallback size="lg" />
 }
 
 export function SlideCard({ item }: { item: SlideCardType }) {

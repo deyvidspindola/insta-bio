@@ -1,5 +1,6 @@
 import type { YoutubeEmbedCard as YoutubeEmbedCardType } from '../types/bio'
 import { youtubeEmbedUrl } from '../lib/embedUrls'
+import { BioVideoCaption } from './BioVideoCaption'
 
 export function YoutubeEmbedCard({ item }: { item: YoutubeEmbedCardType }) {
   const embed = youtubeEmbedUrl(item.url)
@@ -12,14 +13,15 @@ export function YoutubeEmbedCard({ item }: { item: YoutubeEmbedCardType }) {
     )
   }
 
+  const hasCaption = Boolean(item.title?.trim() || item.caption?.trim())
+
   return (
     <div className="bio-embed-card bio-embed-card--youtube">
-      {item.title && (
-        <p className="bio-embed-card__title mb-2 px-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-          {item.title}
-        </p>
-      )}
-      <div className="bio-embed-card__frame bio-embed-card__frame--video overflow-hidden rounded-2xl border border-border bg-black/40">
+      <div
+        className={`bio-embed-card__frame bio-embed-card__frame--video relative overflow-hidden rounded-2xl border border-border bg-black/40 ${
+          hasCaption ? 'bio-embed-card__frame--captioned' : ''
+        }`}
+      >
         <iframe
           src={embed}
           title={item.title || 'Vídeo do YouTube'}
@@ -29,6 +31,7 @@ export function YoutubeEmbedCard({ item }: { item: YoutubeEmbedCardType }) {
           loading="lazy"
           referrerPolicy="strict-origin-when-cross-origin"
         />
+        <BioVideoCaption title={item.title} caption={item.caption} />
       </div>
     </div>
   )

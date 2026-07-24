@@ -5,6 +5,7 @@ import { CARD_TYPES } from '../../lib/bio'
 export function itemTypeLabel(item: SectionItem): string {
   if (item.type === 'app-hero') return `Destaque · ${APP_HERO_PRESETS[item.preset].label}`
   if (item.type === 'whatsapp-hero') return 'WhatsApp destaque'
+  if (item.type === 'press') return item.source ? `Imprensa · ${item.source}` : 'Imprensa'
   return CARD_TYPES.find((t) => t.value === item.type)?.label ?? item.type
 }
 
