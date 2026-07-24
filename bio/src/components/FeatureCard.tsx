@@ -49,7 +49,6 @@ export function FeatureCard({
           src={item.image}
           alt={item.title}
           gradient={item.gradient}
-          icon={item.icon}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
         />
         {hasImage ? (
@@ -88,7 +87,6 @@ export function FeatureCard({
             src={item.image}
             alt={item.title}
             gradient={item.gradient}
-            icon={item.icon}
             fallbackSize="lg"
             className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
           />
@@ -137,7 +135,6 @@ export function FeatureCard({
             src={item.image}
             alt={item.title}
             gradient={item.gradient}
-            icon={item.icon}
             fallbackSize="lg"
             className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
           />

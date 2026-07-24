@@ -1,96 +1,49 @@
 import { useEffect, useState } from 'react'
-import type { AppHeroPreset, IconName } from '../types/bio'
 import { APP_HERO_PRESETS } from '../lib/appHeroPresets'
 import { resolvePublicUrl } from '../lib/publicUrl'
-import { BioIcon } from './icons'
 
-function presetFromIcon(icon?: IconName): AppHeroPreset {
-  switch (icon) {
-    case 'whatsapp':
-      return 'whatsapp'
-    case 'instagram':
-      return 'instagram'
-    case 'youtube':
-      return 'youtube'
-    case 'telegram':
-      return 'telegram'
-    case 'form':
-      return 'form'
-    default:
-      return 'custom'
-  }
-}
-
-function resolveFallbackIcon(icon: IconName | undefined, preset: AppHeroPreset): IconName {
-  if (icon) return icon
-  const config = APP_HERO_PRESETS[preset]
-  if (config.defaultIcon) return config.defaultIcon
-  if (config.icon !== 'bio') return config.icon
-  return 'sparkles'
-}
-
-/** Gradiente + ícone centralizado quando a mídia falta ou falha. */
+/**
+ * Só o fundo (gradiente/wash) quando a mídia falta ou falha.
+ * Sem ícone decorativo — fundo limpo.
+ */
 export function CardMediaFallback({
   gradient,
-  icon,
   className = '',
-  size = 'md',
 }: {
   gradient?: string
-  icon?: IconName
+  /** @deprecated Ignorado — fallback sem ícone. */
+  icon?: unknown
   className?: string
+  /** @deprecated Ignorado. */
   size?: 'sm' | 'md' | 'lg'
 }) {
-  const preset = presetFromIcon(icon)
-  const theme = APP_HERO_PRESETS[preset].theme
-  const iconName = resolveFallbackIcon(icon, preset)
-
-  const box =
-    size === 'sm'
-      ? 'h-10 w-10 rounded-xl'
-      : size === 'lg'
-        ? 'h-16 w-16 rounded-2xl'
-        : 'h-14 w-14 rounded-2xl'
-  const iconSize = size === 'sm' ? 'h-5 w-5' : size === 'lg' ? 'h-8 w-8' : 'h-7 w-7'
+  const theme = APP_HERO_PRESETS.custom.theme
 
   return (
     <div
-      className={`absolute inset-0 flex items-center justify-center ${className}`}
+      className={`absolute inset-0 ${className}`}
       style={{ background: gradient ?? theme.gradient }}
       aria-hidden="true"
-    >
-      <div
-        className={`flex ${box} items-center justify-center ring-1`}
-        style={{
-          background: theme.iconBg,
-          boxShadow: `inset 0 0 0 1px ${theme.iconRing}`,
-        }}
-      >
-        <span style={{ color: theme.iconColor }}>
-          <BioIcon name={iconName} className={iconSize} />
-        </span>
-      </div>
-    </div>
+    />
   )
 }
 
 /**
- * Capa de card: mostra a imagem quando carrega; se ausente ou onError,
- * troca por CardMediaFallback (presets de appHeroPresets).
+ * Capa de card: imagem quando carrega; sem imagem/erro → só o fundo colorido.
  */
 export function CardCoverImage({
   src,
   alt,
   className,
   gradient,
-  icon,
-  fallbackSize = 'md',
+  fallbackSize: _fallbackSize = 'md',
 }: {
   src?: string
   alt: string
   className?: string
   gradient?: string
-  icon?: IconName
+  /** @deprecated Fallback não exibe mais ícone. */
+  icon?: unknown
   fallbackSize?: 'sm' | 'md' | 'lg'
 }) {
   const [failed, setFailed] = useState(false)
@@ -103,7 +56,7 @@ export function CardCoverImage({
   const showImage = Boolean(trimmed) && !failed
 
   if (!showImage) {
-    return <CardMediaFallback gradient={gradient} icon={icon} size={fallbackSize} />
+    return <CardMediaFallback gradient={gradient} />
   }
 
   return (
