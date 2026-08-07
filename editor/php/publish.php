@@ -21,6 +21,13 @@ if ($data === null || !is_array($data)) {
   exit;
 }
 
+// Guarda a bio publicada atual antes de sobrescrever
+if (!bio_backup_before_publish()) {
+  http_response_code(500);
+  echo json_encode(['error' => 'Não foi possível criar backup da bio anterior (verifique permissões)']);
+  exit;
+}
+
 // Publicar = salvar rascunho + copiar para a bio pública
 if (!bio_write_json(bio_draft_path(), $data)) {
   http_response_code(500);
@@ -34,4 +41,8 @@ if (!bio_write_json(bio_published_path(), $data)) {
   exit;
 }
 
-echo json_encode(['ok' => true, 'saved' => 'published']);
+echo json_encode([
+  'ok' => true,
+  'saved' => 'published',
+  'hasBackup' => bio_has_backup(),
+]);

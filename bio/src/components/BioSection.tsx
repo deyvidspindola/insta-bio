@@ -3,12 +3,14 @@ import type { BioSection, SectionItem } from '../types/bio'
 import { filterVisibleItems, itemHasScheduleWindow, isItemVisibleNow } from '../lib/cardSchedule'
 import { itemSpansFullInGrid, groupStackSectionItems } from '../lib/sectionLayout'
 import { contrastTextOn } from '../lib/colorEngine'
+import { itemTrackLabel } from '../lib/itemLabel'
 import { AppHeroCard } from './AppHeroCard'
 import { FeatureCard } from './FeatureCard'
 import { GridCard } from './GridCard'
 import { LinkCard } from './LinkCard'
 import { ListCard } from './ListCard'
 import { LocationCard } from './LocationCard'
+import { PressCard } from './PressCard'
 import { ProductsCard } from './ProductsCard'
 import { SlideCard } from './SlideCard'
 import { SpotifyEmbedCard } from './SpotifyEmbedCard'
@@ -80,22 +82,6 @@ function wrapPreviewItem({
   )
 }
 
-function itemTrackLabel(item: SectionItem): string | undefined {
-  if ('title' in item && typeof item.title === 'string' && item.title.trim()) {
-    return item.title.trim()
-  }
-  if ('cta' in item && typeof item.cta === 'string' && item.cta.trim()) {
-    return item.cta.trim()
-  }
-  if ('badge' in item && typeof item.badge === 'string' && item.badge.trim()) {
-    return item.badge.trim()
-  }
-  if ('text' in item && typeof item.text === 'string' && item.text.trim()) {
-    return item.text.trim().slice(0, 80)
-  }
-  return undefined
-}
-
 function SectionTitle({
   title,
   subtitle,
@@ -127,7 +113,7 @@ function SectionTitle({
 
 function itemUsesGridLayout(item: SectionItem, sectionGrid: boolean): boolean {
   if (sectionGrid) return true
-  if (item.type === 'link' || item.type === 'feature' || item.type === 'grid') {
+  if (item.type === 'link' || item.type === 'feature' || item.type === 'grid' || item.type === 'press') {
     return item.width === 'half'
   }
   return false
@@ -184,6 +170,17 @@ function renderItem(
         style: delay,
         ...scheduleProps,
         children: <LinkCard item={item} grid={inGrid} />,
+      })
+    case 'press':
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
+        className: `${shell} h-full`,
+        style: delay,
+        ...scheduleProps,
+        children: <PressCard item={item} grid={inGrid} pageBackground={pageBackground} />,
       })
     case 'grid':
       return wrapPreviewItem({
@@ -310,11 +307,13 @@ export function BioSectionBlock({
 
   return (
     <section>
-      <SectionTitle
-        title={section.title}
-        subtitle={section.subtitle}
-        pageBackground={pageBackground}
-      />
+      {!section.hideTitle && (
+        <SectionTitle
+          title={section.title}
+          subtitle={section.subtitle}
+          pageBackground={pageBackground}
+        />
+      )}
       {isGrid ? (
         <div className="mb-3 grid grid-cols-2 items-stretch gap-3">
           {items.map((item, index) =>

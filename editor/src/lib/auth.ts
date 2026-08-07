@@ -251,3 +251,22 @@ export async function revertDraftToPublished(): Promise<BioConfig> {
   const data = (await res.json()) as { config: BioConfig }
   return data.config
 }
+
+/**
+ * Restaura bio.json.bak (versão publicada imediatamente anterior)
+ * na bio pública e no rascunho.
+ */
+export async function restoreBioBackup(): Promise<BioConfig> {
+  const res = await fetch(ENDPOINTS.restoreBackup, {
+    method: 'POST',
+    credentials: 'include',
+  })
+
+  if (!res.ok) {
+    const data = (await res.json().catch(() => null)) as { error?: string } | null
+    throw new Error(data?.error ?? 'Falha ao restaurar backup')
+  }
+
+  const data = (await res.json()) as { config: BioConfig }
+  return data.config
+}

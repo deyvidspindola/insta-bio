@@ -50,13 +50,23 @@ export function VideoItemFields({
           <input
             value={item.title ?? ''}
             onChange={(e) => onChange({ ...item, title: e.target.value })}
+            placeholder="Ex.: Bastidores do evento"
           />
         </Field>
-        <Field label="Descrição (opcional)">
+        <Field label="Legenda (estilo reels)">
           <textarea
             rows={2}
-            value={item.description ?? ''}
-            onChange={(e) => onChange({ ...item, description: e.target.value })}
+            value={item.caption ?? item.description ?? ''}
+            onChange={(e) => {
+              const value = e.target.value
+              onChange({
+                ...item,
+                caption: value,
+                // Mantém description alinhada para bios/ferramentas antigas
+                description: value,
+              })
+            }}
+            placeholder="Texto sobreposto na parte de baixo do vídeo"
           />
         </Field>
         <Field label="Link ao clicar (opcional)">

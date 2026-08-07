@@ -21,10 +21,24 @@ export function YoutubeItemFields({
         <input
           value={item.title ?? ''}
           onChange={(e) => onChange({ ...item, title: e.target.value })}
+          placeholder="Ex.: Assista no YouTube"
+        />
+      </Field>
+      <Field label="Legenda (estilo reels)">
+        <textarea
+          rows={2}
+          value={item.caption ?? ''}
+          onChange={(e) =>
+            onChange({
+              ...item,
+              caption: e.target.value.trim() ? e.target.value : undefined,
+            })
+          }
+          placeholder="Texto sobreposto na parte de baixo do player"
         />
       </Field>
       <p className="text-[10px] text-muted-foreground/75">
-        Aceita links de vídeo, Shorts ou youtu.be. O player aparece embutido na bio.
+        Aceita links de vídeo, Shorts ou youtu.be. Título e legenda aparecem sobre o player.
       </p>
     </>
   )

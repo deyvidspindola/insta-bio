@@ -1,4 +1,5 @@
 import type { FeatureCard } from '@bio-types'
+import { hasClickableUrl } from '@site/lib/cardLink'
 import { FEATURE_ALIGNS, FEATURE_VARIANTS } from '../../lib/bio'
 import { GradientField } from '../GradientField'
 import { IconPicker } from '../IconPicker'
@@ -18,6 +19,10 @@ export function FeatureItemFields({
   isGridSection: boolean
   onChange: (item: FeatureCard) => void
 }) {
+  const isMediaCard = ['portrait', 'banner'].includes(item.variant ?? '')
+  const showTitleOnMedia = item.showTitleOnMedia !== false
+  const titleMissing = !item.title.trim() && hasClickableUrl(item.url)
+
   return (
     <>
       <FieldGroup title="Layout">
@@ -83,16 +88,59 @@ export function FeatureItemFields({
       </FieldGroup>
 
       <FieldGroup title="Conteúdo">
-        <Field label="Badge">
-          <input
-            value={item.badge ?? ''}
-            onChange={(e) => onChange({ ...item, badge: e.target.value })}
-          />
-        </Field>
         <Field label="Título">
           <input
             value={item.title}
             onChange={(e) => onChange({ ...item, title: e.target.value })}
+            placeholder="Ex.: Formulário de inscrição"
+          />
+          <p className="mt-1.5 text-[10px] leading-snug text-muted-foreground">
+            Identifica o card no ranking de cliques
+            {isMediaCard && !showTitleOnMedia ? ' (mesmo oculto na imagem)' : ''}.
+          </p>
+          {titleMissing && (
+            <p className="mt-1.5 text-[11px] leading-snug text-amber-600 dark:text-amber-400">
+              Preencha um título para o relatório de cliques não ficar genérico.
+            </p>
+          )}
+        </Field>
+
+        {isMediaCard && (
+          <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/10 px-3 py-2.5">
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-foreground">
+                Mostrar título na imagem
+              </span>
+              <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground">
+                Desligado: foto limpa; o título continua no dashboard.
+              </span>
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showTitleOnMedia}
+              aria-label="Mostrar título na imagem"
+              onClick={() => onChange({ ...item, showTitleOnMedia: !showTitleOnMedia })}
+              className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                showTitleOnMedia ? 'border-primary bg-primary/25' : 'border-border bg-muted'
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full shadow-sm transition-transform ${
+                  showTitleOnMedia
+                    ? 'translate-x-5 bg-primary'
+                    : 'translate-x-0 bg-muted-foreground'
+                }`}
+              />
+            </button>
+          </div>
+        )}
+
+        <Field label="Badge">
+          <input
+            value={item.badge ?? ''}
+            onChange={(e) => onChange({ ...item, badge: e.target.value })}
           />
         </Field>
         <Field label="Descrição">
@@ -101,6 +149,11 @@ export function FeatureItemFields({
             value={item.description ?? ''}
             onChange={(e) => onChange({ ...item, description: e.target.value })}
           />
+          {isMediaCard && !showTitleOnMedia && (
+            <p className="mt-1.5 text-[10px] leading-snug text-muted-foreground">
+              Também oculta na imagem enquanto o toggle acima estiver desligado.
+            </p>
+          )}
         </Field>
         <Field label="Texto do botão">
           <input

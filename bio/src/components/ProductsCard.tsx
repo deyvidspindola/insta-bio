@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { ProductItem, ProductsCard as ProductsCardType } from '../types/bio'
-import { resolvePublicUrl } from '../lib/publicUrl'
 import { ImageLightbox } from './ImageLightbox'
+import { CardCoverImage } from './CardCoverImage'
 
 function ProductThumb({
   product,
@@ -17,10 +17,10 @@ function ProductThumb({
       onClick={onOpen}
       aria-label={product.title ? `Ver ${product.title}` : 'Ver produto'}
     >
-      <img
-        src={resolvePublicUrl(product.image)}
+      <CardCoverImage
+        src={product.image}
         alt={product.title ?? 'Produto'}
-        loading="lazy"
+        fallbackSize="sm"
         className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
       />
       {product.title && (
@@ -34,7 +34,8 @@ function ProductThumb({
 
 export function ProductsCard({ item }: { item: ProductsCardType }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
-  const products = item.products.filter((product) => product.image)
+  // Mantém itens com campo image (mesmo URL quebrada) — o fallback visual cobre o erro.
+  const products = item.products.filter((product) => product.image?.trim())
 
   if (products.length === 0) {
     return (

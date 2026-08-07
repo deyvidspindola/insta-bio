@@ -127,6 +127,37 @@ html[data-bio-preview] .bio-preview-selectable:hover {
     border-radius 0.2s ease;
 }
 
+/* CardLink como <button> (ação copy / tally) — herda o visual do card */
+button.bio-card {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+@keyframes bio-copy-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.bio-copy-toast > span {
+  animation: bio-copy-toast-in 0.22s ease-out;
+}
+
 .bio-text-secondary {
   color: var(--color-secondary);
 }
@@ -566,6 +597,63 @@ html[data-bio-preview] .bio-preview-selectable:hover {
 .bio-video-mute-btn:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.85);
   outline-offset: 2px;
+}
+
+/* Legenda estilo reels (vídeo próprio + YouTube) */
+.bio-video-caption {
+  padding: 0;
+}
+
+.bio-video-caption__fade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 55%;
+  min-height: 5.5rem;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.82) 0%,
+    rgba(0, 0, 0, 0.35) 55%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.bio-video-caption__content {
+  position: relative;
+  z-index: 1;
+  padding: 1.75rem 3.5rem 0.9rem 1rem;
+  text-align: left;
+}
+
+.bio-video-caption__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.bio-video-caption__text {
+  margin: 0.3rem 0 0;
+  max-width: 92%;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.bio-embed-card__frame--captioned {
+  isolation: isolate;
+}
+
+.bio-embed-card__frame--captioned .bio-video-caption__content {
+  padding-right: 1rem;
 }
 
 /* Header & sections (shared) */

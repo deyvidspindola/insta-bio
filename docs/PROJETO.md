@@ -171,7 +171,7 @@ Schema TypeScript do JSON. Atualize ao adicionar campos ou tipos de card.
 | `SpotifyEmbedCard.tsx` | `spotify` | Player Spotify |
 | `YoutubeEmbedCard.tsx` | `youtube` | Embed YouTube |
 | `GridCard.tsx` | `grid` | Legado — preferir `feature` + `square` |
-| `LocationCard.tsx` | `location` | Endereço + mapa |
+| `LocationCard.tsx` | `location` | Endereço + mapa embutido |
 
 ### `editor/`
 

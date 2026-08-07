@@ -124,9 +124,9 @@ Todo card precisa do campo `"type"`. Os tipos disponíveis hoje:
 | `app-hero` | Destaque padronizado por app (WhatsApp, YouTube, Instagram, Formulário, Telegram, Personalizado) |
 | `feature` | Card de destaque (gradiente, quadrado, compacto, retrato, banner) |
 | `link` | Card simples com ícone, título e subtítulo |
+| `location` | Endereço com mapa embutido (pin) + link para o app de mapas |
 | `text` | Bloco de texto livre com alinhamento e formatação |
 | `list` | Card de lista com marcadores configuráveis |
-| `location` | Endereço com link para o mapa |
 | `grid` | **Legado** — use `feature` com `variant: "square"` |
 
 ### Campo comum: `schedule` (agendamento)
@@ -248,6 +248,7 @@ Card de destaque com visual pronto por app. O cliente escolhe o preset no editor
 | `preset` | Sim | `whatsapp`, `youtube`, `instagram`, `form`, `telegram`, `custom` |
 | `badge`, `title`, `description`, `cta`, `url` | Sim | Textos e link do card |
 | `icon` | Não | Só para `preset: "custom"` — ícone do card |
+| `action` | Não | `link` (padrão), `copy` ou `tally` — ver [Ação do card](#ação-do-card-action) |
 
 Presets disponíveis: **WhatsApp** (verde), **YouTube** (vermelho), **Instagram** (gradiente), **Formulário** (azul), **Telegram** (azul claro), **Personalizado** (cor da marca).
 
@@ -271,6 +272,7 @@ Card de destaque no estilo WhatsApp, com animação.
 | Campo | Obrigatório |
 |-------|-------------|
 | `badge`, `title`, `description`, `cta`, `url` | Sim |
+| `action` | Não — ver [Ação do card](#ação-do-card-action) |
 
 ---
 
@@ -372,6 +374,10 @@ Use `"layout": "grid-2"` na seção para exibir cards `square` lado a lado.
 \* `description` é opcional para `square`.  
 \*\* Obrigatório para `portrait` e `banner` renderizarem com foto.
 
+Campo opcional `action`: ver [Ação do card](#ação-do-card-action).
+
+Em `portrait` / `banner`, `showTitleOnMedia` (padrão `true`): se `false`, o título e a descrição **não** aparecem sobre a imagem, mas o título continua no ranking de cliques.
+
 ---
 
 ### `link`
@@ -392,6 +398,7 @@ Card simples para links rápidos.
 |-------|-------------|
 | `title`, `url` | Sim |
 | `subtitle`, `icon` | Não |
+| `action` | Não — ver [Ação do card](#ação-do-card-action) |
 
 ---
 
@@ -417,20 +424,64 @@ Equivalente moderno: `type: "feature"`, `variant: "square"`, `description` no lu
 
 ### `location`
 
-Card de endereço com link para mapa.
+Card de endereço com opção de **mapa embutido** (pin) e link para abrir no app de mapas.
 
 ```json
 {
   "type": "location",
   "title": "Igreja Expressar",
   "address": "Av. Nelson Cardoso, 299 · Paulínia, SP",
-  "mapUrl": "https://maps.google.com/?q=Av.+Nelson+Cardoso,+299,+Paulínia,+SP"
+  "mapUrl": "https://maps.google.com/?q=Av.+Nelson+Cardoso,+299,+Paulínia,+SP",
+  "showMap": true
 }
 ```
 
-| Campo | Obrigatório |
-|-------|-------------|
-| `title`, `address`, `mapUrl` | Sim |
+| Campo | Obrigatório | Descrição |
+|-------|-------------|-----------|
+| `title` | Sim | Nome do local |
+| `address` | Sim | Texto do card; também alimenta o iframe quando `showMap` está ativo |
+| `mapUrl` | Sim | URL ao tocar em “Abrir no mapa” |
+| `showMap` | Não | `true` (padrão) mostra o embed; `false` só o card + link |
+
+O iframe só aparece se `showMap` não for `false` **e** houver `address`.
+
+---
+
+### Ação do card (`action`)
+
+Disponível em `feature`, `app-hero`, `whatsapp-hero` e `link`. Omitir = comportamento legado (`link`).
+
+| Valor | Clique |
+|-------|--------|
+| `link` (padrão) | Abre `url` em nova aba |
+| `copy` | Copia o texto do CTA (se houver) ou `url` — útil para chave Pix |
+| `tally` | Abre formulário Tally em popup (`Tally.openPopup`) sem sair da página |
+
+```json
+{
+  "type": "feature",
+  "badge": "Generosidade",
+  "title": "Faça parte daquilo que Deus está fazendo!",
+  "description": "Utilize a chave pix abaixo.",
+  "cta": "pix@igrejaexpressar.com.br",
+  "url": "pix@igrejaexpressar.com.br",
+  "action": "copy",
+  "icon": "heart"
+}
+```
+
+```json
+{
+  "type": "app-hero",
+  "preset": "form",
+  "badge": "Inscrição",
+  "title": "Café de novos membros",
+  "description": "Garanta sua vaga em poucos minutos.",
+  "cta": "Preencher formulário",
+  "url": "https://tally.so/r/XXXX",
+  "action": "tally"
+}
+```
 
 ---
 

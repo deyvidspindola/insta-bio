@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Loader2, MousePointerClick, Eye, TrendingUp, Users, ChevronDown } from 'lucide-react'
+import { displayClickLabel } from '@site/lib/itemLabel'
 import { useDemoMode } from '../context/DemoModeContext'
 import {
   fetchAnalyticsClicks,
@@ -252,7 +253,13 @@ export function DashboardPanel() {
                 <div className="min-w-0">
                   <p className="text-[11px] text-foreground/55">Mais clicado</p>
                   <p className="truncate text-sm font-semibold leading-snug text-foreground">
-                    {summary.top_click?.label || summary.top_click?.target_url || '—'}
+                    {summary.top_click
+                      ? displayClickLabel(
+                          summary.top_click.label,
+                          summary.top_click.target_url,
+                          summary.top_click.item_type,
+                        )
+                      : '—'}
                   </p>
                 </div>
               </div>
@@ -325,7 +332,7 @@ export function DashboardPanel() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-foreground">
-                            {item.label || 'Sem título'}
+                            {displayClickLabel(item.label, item.target_url, item.item_type)}
                           </p>
                           <p className="mt-0.5 truncate text-[11px] text-foreground/50">
                             {item.item_type || '—'} · {truncateUrl(item.target_url)}
@@ -361,7 +368,7 @@ export function DashboardPanel() {
                           className="border-b border-border/60 last:border-0"
                         >
                           <td className="py-2.5 pr-3 font-medium text-foreground">
-                            {item.label || 'Sem título'}
+                            {displayClickLabel(item.label, item.target_url, item.item_type)}
                           </td>
                           <td className="py-2.5 pr-3 text-foreground/60">
                             {item.item_type || '—'}

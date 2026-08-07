@@ -3,7 +3,8 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { BioBrand, BioSection, SectionItem, AppHeroPreset } from '@bio-types'
 import {
   APP_HERO_PRESET_LIST,
-  CARD_TYPES,
+  PRIMARY_CARD_TYPES,
+  SECONDARY_CARD_TYPES,
   cloneItem,
   createAppHero,
   createItem,
@@ -202,7 +203,7 @@ export function SectionEditor({
             <input
               value={section.title}
               onChange={(e) => patchSection({ ...section, title: e.target.value })}
-              placeholder="Deixe vazio para ocultar o título na bio"
+              placeholder="Ex.: Conecte-se, Eventos…"
             />
           </div>
           <div className="field sm:col-span-2">
@@ -212,6 +213,28 @@ export function SectionEditor({
               onChange={(e) => patchSection({ ...section, subtitle: e.target.value })}
             />
           </div>
+          <label className="field sm:col-span-2 flex cursor-pointer items-start gap-3 rounded-lg border border-border/70 bg-muted/10 px-3 py-2.5">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={Boolean(section.hideTitle)}
+              onChange={(e) =>
+                patchSection({
+                  ...section,
+                  hideTitle: e.target.checked ? true : undefined,
+                })
+              }
+            />
+            <span>
+              <span className="block text-sm font-medium text-foreground">
+                Ocultar título na bio
+              </span>
+              <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                Layout mais contínuo, sem rótulos em caixa alta. O nome da seção continua
+                visível só no editor.
+              </span>
+            </span>
+          </label>
         </div>
 
         <details className="mt-3 rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
@@ -329,13 +352,32 @@ export function SectionEditor({
         </div>
 
         <div>
-          <p className="mb-1 text-sm font-medium">Outros cards</p>
+          <p className="mb-1 text-sm font-medium">Cards em destaque</p>
           <p className="mb-3 text-[10px] text-muted-foreground">
-            <strong className="font-medium text-foreground/85">Destaque</strong> = card visual.{' '}
-            <strong className="font-medium text-foreground/85">Link simples</strong> = botão clássico.
+            Use para o que importa na bio: foto, gradiente, CTA e imprensa.
           </p>
           <div className="flex flex-wrap gap-2">
-            {CARD_TYPES.map((type) => (
+            {PRIMARY_CARD_TYPES.map((type) => (
+              <button
+                key={type.value}
+                type="button"
+                className="btn-secondary px-3 py-1.5 text-xs"
+                title={type.hint}
+                onClick={() => addItem(type.value)}
+              >
+                + {type.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-1 text-sm font-medium">Itens secundários</p>
+          <p className="mb-3 text-[10px] text-muted-foreground">
+            Lista fina / utilitário — não substitui um card visual de destaque.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {SECONDARY_CARD_TYPES.map((type) => (
               <button
                 key={type.value}
                 type="button"

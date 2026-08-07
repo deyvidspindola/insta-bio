@@ -1,55 +1,28 @@
 # Site comercial — links na bio
 
-Landing page em **React**, usando o template NextSaaS renderizado a partir de `src/template-home.html`.
+Landing estática em **React + Tailwind CSS v4** (tema escuro premium).
 
 ## Desenvolvimento
 
 ```bash
-cd site
-npm install
-npm run dev    # http://localhost:5190
+make site          # http://localhost:5190
+make site-build    # → site/dist/
 ```
 
-Na raiz do monorepo:
+## Onde editar
 
-```bash
-make site          # só a landing (dev)
-make site-build    # build → site/dist/
-make dev-all       # landing + bio + editor + painel
-```
+| Arquivo | Conteúdo |
+|---------|----------|
+| `src/data/content.ts` | Copy, portfólio, plano, FAQ, CTAs |
+| `src/components/sections/*` | Uma seção = um componente |
+| `src/index.css` | Tokens de cor e tipografia |
 
-**Demonstração:** a landing não abre o editor público. Os CTAs “Agende uma demonstração” vão para o WhatsApp (`site/src/config.ts`).
+## Paleta (plano de refino)
 
-## Conteúdo e personalização
+- Fundo `#121214` · seção `#161618` · card `#1C1C1E`
+- Acento laranja terroso `#D96B27`
+- Texto `#F5F5F7` · muted `#A1A1A6` · borda `#2C2C2E`
 
-| Arquivo | O que mudar |
-|---------|-------------|
-| `site/src/template-home.html` | Textos, seções, FAQ, hero |
-| `site/src/config.ts` | WhatsApp, Instagram |
+## Portfólio
 
-Scripts opcionais de conteúdo (one-off): `site/scripts/apply-landing-brief.py`, `optimize-landing.py`, `patch-content.py`.
-
-## Assets
-
-| Pasta | Uso |
-|-------|-----|
-| `site/public/images/` | Imagens da landing (previews do editor, features) |
-| `site/public/logo-instabio.svg` | Logo do produto |
-| `site/public/template/assets/` | CSS/JS compilados do NextSaaS |
-| `site/public/template/vendor/` | GSAP, Swiper, etc. |
-| `site/public/template/images/gradient/` | Fundos referenciados no CSS |
-| `site/public/template/images/icons/` | Ícones do template |
-
-## Build
-
-```bash
-make site-build       # → site/dist/
-# ou: npm run site:build
-```
-
-Em produção na plataforma, a landing entra em `platform-release/` na raiz do domínio (`npm run build:platform`). O editor de demonstração público **não** é publicado.
-
-## Documentação
-
-- [README.md](../README.md) — visão geral do monorepo
-- [MELHORIAS.md](../docs/MELHORIAS.md) — roadmap da landing
+Em `PORTFOLIO`, troque `image` por prints reais de bios de clientes quando tiver.

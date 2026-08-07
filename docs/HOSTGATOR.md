@@ -172,7 +172,8 @@ public_html/
 | Bio pública | `/` | Página carrega |
 | Editor | `/editor/` | Login |
 | Salvar | Editar → **Salvar** | `bio.draft.json` (rascunho) |
-| Publicar | **Publicar** | `bio.json` atualizado |
+| Publicar | **Publicar** | `bio.json` atualizado + backup `bio.json.bak` |
+| Restaurar backup | Avançado → **Restaurar backup anterior** | Volta `bio.json` + rascunho para a versão anterior à última publicação |
 | Upload | Enviar imagem | Arquivo em `assets/` |
 | Preview | Painel lateral | Imagens e vídeos corretos |
 

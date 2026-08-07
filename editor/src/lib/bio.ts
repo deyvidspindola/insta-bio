@@ -3,6 +3,7 @@ import { bioJsonUrl } from '@site/lib/publicUrl'
 import { normalizeBrandSocial } from '@site/lib/socialLinks'
 import { deriveCardGradientFromTheme } from '@site/lib/colorEngine'
 import defaultBio from '../../../bio/public/bio.default.json'
+import demoBio from '../../public/demo-bio.json'
 import { APP_HERO_PRESET_LIST, createAppHero } from '@site/lib/appHeroPresets'
 
 const FALLBACK_CARD_GRADIENT =
@@ -26,6 +27,16 @@ export const CARD_WIDTH_OPTIONS = [
 
 export const CARD_TYPES = [
   {
+    value: 'feature',
+    label: 'Destaque',
+    hint: 'Card visual com foto, gradiente e CTA — use para links importantes.',
+  },
+  {
+    value: 'press',
+    label: 'Imprensa',
+    hint: 'Matéria, prêmio ou menção — com cor de destaque própria.',
+  },
+  {
     value: 'text',
     label: 'Texto',
     hint: 'Texto livre com alinhamento e formatação.',
@@ -34,11 +45,6 @@ export const CARD_TYPES = [
     value: 'list',
     label: 'Lista',
     hint: 'Lista com números, pontos, letras ou sem marcador.',
-  },
-  {
-    value: 'feature',
-    label: 'Destaque',
-    hint: 'Card visual com cor, imagem ou gradiente — o mais versátil.',
   },
   {
     value: 'video',
@@ -68,14 +74,25 @@ export const CARD_TYPES = [
   {
     value: 'link',
     label: 'Link simples',
-    hint: 'Botão clássico de link na bio (estilo da aba Aparência).',
+    hint: 'Botão clássico — reserve para itens secundários/utilitários.',
   },
   {
     value: 'location',
     label: 'Localização',
-    hint: 'Endereço com link para o mapa.',
+    hint: 'Endereço + link; opcionalmente mapa embutido com pin.',
   },
 ] as const
+
+/** Tipos utilitários (lista/botão fino) — não competem com cards visuais. */
+export const SECONDARY_CARD_TYPE_VALUES = new Set<string>(['link', 'location'])
+
+export const PRIMARY_CARD_TYPES = CARD_TYPES.filter(
+  (type) => !SECONDARY_CARD_TYPE_VALUES.has(type.value),
+)
+
+export const SECONDARY_CARD_TYPES = CARD_TYPES.filter((type) =>
+  SECONDARY_CARD_TYPE_VALUES.has(type.value),
+)
 
 export { MEDIA_CARD_VARIANTS } from '@site/lib/mediaCardLayout'
 
@@ -198,6 +215,18 @@ export function createEmptyConfig(): BioConfig {
   return createDefaultConfig()
 }
 
+/**
+ * Bio ainda “nova”: sem cards, ou idêntica ao demo padrão.
+ * Nesses casos um template pode trocar o conteúdo; caso contrário, só o visual.
+ */
+export function isStarterBio(config: BioConfig): boolean {
+  const sections = config.sections ?? []
+  if (sections.length === 0) return true
+
+  const demoSections = (demoBio as BioConfig).sections ?? []
+  return JSON.stringify(sections) === JSON.stringify(demoSections)
+}
+
 export function createSection(): BioSection {
   return {
     id: `secao-${Date.now()}`,
@@ -246,6 +275,16 @@ export function createItem(
         subtitle: 'Subtítulo opcional',
         url: 'https://',
       }
+    case 'press':
+      return {
+        type,
+        title: 'Título da matéria',
+        source: 'Nome da publicação',
+        description: 'Resumo curto opcional.',
+        cta: 'Ler matéria',
+        url: 'https://',
+        accentColor: '#2563eb',
+      }
     case 'grid':
       return {
         type,
@@ -259,6 +298,7 @@ export function createItem(
         title: 'Local',
         address: 'Endereço completo',
         mapUrl: 'https://maps.google.com',
+        showMap: true,
       }
     case 'video':
       return {

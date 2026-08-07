@@ -206,6 +206,55 @@ function writeJsonFile(filePath: string, data: unknown) {
   fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf-8')
 }
 
+function bioBackupPath(bioJsonPath: string): string {
+  return path.join(path.dirname(bioJsonPath), 'bio.json.bak')
+}
+
+function bioBackupsDir(bioJsonPath: string): string {
+  return path.join(path.dirname(bioJsonPath), 'bio.backups')
+}
+
+function hasBioBackup(bioJsonPath: string): boolean {
+  const bak = bioBackupPath(bioJsonPath)
+  return fs.existsSync(bak) && fs.statSync(bak).size > 0
+}
+
+/** Copia bio.json atual para .bak + histórico (espelha PHP). */
+function backupBeforePublish(bioJsonPath: string) {
+  if (!fs.existsSync(bioJsonPath)) return
+  const bak = bioBackupPath(bioJsonPath)
+  fs.copyFileSync(bioJsonPath, bak)
+
+  const dir = bioBackupsDir(bioJsonPath)
+  fs.mkdirSync(dir, { recursive: true })
+  const htaccess = path.join(dir, '.htaccess')
+  if (!fs.existsSync(htaccess)) {
+    fs.writeFileSync(htaccess, 'Require all denied\n', 'utf-8')
+  }
+  const stamp = new Date()
+    .toISOString()
+    .replace(/[-:TZ.]/g, '')
+    .slice(0, 15)
+  let target = path.join(dir, `bio-${stamp}.json`)
+  if (fs.existsSync(target)) {
+    target = path.join(dir, `bio-${stamp}-${Date.now()}.json`)
+  }
+  fs.copyFileSync(bioJsonPath, target)
+
+  const files = fs
+    .readdirSync(dir)
+    .filter((name) => /^bio-.*\.json$/.test(name))
+    .map((name) => path.join(dir, name))
+    .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)
+  for (const old of files.slice(10)) {
+    try {
+      fs.unlinkSync(old)
+    } catch {
+      // ignore
+    }
+  }
+}
+
 /**
  * Em dev, se ainda não houver bio.json / rascunho, copia o demo-bio
  * para o editor local funcionar em http://localhost:5180/ com dados mockados.
@@ -242,7 +291,8 @@ function jsonUsesAsset(json: string, filename: string): boolean {
 
 function bioUsesAsset(filename: string): boolean {
   const { bioJsonPath, draftPath } = getEditorStoragePaths()
-  for (const filePath of [bioJsonPath, draftPath]) {
+  const paths = [bioJsonPath, draftPath, bioBackupPath(bioJsonPath)]
+  for (const filePath of paths) {
     if (!fs.existsSync(filePath)) continue
     if (jsonUsesAsset(fs.readFileSync(filePath, 'utf-8'), filename)) return true
   }
@@ -472,9 +522,14 @@ function uploadPlugin(): Plugin {
         try {
           const parsed = JSON.parse(await readRequestBody(req))
           const { bioJsonPath, draftPath } = getEditorStoragePaths()
+          backupBeforePublish(bioJsonPath)
           writeJsonFile(draftPath, parsed)
           writeJsonFile(bioJsonPath, parsed)
-          sendJson(res, 200, { ok: true, saved: 'published' })
+          sendJson(res, 200, {
+            ok: true,
+            saved: 'published',
+            hasBackup: hasBioBackup(bioJsonPath),
+          })
         } catch {
           sendJson(res, 500, { error: 'Não foi possível publicar a bio' })
         }
@@ -501,6 +556,34 @@ function uploadPlugin(): Plugin {
           sendJson(res, 200, { ok: true, config: published })
         } catch {
           sendJson(res, 500, { error: 'Não foi possível reverter o rascunho' })
+        }
+      })
+
+      server.middlewares.use('/api/bio/restore-backup', async (req, res) => {
+        if (req.method !== 'POST') {
+          sendJson(res, 405, { error: 'Method not allowed' })
+          return
+        }
+        if (!getSessionFromRequest(req)) {
+          sendJson(res, 401, { error: 'Não autenticado' })
+          return
+        }
+
+        try {
+          const { bioJsonPath, draftPath } = getEditorStoragePaths()
+          const bak = bioBackupPath(bioJsonPath)
+          const backup = readJsonFile(bak)
+          if (!backup) {
+            sendJson(res, 404, {
+              error: 'Nenhum backup encontrado. O backup é criado ao publicar.',
+            })
+            return
+          }
+          writeJsonFile(bioJsonPath, backup)
+          writeJsonFile(draftPath, backup)
+          sendJson(res, 200, { ok: true, config: backup })
+        } catch {
+          sendJson(res, 500, { error: 'Não foi possível restaurar o backup' })
         }
       })
 

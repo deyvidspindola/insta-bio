@@ -4,7 +4,10 @@ export type CardWidth = 'full' | 'half'
 
 export function itemCardWidth(item: SectionItem): CardWidth {
   if (
-    (item.type === 'link' || item.type === 'feature' || item.type === 'grid') &&
+    (item.type === 'link' ||
+      item.type === 'feature' ||
+      item.type === 'grid' ||
+      item.type === 'press') &&
     item.width === 'half'
   ) {
     return 'half'
@@ -25,7 +28,12 @@ export function itemSpansFullInGrid(item: SectionItem): boolean {
   if (item.type === 'video' || item.type === 'slide') {
     return itemCardWidth(item) === 'full'
   }
-  if (item.type === 'link' || item.type === 'feature' || item.type === 'grid') {
+  if (
+    item.type === 'link' ||
+    item.type === 'feature' ||
+    item.type === 'grid' ||
+    item.type === 'press'
+  ) {
     return itemCardWidth(item) === 'full'
   }
   return false
