@@ -155,6 +155,14 @@ export type CardSchedule = {
   until?: string
 }
 
+/**
+ * Comportamento do clique no card.
+ * - link (padrão): abre `url` em nova aba
+ * - copy: copia `cta` (se houver) ou `url` para a área de transferência
+ * - tally: abre formulário Tally em popup (URL tally.so)
+ */
+export type CardAction = 'link' | 'copy' | 'tally'
+
 export interface WhatsAppHero {
   type: 'whatsapp-hero'
   badge: string
@@ -162,6 +170,9 @@ export interface WhatsAppHero {
   description: string
   cta: string
   url: string
+  action?: CardAction
+  /** @deprecated Preferir título; mantido só como fallback de analytics */
+  reportName?: string
   layout?: AppHeroLayout
   align?: FeatureCardAlign
   schedule?: CardSchedule
@@ -175,6 +186,9 @@ export interface AppHero {
   description: string
   cta: string
   url: string
+  action?: CardAction
+  /** @deprecated Preferir título; mantido só como fallback de analytics */
+  reportName?: string
   icon?: IconName
   layout?: AppHeroLayout
   align?: FeatureCardAlign
@@ -188,6 +202,9 @@ export interface FeatureCard {
   description?: string
   cta?: string
   url: string
+  action?: CardAction
+  /** @deprecated Preferir título + showTitleOnMedia */
+  reportName?: string
   variant?: 'gradient' | 'compact' | 'portrait' | 'banner' | 'square'
   /**
    * Só no formato gradiente:
@@ -195,6 +212,12 @@ export interface FeatureCard {
    * - center: ícone acima, conteúdo centralizado
    */
   align?: FeatureCardAlign
+  /**
+   * Em portrait/banner: exibir título e descrição sobre a imagem.
+   * `false` = só a foto (o título continua no relatório de cliques).
+   * Omitido = true.
+   */
+  showTitleOnMedia?: boolean
   icon?: IconName
   image?: string
   gradient?: string
@@ -209,6 +232,9 @@ export interface LinkCard {
   title: string
   subtitle?: string
   url: string
+  action?: CardAction
+  /** @deprecated Preferir título */
+  reportName?: string
   icon?: IconName
   width?: CardWidth
   schedule?: CardSchedule
@@ -264,6 +290,11 @@ export interface LocationCard {
   title: string
   address: string
   mapUrl: string
+  /**
+   * Exibir mapa embutido com pin.
+   * Omitido = true (mostra se houver endereço).
+   */
+  showMap?: boolean
   schedule?: CardSchedule
 }
 

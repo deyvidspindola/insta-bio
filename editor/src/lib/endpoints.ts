@@ -9,6 +9,7 @@ export const ENDPOINTS = {
   save: 'api/bio/save',
   publish: 'api/bio/publish',
   revert: 'api/bio/revert',
+  restoreBackup: 'api/bio/restore-backup',
   paths: 'api/bio/paths',
   upload: 'api/assets/upload',
   listAssets: 'api/assets/list',

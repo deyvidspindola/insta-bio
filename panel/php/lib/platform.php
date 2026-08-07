@@ -257,6 +257,9 @@ DirectoryIndex index.php index.html
   # Proxy de analytics (same-origin → painel no servidor)
   RewriteRule ^api/analytics/track$ index.php?__ib_analytics_track=1 [L,QSA]
 
+  # Histórico de backups — não servir pela web
+  RewriteRule ^bio\.backups(/|$) - [F,L]
+
   # Bio pública sempre passa pelo gate de licença
   RewriteRule ^index\.html$ index.php [L]
 </IfModule>
@@ -272,6 +275,13 @@ DirectoryIndex index.php index.html
 
 # Rascunho só pelo editor autenticado — não expor publicamente
 <Files "bio.draft.json">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+</Files>
+
+# Backup da bio — não expor publicamente
+<Files "bio.json.bak">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Copy, Download, RotateCcw, Save, Undo2, Upload } from 'lucide-react'
+import { Copy, Download, History, RotateCcw, Save, Undo2, Upload } from 'lucide-react'
 import type { BioConfig } from '@bio-types'
 import { fetchEditorPaths, saveEditorPaths, type EditorPathsInfo } from '../lib/paths'
 import { setBioJsonRelativePath } from '@site/lib/publicUrl'
@@ -15,8 +15,10 @@ interface AdvancedPanelProps {
   onDownload: () => void
   onRestoreDefault: () => void
   onRevertToPublished: () => Promise<void> | void
+  onRestoreBackup: () => Promise<void> | void
   onPathsSaved?: () => Promise<void> | void
   reverting?: boolean
+  restoringBackup?: boolean
 }
 
 export function AdvancedPanel({
@@ -26,11 +28,14 @@ export function AdvancedPanel({
   onDownload,
   onRestoreDefault,
   onRevertToPublished,
+  onRestoreBackup,
   onPathsSaved,
   reverting = false,
+  restoringBackup = false,
 }: AdvancedPanelProps) {
   const [confirmRestore, setConfirmRestore] = useState(false)
   const [confirmRevert, setConfirmRevert] = useState(false)
+  const [confirmRestoreBackup, setConfirmRestoreBackup] = useState(false)
   const [paths, setPaths] = useState<EditorPathsInfo | null>(null)
   const [bioPathInput, setBioPathInput] = useState('')
   const [pathsLoading, setPathsLoading] = useState(true)
@@ -199,11 +204,28 @@ export function AdvancedPanel({
         <button
           type="button"
           className="btn-secondary inline-flex items-center gap-2 px-3 py-2 text-xs"
-          disabled={reverting}
+          disabled={reverting || restoringBackup}
           onClick={() => setConfirmRevert(true)}
         >
           <Undo2 className="h-4 w-4" />
           {reverting ? 'Revertendo…' : 'Reverter para a bio publicada'}
+        </button>
+      </div>
+
+      <div className="card">
+        <h3 className="mb-1 text-sm font-semibold">Backup da publicação</h3>
+        <p className="mb-4 text-xs text-muted-foreground">
+          A cada publicação, a bio anterior é salva automaticamente. Use isto se a versão no ar
+          tiver problema — restaura a bio pública e o rascunho para a versão anterior.
+        </p>
+        <button
+          type="button"
+          className="btn-secondary inline-flex items-center gap-2 px-3 py-2 text-xs"
+          disabled={reverting || restoringBackup}
+          onClick={() => setConfirmRestoreBackup(true)}
+        >
+          <History className="h-4 w-4" />
+          {restoringBackup ? 'Restaurando…' : 'Restaurar backup anterior'}
         </button>
       </div>
 
@@ -239,6 +261,24 @@ export function AdvancedPanel({
             setConfirmRevert(false)
           } catch {
             // erro exibido pelo EditorApp; mantém o diálogo aberto
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmRestoreBackup}
+        title="Restaurar backup anterior?"
+        description="A bio pública e o rascunho voltam para a versão publicada imediatamente antes da última publicação. Use se a versão atual no ar tiver problema."
+        confirmLabel="Restaurar backup"
+        variant="danger"
+        loading={restoringBackup}
+        onCancel={() => setConfirmRestoreBackup(false)}
+        onConfirm={async () => {
+          try {
+            await onRestoreBackup()
+            setConfirmRestoreBackup(false)
+          } catch {
+            // erro exibido pelo EditorApp
           }
         }}
       />

@@ -38,6 +38,7 @@ import {
   loadEditorConfig,
   logout,
   publishBioConfig,
+  restoreBioBackup,
   revertDraftToPublished,
   saveBioConfig,
 } from './lib/auth'
@@ -90,6 +91,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [reverting, setReverting] = useState(false)
+  const [restoringBackup, setRestoringBackup] = useState(false)
   const [confirmPublishOpen, setConfirmPublishOpen] = useState(false)
   const [updatePromptOpen, setUpdatePromptOpen] = useState(false)
   const [updatePrompt, setUpdatePrompt] = useState<{
@@ -393,6 +395,24 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
       throw err
     } finally {
       setReverting(false)
+    }
+  }
+
+  async function handleRestoreBackup() {
+    if (isDemo || restoringBackup) return
+    setRestoringBackup(true)
+    setActionError(null)
+    try {
+      const restored = await restoreBioBackup()
+      resetConfig(normalizeBioConfig(restored))
+      setActiveSection(0)
+      setFocusItemIndex(null)
+      showStatus('Backup anterior restaurado na bio pública')
+    } catch (err) {
+      showActionError(err instanceof Error ? err.message : 'Erro ao restaurar backup')
+      throw err
+    } finally {
+      setRestoringBackup(false)
     }
   }
 
@@ -822,7 +842,9 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                 onCopy={handleCopy}
                 onDownload={handleDownload}
                 reverting={reverting}
+                restoringBackup={restoringBackup}
                 onRevertToPublished={handleRevertToPublished}
+                onRestoreBackup={handleRestoreBackup}
                 onPathsSaved={async () => {
                   const data = await loadEditorConfig()
                   resetConfig(normalizeBioConfig(data.config))

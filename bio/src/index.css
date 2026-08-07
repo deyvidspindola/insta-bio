@@ -127,6 +127,37 @@ html[data-bio-preview] .bio-preview-selectable:hover {
     border-radius 0.2s ease;
 }
 
+/* CardLink como <button> (ação copy / tally) — herda o visual do card */
+button.bio-card {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+@keyframes bio-copy-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.bio-copy-toast > span {
+  animation: bio-copy-toast-in 0.22s ease-out;
+}
+
 .bio-text-secondary {
   color: var(--color-secondary);
 }

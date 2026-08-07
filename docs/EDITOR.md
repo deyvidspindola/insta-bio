@@ -27,7 +27,7 @@ make dev-all         # bio + editor + panel + site
 | **Preview ao vivo** | Iframe com a mesma resolução de URLs da bio pública |
 | **Upload** | Imagens e vídeos → pasta `assets/` ao lado do `bio.json` |
 | **Salvar** | Grava rascunho (`bio.draft.json`) — não altera a bio pública |
-| **Publicar** | Copia rascunho para `bio.json` (bio ao vivo) |
+| **Publicar** | Copia rascunho para `bio.json` (bio ao vivo) e guarda a versão anterior em `bio.json.bak` |
 | **Reverter** | Configurações → descarta rascunho e volta ao publicado |
 | **Caminho do bio.json** | Configurações → pasta customizada (ex.: `painel/bio.json`) |
 | **Atualizações** | Configurações → versão instalada; single-tenant pode buscar e aplicar update remoto |

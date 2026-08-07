@@ -1,15 +1,17 @@
 import type { LinkCard as LinkCardType } from '../types/bio'
-import { CardLink, hasClickableUrl } from '../lib/cardLink'
-import { ArrowIcon, BioIcon } from './icons'
+import { CardLink, isCardInteractive } from '../lib/cardLink'
+import { BioIcon } from './icons'
+import { CardActionIcon } from './CardActionIcon'
 
 export function LinkCard({ item, grid = false }: { item: LinkCardType; grid?: boolean }) {
-  const clickable = hasClickableUrl(item.url)
+  const interactive = isCardInteractive(item.action, item.url)
   const hasIcon = Boolean(item.icon)
 
   if (grid) {
     return (
       <CardLink
         url={item.url}
+        action={item.action}
         className="bio-card bio-link-card bio-link-card--grid group relative flex h-full flex-col p-3"
       >
         <div className="bio-link-body mb-3 flex items-center justify-between">
@@ -20,8 +22,10 @@ export function LinkCard({ item, grid = false }: { item: LinkCardType; grid?: bo
           ) : (
             <span />
           )}
-          {clickable && (
-            <ArrowIcon className="bio-link-arrow h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+          {interactive && (
+            <span className="bio-link-arrow text-muted-foreground transition-colors group-hover:text-primary">
+              <CardActionIcon className="h-4 w-4 shrink-0" />
+            </span>
           )}
         </div>
         <div className={`min-w-0 ${item.subtitle ? '' : 'mt-auto'}`}>
@@ -39,7 +43,11 @@ export function LinkCard({ item, grid = false }: { item: LinkCardType; grid?: bo
   }
 
   return (
-    <CardLink url={item.url} className="bio-card bio-link-card group relative block">
+    <CardLink
+      url={item.url}
+      action={item.action}
+      className="bio-card bio-link-card group relative block"
+    >
       <div className="bio-link-body flex items-center gap-4 p-4">
         {hasIcon && (
           <div className="bio-link-icon-wrap flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
@@ -54,8 +62,10 @@ export function LinkCard({ item, grid = false }: { item: LinkCardType; grid?: bo
             <p className="bio-link-subtitle bio-text-secondary mt-0.5 text-xs">{item.subtitle}</p>
           )}
         </div>
-        {clickable && (
-          <ArrowIcon className="bio-link-arrow h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+        {interactive && (
+          <span className="bio-link-arrow text-muted-foreground transition-colors group-hover:text-primary">
+            <CardActionIcon className="h-4 w-4 shrink-0" />
+          </span>
         )}
       </div>
     </CardLink>

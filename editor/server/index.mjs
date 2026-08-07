@@ -102,10 +102,23 @@ app.post('/api/bio/publish', (req, res) => {
   if (!requireSession(req, res)) return
 
   try {
+    const publishedPath = path.join(PUBLIC_DIR, 'bio.json')
+    const bakPath = path.join(PUBLIC_DIR, 'bio.json.bak')
+    if (fs.existsSync(publishedPath)) {
+      fs.copyFileSync(publishedPath, bakPath)
+      const backupsDir = path.join(PUBLIC_DIR, 'bio.backups')
+      fs.mkdirSync(backupsDir, { recursive: true })
+      const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 15)
+      fs.copyFileSync(publishedPath, path.join(backupsDir, `bio-${stamp}.json`))
+    }
     const content = `${JSON.stringify(req.body, null, 2)}\n`
     fs.writeFileSync(path.join(PUBLIC_DIR, 'bio.draft.json'), content, 'utf-8')
-    fs.writeFileSync(path.join(PUBLIC_DIR, 'bio.json'), content, 'utf-8')
-    res.json({ ok: true, saved: 'published' })
+    fs.writeFileSync(publishedPath, content, 'utf-8')
+    res.json({
+      ok: true,
+      saved: 'published',
+      hasBackup: fs.existsSync(bakPath),
+    })
   } catch {
     res.status(500).json({ error: 'Não foi possível publicar a bio' })
   }
@@ -129,6 +142,27 @@ app.post('/api/bio/revert', (req, res) => {
     res.json({ ok: true, config })
   } catch {
     res.status(500).json({ error: 'Não foi possível reverter o rascunho' })
+  }
+})
+
+app.post('/api/bio/restore-backup', (req, res) => {
+  if (!requireSession(req, res)) return
+
+  try {
+    const bakPath = path.join(PUBLIC_DIR, 'bio.json.bak')
+    if (!fs.existsSync(bakPath)) {
+      res.status(404).json({
+        error: 'Nenhum backup encontrado. O backup é criado ao publicar.',
+      })
+      return
+    }
+    const config = JSON.parse(fs.readFileSync(bakPath, 'utf-8'))
+    const content = `${JSON.stringify(config, null, 2)}\n`
+    fs.writeFileSync(path.join(PUBLIC_DIR, 'bio.json'), content, 'utf-8')
+    fs.writeFileSync(path.join(PUBLIC_DIR, 'bio.draft.json'), content, 'utf-8')
+    res.json({ ok: true, config })
+  } catch {
+    res.status(500).json({ error: 'Não foi possível restaurar o backup' })
   }
 })
 

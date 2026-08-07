@@ -33,7 +33,13 @@ export function LinkItemFields({
           <input
             value={item.title}
             onChange={(e) => onChange({ ...item, title: e.target.value })}
+            placeholder="Texto do botão e nome no relatório"
           />
+          {!item.title.trim() && (
+            <p className="mt-1.5 text-[11px] leading-snug text-amber-600 dark:text-amber-400">
+              Preencha um título — ele aparece no card e no ranking de cliques.
+            </p>
+          )}
         </Field>
         <Field label="Subtítulo">
           <input

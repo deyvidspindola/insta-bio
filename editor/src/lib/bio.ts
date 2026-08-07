@@ -79,7 +79,7 @@ export const CARD_TYPES = [
   {
     value: 'location',
     label: 'Localização',
-    hint: 'Endereço com link para o mapa.',
+    hint: 'Endereço + link; opcionalmente mapa embutido com pin.',
   },
 ] as const
 
@@ -298,6 +298,7 @@ export function createItem(
         title: 'Local',
         address: 'Endereço completo',
         mapUrl: 'https://maps.google.com',
+        showMap: true,
       }
     case 'video':
       return {

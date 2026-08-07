@@ -1,9 +1,15 @@
 import type { ReactNode } from 'react'
 import type { AppHero, AppHeroPreset, FeatureCardAlign, WhatsAppHero } from '../types/bio'
-import { CardLink, hasClickableUrl } from '../lib/cardLink'
+import {
+  CardLink,
+  isCardInteractive,
+  resolveCopyText,
+  useCardAction,
+} from '../lib/cardLink'
 import { APP_HERO_PRESETS } from '../lib/appHeroPresets'
 import { resolveAppHeroTheme, type ResolvedAppHeroTheme } from '../lib/appHeroContrast'
-import { ArrowIcon, BioIcon, InstagramIcon, TelegramIcon, WhatsAppIcon, YouTubeIcon } from './icons'
+import { BioIcon, InstagramIcon, TelegramIcon, WhatsAppIcon, YouTubeIcon } from './icons'
+import { CardActionIcon } from './CardActionIcon'
 
 type AppHeroLike = AppHero | WhatsAppHero
 
@@ -119,6 +125,16 @@ function HeroIconBox({
   )
 }
 
+function HeroCtaLabel({ label }: { label: string }) {
+  const { copied } = useCardAction()
+  return (
+    <>
+      <span className="truncate">{copied ? 'Copiado!' : label}</span>
+      <CardActionIcon className="h-3.5 w-3.5 shrink-0" />
+    </>
+  )
+}
+
 function HeroShell({
   item,
   theme,
@@ -130,15 +146,17 @@ function HeroShell({
   children: ReactNode
   className?: string
 }) {
-  const clickable = hasClickableUrl(item.url)
+  const interactive = isCardInteractive(item.action, item.url, item.cta)
 
   return (
     <CardLink
       url={item.url}
-      className={`bio-card bio-card--hero bio-card--media group relative block overflow-hidden border transition-all ${className} ${clickable ? '' : 'cursor-default'}`}
+      action={item.action}
+      copyText={resolveCopyText(item.cta, item.url)}
+      className={`bio-card bio-card--hero bio-card--media group relative block overflow-hidden border transition-all ${className} ${interactive ? '' : 'cursor-default'}`}
       style={{ borderColor: theme.border }}
       onMouseEnter={(e) => {
-        if (!clickable) return
+        if (!interactive) return
         e.currentTarget.style.borderColor = theme.borderHover
       }}
       onMouseLeave={(e) => {
@@ -214,8 +232,7 @@ function HeroDefault({
                 boxShadow: theme.ctaShadow,
               }}
             >
-              {item.cta}
-              <ArrowIcon className="h-3.5 w-3.5" />
+              <HeroCtaLabel label={item.cta} />
             </span>
           </div>
         </div>
@@ -271,8 +288,7 @@ function HeroCompact({
               boxShadow: theme.ctaShadow,
             }}
           >
-            <span className="truncate">{item.cta}</span>
-            <ArrowIcon className="h-3 w-3 shrink-0" />
+            <HeroCtaLabel label={item.cta} />
           </span>
         </div>
       </div>
@@ -316,9 +332,9 @@ function HeroCondensed({
         >
           {item.title}
         </h3>
-        {!centered && hasClickableUrl(item.url) && (
+        {!centered && isCardInteractive(item.action, item.url, item.cta) && (
           <span style={{ color: theme.bodyText }}>
-            <ArrowIcon className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" />
+            <CardActionIcon className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" />
           </span>
         )}
       </div>

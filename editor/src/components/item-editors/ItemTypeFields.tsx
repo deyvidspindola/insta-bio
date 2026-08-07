@@ -1,4 +1,4 @@
-import type { SectionItem } from '@bio-types'
+import type { AppHero, FeatureCard, LinkCard, SectionItem, WhatsAppHero } from '@bio-types'
 import { AppHeroItemFields, WhatsAppHeroItemFields } from './AppHeroItemFields'
 import { FeatureItemFields } from './FeatureItemFields'
 import { GridItemFields } from './GridItemFields'
@@ -13,6 +13,18 @@ import { TextItemFields } from './TextItemFields'
 import { VideoItemFields } from './VideoItemFields'
 import { YoutubeItemFields } from './YoutubeItemFields'
 import { Field } from './Field'
+import { CardActionField, urlFieldLabel, urlFieldPlaceholder } from './CardActionField'
+
+type CardActionItem = FeatureCard | AppHero | WhatsAppHero | LinkCard
+
+function supportsCardAction(item: SectionItem): item is CardActionItem {
+  return (
+    item.type === 'feature' ||
+    item.type === 'app-hero' ||
+    item.type === 'whatsapp-hero' ||
+    item.type === 'link'
+  )
+}
 
 export function ItemTypeFields({
   item,
@@ -23,17 +35,29 @@ export function ItemTypeFields({
   isGridSection: boolean
   onChange: (item: SectionItem) => void
 }) {
+  const withAction = supportsCardAction(item)
+
   return (
     <>
+      {withAction && (
+        <CardActionField
+          value={item.action}
+          url={item.url}
+          onChange={(action) => onChange({ ...item, action })}
+        />
+      )}
+
       {'url' in item &&
         item.type !== 'video' &&
         item.type !== 'youtube-embed' &&
         item.type !== 'spotify-embed' && (
-          <Field label="URL (opcional)">
+          <Field label={withAction ? urlFieldLabel(item.action) : 'URL (opcional)'}>
             <input
               value={item.url}
               onChange={(e) => onChange({ ...item, url: e.target.value } as SectionItem)}
-              placeholder="Deixe vazio para card sem link"
+              placeholder={
+                withAction ? urlFieldPlaceholder(item.action) : 'Deixe vazio para card sem link'
+              }
             />
           </Field>
         )}

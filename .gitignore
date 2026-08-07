@@ -23,6 +23,8 @@ dist/updates/
 # Dados de runtime do cliente (dev local / produção)
 bio/public/bio.json
 bio/public/bio.draft.json
+bio/public/bio.json.bak
+bio/public/bio.backups/
 bio/public/assets/*
 !bio/public/assets/.gitkeep
 !bio/public/assets/logo-instabio.svg

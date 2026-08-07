@@ -25,6 +25,7 @@ Options -Indexes -MultiViews
   RewriteRule ^api/bio/save$ save.php [L,QSA]
   RewriteRule ^api/bio/publish$ publish.php [L,QSA]
   RewriteRule ^api/bio/revert$ revert.php [L,QSA]
+  RewriteRule ^api/bio/restore-backup$ restore-backup.php [L,QSA]
   RewriteRule ^api/bio/load$ load.php [L,QSA]
   RewriteRule ^api/bio/paths$ paths.php [L,QSA]
   RewriteRule ^api/update/status$ update-status.php [L,QSA]

@@ -1,9 +1,15 @@
 import type { ReactNode } from 'react'
 import type { FeatureCard as FeatureCardType } from '../types/bio'
-import { CardLink, hasClickableUrl } from '../lib/cardLink'
+import {
+  CardLink,
+  isCardInteractive,
+  resolveCopyText,
+  useCardAction,
+} from '../lib/cardLink'
 import { resolveCardSurface } from '../lib/colorEngine'
 import { APP_HERO_PRESETS } from '../lib/appHeroPresets'
-import { ArrowIcon, BioIcon } from './icons'
+import { BioIcon } from './icons'
+import { CardActionIcon } from './CardActionIcon'
 import { CardCoverImage } from './CardCoverImage'
 
 const FALLBACK_GRADIENT = APP_HERO_PRESETS.custom.theme.gradient
@@ -20,6 +26,11 @@ function BadgePill({ children }: { children: ReactNode }) {
   )
 }
 
+function CtaLabel({ label }: { label: string }) {
+  const { copied } = useCardAction()
+  return <>{copied ? 'Copiado!' : label}</>
+}
+
 export function FeatureCard({
   item,
   grid = false,
@@ -29,7 +40,8 @@ export function FeatureCard({
   grid?: boolean
   pageBackground?: string
 }) {
-  const clickable = hasClickableUrl(item.url)
+  const interactive = isCardInteractive(item.action, item.url, item.cta)
+  const copyText = resolveCopyText(item.cta, item.url)
   const shellClass = `bio-card bio-card--media group relative block ${grid ? 'h-full' : ''}`
   const hasImage = Boolean(item.image?.trim())
   // Variantes com imagem/overlay forte ou compact (fundo já escuro) mantêm texto branco.
@@ -42,9 +54,15 @@ export function FeatureCard({
   const bodyColor = surface?.bodyText ?? 'rgba(255,255,255,0.85)'
   const mutedColor = surface?.bodyText ?? 'rgba(255,255,255,0.8)'
 
+  const linkProps = {
+    url: item.url,
+    action: item.action,
+    copyText,
+  }
+
   if (item.variant === 'square') {
     return (
-      <CardLink url={item.url} className={`${shellClass} aspect-square`}>
+      <CardLink {...linkProps} className={`${shellClass} aspect-square`}>
         <CardCoverImage
           src={item.image}
           alt={item.title}
@@ -61,8 +79,10 @@ export function FeatureCard({
           </span>
         )}
 
-        {clickable && (
-          <ArrowIcon className="absolute right-2 top-2 h-4 w-4 text-white/90 drop-shadow" />
+        {interactive && (
+          <span className="absolute right-2 top-2 text-white/90 drop-shadow">
+            <CardActionIcon className="h-4 w-4" />
+          </span>
         )}
 
         <div className="absolute inset-x-0 bottom-0 p-3">
@@ -80,17 +100,28 @@ export function FeatureCard({
   }
 
   if (item.variant === 'portrait') {
+    const showText = item.showTitleOnMedia !== false
+    const hasOverlayText =
+      showText &&
+      Boolean(
+        (item.badge && item.tags && item.tags.length > 0) ||
+          item.title.trim() ||
+          item.description?.trim(),
+      )
+
     return (
-      <CardLink url={item.url} className={shellClass}>
+      <CardLink {...linkProps} className={shellClass}>
         <div className="relative aspect-[3/4] w-full overflow-hidden sm:aspect-[3/4]">
           <CardCoverImage
             src={item.image}
-            alt={item.title}
+            alt={item.title.trim() || 'Card'}
             gradient={item.gradient}
             fallbackSize="lg"
             className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
           />
-          <ImageOverlay />
+          {showText ? <ImageOverlay /> : (
+            <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+          )}
 
           {item.tags && item.tags.length > 0 && (
             <div className="absolute left-3 top-3 inline-flex flex-wrap items-center gap-1.5">
@@ -109,36 +140,56 @@ export function FeatureCard({
             </span>
           )}
 
-          {clickable && (
-            <ArrowIcon className="absolute right-3 top-3 h-5 w-5 text-white/90 drop-shadow transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          {interactive && (
+            <span className="absolute right-3 top-3 text-white/90 drop-shadow transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+              <CardActionIcon className="h-5 w-5" />
+            </span>
           )}
 
-          <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-            {item.badge && item.tags && item.tags.length > 0 && (
-              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[oklch(0.85_0.16_75)]">
-                {item.badge}
-              </span>
-            )}
-            <h3 className="text-xl font-bold leading-tight text-white sm:text-2xl">{item.title}</h3>
-            <p className="mt-1 text-xs text-white/85 sm:text-sm">{item.description}</p>
-          </div>
+          {hasOverlayText && (
+            <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+              {item.badge && item.tags && item.tags.length > 0 && (
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[oklch(0.85_0.16_75)]">
+                  {item.badge}
+                </span>
+              )}
+              {item.title.trim() && (
+                <h3 className="text-xl font-bold leading-tight text-white sm:text-2xl">
+                  {item.title}
+                </h3>
+              )}
+              {item.description?.trim() && (
+                <p
+                  className={`text-xs text-white/85 sm:text-sm ${item.title.trim() ? 'mt-1' : ''}`}
+                >
+                  {item.description}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </CardLink>
     )
   }
 
   if (item.variant === 'banner') {
+    const showText = item.showTitleOnMedia !== false
+
     return (
-      <CardLink url={item.url} className={shellClass}>
+      <CardLink {...linkProps} className={shellClass}>
         <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-[16/9]">
           <CardCoverImage
             src={item.image}
-            alt={item.title}
+            alt={item.title.trim() || 'Card'}
             gradient={item.gradient}
             fallbackSize="lg"
             className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/10" />
+          {showText ? (
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/10" />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+          )}
           <div
             aria-hidden="true"
             className="absolute inset-0 mix-blend-soft-light"
@@ -159,32 +210,38 @@ export function FeatureCard({
             </div>
           )}
 
-          {clickable && (
-            <ArrowIcon className="absolute right-3 top-3 h-5 w-5 text-white/90 drop-shadow transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          {interactive && (
+            <span className="absolute right-3 top-3 text-white/90 drop-shadow transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+              <CardActionIcon className="h-5 w-5" />
+            </span>
           )}
 
           <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
             <div className="flex items-end justify-between gap-3">
               <div className="min-w-0">
-                {item.badge && (
+                {showText && item.badge && (
                   <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[oklch(0.85_0.16_75)]">
                     {item.badge}
                   </span>
                 )}
-                <h3 className="mt-1 text-xl font-bold leading-tight text-white sm:text-2xl">
-                  {item.title}
-                </h3>
-                <p className="mt-1 text-xs text-white/85 sm:text-sm">{item.description}</p>
+                {showText && item.title.trim() && (
+                  <h3 className="mt-1 text-xl font-bold leading-tight text-white sm:text-2xl">
+                    {item.title}
+                  </h3>
+                )}
+                {showText && item.description?.trim() && (
+                  <p className="mt-1 text-xs text-white/85 sm:text-sm">{item.description}</p>
+                )}
               </div>
               {item.cta && (
                 <span className="hidden shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-black shadow-md sm:inline-flex">
-                  {item.cta}
+                  <CtaLabel label={item.cta} />
                 </span>
               )}
             </div>
             {item.cta && (
-              <span className="mt-3 inline-flex items-center rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-black shadow-md sm:hidden">
-                {item.cta}
+              <span className="mt-3 inline-flex rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-black shadow-md sm:hidden">
+                <CtaLabel label={item.cta} />
               </span>
             )}
           </div>
@@ -195,7 +252,7 @@ export function FeatureCard({
 
   if (item.variant === 'compact') {
     return (
-      <CardLink url={item.url} className={`${shellClass} h-full`}>
+      <CardLink {...linkProps} className={`${shellClass} h-full`}>
         <div
           className="relative overflow-hidden p-4 sm:p-5"
           style={{
@@ -220,8 +277,10 @@ export function FeatureCard({
               </h3>
               <p className="mt-0.5 text-[11px] text-white/70 sm:text-xs">{item.description}</p>
             </div>
-            {clickable && (
-              <ArrowIcon className="h-5 w-5 shrink-0 text-white/80 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            {interactive && (
+              <span className="shrink-0 text-white/80 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                <CardActionIcon className="h-5 w-5" />
+              </span>
             )}
           </div>
         </div>
@@ -232,16 +291,19 @@ export function FeatureCard({
   const centered = item.align === 'center'
 
   return (
-    <CardLink url={item.url} className={shellClass}>
+    <CardLink {...linkProps} className={shellClass}>
       <div
         className="relative p-5 sm:p-6"
         style={{
           background: surface?.background ?? item.gradient ?? FALLBACK_GRADIENT,
         }}
       >
-        {clickable && (
-          <span style={{ color: mutedColor }}>
-            <ArrowIcon className="absolute right-3 top-3 h-5 w-5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        {interactive && !item.cta && (
+          <span
+            className="absolute right-3 top-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            style={{ color: mutedColor }}
+          >
+            <CardActionIcon className="h-5 w-5" />
           </span>
         )}
         <div
@@ -283,7 +345,8 @@ export function FeatureCard({
             </p>
             {item.cta && (
               <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-[11px] font-semibold text-black shadow-md">
-                {item.cta}
+                <CtaLabel label={item.cta} />
+                <CardActionIcon className="h-3.5 w-3.5" />
               </span>
             )}
           </div>
