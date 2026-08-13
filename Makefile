@@ -1,60 +1,78 @@
-.PHONY: help install dev-all site site-build platform-core update-package clean lint hash-password
+COMPOSE := docker compose
+APP     := $(COMPOSE) exec app
+APP_TTY := $(COMPOSE) exec -T app
 
 .DEFAULT_GOAL := help
 
-## — Ajuda --------------------------------------------------------------------
+.PHONY: help up down restart build logs ps fresh sh artisan migrate seed \
+	test pint stan tinker mysql mail
 
-help: ## Lista os comandos disponíveis
-	@echo "insta-bio — atalhos make"
+help: ## Lista os atalhos
 	@echo ""
-	@grep -E '^[a-zA-Z0-9_-]+:.*##' $(MAKEFILE_LIST) | \
-		awk 'BEGIN {FS = ":.*## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+	@echo "  Links na Bio — atalhos"
 	@echo ""
-	@echo "Fluxo típico:"
-	@echo "  make install"
-	@echo "  make dev-all"
-	@echo "  make platform-core     # sobe no servidor da plataforma"
-	@echo "  make update-package    # ZIP para clientes atualizarem pelo editor"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-	@echo "Guia: docs/DEPLOY-ATUALIZACAO.md"
+	@echo "  App:     http://localhost:8000"
+	@echo "  Mail:    http://localhost:8025  (Mailpit)"
+	@echo "  Admin:   admin@local.dev / admin123"
+	@echo "  Artisan: make artisan CMD=\"route:list\""
+	@echo ""
 
-## — Dia a dia ----------------------------------------------------------------
+up: ## Sobe o projeto em Docker
+	$(COMPOSE) up --build -d
+	@echo ""
+	@echo "Pronto → http://localhost:8000"
+	@echo "E-mails → http://localhost:8025"
 
-install: ## Instala dependências (raiz, bio, editor, panel, site)
-	npm install
-	npm install --prefix bio
-	npm install --prefix editor
-	npm install --prefix panel
-	npm install --prefix site
+down: ## Para os containers
+	$(COMPOSE) down
 
-dev-all: ## Sobe bio, editor, painel e landing localmente
-	bash scripts/dev-all.sh
+restart: ## Reinicia os containers
+	$(COMPOSE) restart
 
-site: ## Sobe a landing em modo dev (http://localhost:5190)
-	npm run site
+build: ## Reconstrói as imagens
+	$(COMPOSE) build
 
-site-build: ## Build da landing → site/dist/
-	npm run site:build
+logs: ## Acompanha os logs (Ctrl+C para sair)
+	$(COMPOSE) logs -f --tail=80
 
-## — Produção -----------------------------------------------------------------
+ps: ## Status dos containers
+	$(COMPOSE) ps
 
-platform-core: ## Build da plataforma → platform-release/ (panel + template + ZIP)
-	npm run build:core
+fresh: ## Zera o MySQL e sobe de novo (apaga dados)
+	$(COMPOSE) down -v
+	$(COMPOSE) up --build -d
+	@echo ""
+	@echo "Banco novo → http://localhost:8000"
 
-update-package: ## Gera ZIP de update remoto (bump VERSION + changelog)
-	npm run build:update-package
+sh: ## Shell no container PHP
+	$(APP) bash
 
-## — Utilitários --------------------------------------------------------------
+artisan: ## Roda artisan. Ex.: make artisan CMD="route:list"
+	$(APP_TTY) php artisan $(CMD)
 
-hash-password: ## Gera hash bcrypt (use PASSWORD=\"...\")
-ifndef PASSWORD
-	$(error Defina a senha: make hash-password PASSWORD="sua-senha")
-endif
-	npm run hash-password --prefix editor -- "$(PASSWORD)"
+migrate: ## Roda as migrations
+	$(APP_TTY) php artisan migrate --force
 
-lint: ## Linter no bio e no editor
-	npm run lint --prefix bio
-	npm run lint --prefix editor
+seed: ## Popula o banco (admin local)
+	$(APP_TTY) php artisan db:seed --force
 
-clean: ## Remove pastas de build
-	rm -rf dist bio/dist editor/dist site/dist platform-release platform-release.zip
+test: ## Roda os testes
+	$(APP_TTY) php artisan test
+
+pint: ## Formata o PHP (PSR-12)
+	$(APP_TTY) vendor/bin/pint
+
+stan: ## Análise estática (PHPStan)
+	$(APP_TTY) vendor/bin/phpstan analyse --memory-limit=512M
+
+tinker: ## Console interativo do Laravel
+	$(APP) php artisan tinker
+
+mysql: ## Cliente MySQL do projeto
+	$(COMPOSE) exec mysql mysql -ulinksnabio -psecret linksnabio
+
+mail: ## Abre a caixa de e-mails locais (Mailpit)
+	@echo "http://localhost:8025"
+	@$(COMPOSE) ps mailpit

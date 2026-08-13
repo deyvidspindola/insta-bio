@@ -1,0 +1,26 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+/**
+ * Restringe o painel e as APIs admin a usuários com `is_admin`.
+ */
+class EnsureAdmin
+{
+    /**
+     * @param  Closure(Request): Response  $next
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        $user = $request->user();
+        if (! $user || ! $user->is_admin) {
+            abort(403, 'Acesso restrito.');
+        }
+
+        return $next($request);
+    }
+}

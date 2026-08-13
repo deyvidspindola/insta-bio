@@ -1,101 +1,69 @@
-# insta-bio
+# Links na Bio (V2)
 
-Template de **link da bio** para Instagram — inspirado no [Voe Connect](https://voeconnect.com.br/bio).
+SaaS de link na bio: o visitante vê a página pública; o dono cria a conta, escolhe um layout e edita os links. PHP (Laravel) no servidor, React no front. Hospedagem compartilhada (HostGator).
 
-O conteúdo da página fica em **`bio.json`**. Depois do deploy inicial, dá para atualizar textos e links **sem rebuild** — pelo editor online ou trocando o arquivo no servidor.
-
----
-
-## Início rápido (desenvolvimento)
+## Início rápido (Docker)
 
 ```bash
-make install
-# ou manualmente:
-# npm install --prefix bio --prefix editor --prefix panel --prefix site
-
-make dev-all         # bio + editor + painel + landing (recomendado)
-# ou separado:
-npm run dev          # Bio → http://localhost:5173
-npm run editor       # Editor → http://localhost:5180
-npm run panel        # Painel → http://localhost:5175/panel/
-npm run site         # Landing → http://localhost:5190
+make up
 ```
 
-**Login local do editor:** `admin@local.dev` / `admin123` (arquivo `editor/auth.json`).
+`make help` lista os atalhos (`down`, `logs`, `test`, `artisan`, …).
 
-Na primeira abertura, se não existir `bio/public/bio.json`, o Vite cria um a partir de `editor/public/demo-bio.json`. Dashboard em `:5180` usa analytics mockados.
+- Landing: http://localhost:8000
+- Cadastro: http://localhost:8000/cadastro
+- Editor (após onboarding): http://localhost:8000/app
+- E-mails (Mailpit): http://localhost:8025
 
-**Demo do editor:** [http://localhost:5180/demo.html](http://localhost:5180/demo.html)
+Seed: `admin@local.dev` / `admin123` (admin). Na primeira subida o container instala dependências, gera a `APP_KEY`, migra e popula o banco. E-mails de verificação vão para o Mailpit, não para a caixa real.
 
----
-
-## Publicar (produção)
-
-Dois comandos — o resto está em [docs/DEPLOY-ATUALIZACAO.md](./docs/DEPLOY-ATUALIZACAO.md).
+## Início rápido (sem Docker)
 
 ```bash
-make platform-core      # plataforma → platform-release/  (sobe no /panel/)
-make update-package     # ZIP de update → clientes atualizam pelo editor
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan storage:link
+composer run dev
 ```
 
-**Guia “o que subir onde”:** [docs/DEPLOY-ATUALIZACAO.md](./docs/DEPLOY-ATUALIZACAO.md)
+## Arquitetura PHP
 
-**HostGator / single-tenant:** [docs/HOSTGATOR.md](./docs/HOSTGATOR.md)  
-**Plataforma multi-cliente:** [docs/PLATAFORMA.md](./docs/PLATAFORMA.md)  
-**Vender / instalar clientes:** [docs/COMERCIALIZACAO.md](./docs/COMERCIALIZACAO.md)
+Controllers **não** acessam o banco e **não** têm regra de negócio: validam o HTTP (Form Request) e chamam um use case `execute()`.
 
----
+```
+app/Http/Controllers/   → orquestra Request → UseCase → Response
+app/UseCases/           → uma classe por funcionalidade, método execute()
+app/Services/           → lógica reutilizável (plano, slug, Mercado Pago, DNS…)
+app/Repositories/       → único acesso Eloquent
+app/Exceptions/         → ApplicationException (JSON 4xx ou redirect com erros)
+```
 
-## Documentação
+Rotas separadas:
 
-| Documento | Para quem | Conteúdo |
-|-----------|-----------|----------|
-| [HOSTGATOR.md](./docs/HOSTGATOR.md) | Deploy | FTP, login PHP, testes, problemas comuns |
-| [DEPLOY-ATUALIZACAO.md](./docs/DEPLOY-ATUALIZACAO.md) | Operação | **O que buildar, estrutura gerada e o que subir no FTP** |
-| [COMERCIALIZACAO.md](./docs/COMERCIALIZACAO.md) | Negócio | Novo cliente, checklist, manutenção |
-| [EDITOR.md](./docs/EDITOR.md) | Editor | Funcionalidades, fluxo salvar/publicar |
-| [BIO-JSON.md](./docs/BIO-JSON.md) | Conteúdo | Campos, cards, ícones, exemplos |
-| [PROJETO.md](./docs/PROJETO.md) | Desenvolvedor | Arquitetura e código |
-| [PLATAFORMA.md](./docs/PLATAFORMA.md) | Plataforma | Multi-cliente, `/panel/`, MySQL |
-| [MELHORIAS.md](./docs/MELHORIAS.md) | Produto | Roadmap e prioridades |
-| [ATUALIZACOES-REMOTAS.md](./docs/ATUALIZACOES-REMOTAS.md) | Operação | Atualização remota (single-tenant): release, ZIP, check/apply |
-| [site/README.md](./site/README.md) | Comercial | Landing page de vendas |
-| [panel/README.md](./panel/README.md) | Plataforma | Painel super-admin |
+| Arquivo | Conteúdo |
+|---------|----------|
+| `routes/web.php` | Landing, auth, SPA (onboarding, editor, settings) |
+| `routes/bio.php` | API da bio, mídia, billing, domínio, analytics, bio pública |
+| `routes/admin.php` | Painel e API admin |
 
----
+O schema da bio está em `resources/js/bio/types/bio.ts` e o JSON default em `database/data/bio.default.json`.
 
-## Monorepo
+## Front (React)
 
-| Pasta | O que é | Porta dev | Build |
-|-------|---------|-----------|-------|
-| `bio/` | Bio pública (React + `bio.json`) | 5173 | `dist/` na **raiz** |
-| `editor/` | Editor visual + PHP | 5180 | `editor/dist/` |
-| `panel/` | Super-admin (cadastro de clientes) | 5175 | `panel/dist/` + PHP |
-| `site/` | Landing comercial | 5190 | `site/dist/` |
-| `scripts/` | Pacotes de deploy (`release/`, `platform-release/`) | — | — |
-| `deploy/` | `.htaccess` de referência | — | — |
+O editor e a bio pública mantêm o visual da V1. O app de auth/onboarding/settings e o admin seguem a mesma ideia: páginas curtas, hooks com a lógica, componentes reutilizáveis em `resources/js/shared/ui`.
 
-A raiz do repositório é só **orquestração** (`package.json`, `Makefile`, `docs/`). O código da bio vive em `bio/`.
+## Deploy
 
----
+Push em `main` (homologação) ou `production` (produção, com aprovação). O GitHub Actions builda os assets e chama `bin/deploy.sh` no servidor.
 
-## Comandos úteis (`make`)
+Secrets por environment (`staging` / `production`): `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_PORT`, `SSH_KNOWN_HOSTS`, `SSH_USER`, `APP_PATH`. Variável: `APP_URL`.
 
-| Comando | O que faz |
-|---------|-----------|
-| `make install` | Instala deps de bio, editor, panel e site |
-| `make dev-all` | Sobe bio + editor + painel + landing |
-| `make site` | Sobe só a landing (dev) |
-| `make site-build` | Build da landing → `site/dist/` |
-| `make platform-core` | Build da plataforma → `platform-release/` |
-| `make update-package` | ZIP de update remoto (bump + changelog) |
-| `make hash-password PASSWORD="..."` | Hash bcrypt para `auth.config.php` |
-| `make lint` / `make clean` | Linter / limpa builds |
+Atalho para gerar chave e checklist:
 
-Apps avulsos no dia a dia: `npm run bio` · `npm run editor` · `npm run panel` · `npm run site`.
-
----
-
-## Stack
-
-React 19 · TypeScript · Vite 6 · Tailwind CSS 4 · PHP (produção na HostGator) · MySQL (painel multi-cliente)
+```bash
+./bin/setup-github-deploy-secrets.sh staging
+./bin/setup-github-deploy-secrets.sh production
+```

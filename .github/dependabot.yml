@@ -1,0 +1,49 @@
+version: 2
+
+# Atualização de dependências.
+#
+# Frequência mensal de propósito: semanal gera ruído que ninguém lê, e num
+# projeto de um desenvolvedor só, PR de dependência não revisado é pior que
+# dependência desatualizada. Vulnerabilidade de segurança é exceção — o
+# Dependabot abre PR na hora, independente desta configuração.
+
+updates:
+  - package-ecosystem: composer
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      # Agrupa patches num PR só. Reduz de dez PRs para um.
+      patches:
+        update-types: [patch]
+    ignore:
+      # Framework e Livewire sobem por decisão, não por automação:
+      # major de Laravel ou Livewire exige ler o guia de upgrade.
+      - dependency-name: laravel/framework
+        update-types: [version-update:semver-major]
+      - dependency-name: livewire/livewire
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      patches:
+        update-types: [patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: chore
+      include: scope
