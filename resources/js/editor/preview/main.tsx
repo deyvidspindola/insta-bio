@@ -46,11 +46,18 @@ function PreviewApp() {
   }, [])
 
   useEffect(() => {
+    let received = false
+
+    function announceReady() {
+      window.parent.postMessage({ type: 'bio-preview-ready' }, '*')
+    }
+
     function onMessage(event: MessageEvent) {
       if (typeof event.data?.bioJsonPath === 'string' && event.data.bioJsonPath.trim()) {
         setBioJsonRelativePath(event.data.bioJsonPath)
       }
       if (event.data?.type === 'bio-preview' && event.data.config) {
+        received = true
         setConfig(event.data.config as BioConfig)
         const nextFocus = event.data.focus as PreviewFocus | null | undefined
         const normalized =
@@ -73,9 +80,21 @@ function PreviewApp() {
     }
 
     window.addEventListener('message', onMessage)
-    window.parent.postMessage({ type: 'bio-preview-ready' }, '*')
+    // Reenvia ready até o pai entregar o config — evita ficar preso em
+    // "Aguardando preview…" se o postMessage inicial chegar antes do listener.
+    announceReady()
+    const timer = window.setInterval(() => {
+      if (received) {
+        window.clearInterval(timer)
+        return
+      }
+      announceReady()
+    }, 250)
 
-    return () => window.removeEventListener('message', onMessage)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('message', onMessage)
+    }
   }, [])
 
   // Só rola quando o card em foco muda — nunca a cada edição de estilo/texto.

@@ -29,26 +29,31 @@ export function PreviewPanel({
   onSelectItem,
 }: PreviewPanelProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const onSelectItemRef = useRef(onSelectItem)
   const [ready, setReady] = useState(false)
   const previewSrc = useMemo(() => previewIframeSrc(), [])
+
+  onSelectItemRef.current = onSelectItem
 
   useEffect(() => {
     function onMessage(event: MessageEvent) {
       if (event.data?.type === 'bio-preview-ready') {
         setReady(true)
       }
-      if (event.data?.type === 'bio-preview-select' && onSelectItem) {
+      if (event.data?.type === 'bio-preview-select') {
+        const handler = onSelectItemRef.current
+        if (!handler) return
         const sectionId = event.data.sectionId
         const itemIndex = event.data.itemIndex
         if (typeof sectionId === 'string' && typeof itemIndex === 'number') {
-          onSelectItem({ sectionId, itemIndex })
+          handler({ sectionId, itemIndex })
         }
       }
     }
 
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [onSelectItem])
+  }, [])
 
   useEffect(() => {
     if (!ready || !iframeRef.current?.contentWindow) return
