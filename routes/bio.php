@@ -7,6 +7,7 @@ use App\Http\Controllers\BioController;
 use App\Http\Controllers\BioPageController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\FormController;
+use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MapsController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\OnboardingController;
@@ -41,6 +42,13 @@ Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
     Route::post('/api/billing/checkout', [BillingController::class, 'checkout']);
     Route::post('/api/billing/sandbox', [BillingController::class, 'sandbox']);
     Route::get('/api/forms/submissions', [FormController::class, 'index']);
+    Route::get('/api/leads', [LeadController::class, 'index']);
+    Route::patch('/api/leads/{id}/stage', [LeadController::class, 'updateStage'])
+        ->whereNumber('id');
+    Route::patch('/api/leads/{id}/notes', [LeadController::class, 'updateNotes'])
+        ->whereNumber('id');
+    Route::delete('/api/leads/{id}', [LeadController::class, 'destroy'])
+        ->whereNumber('id');
     Route::get('/api/bio/pages', [BioPageController::class, 'index']);
     Route::post('/api/bio/pages', [BioPageController::class, 'store']);
     Route::put('/api/bio/pages/{slug}', [BioPageController::class, 'update'])

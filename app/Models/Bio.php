@@ -100,6 +100,16 @@ class Bio extends Model
     }
 
     /**
+     * Leads do funil desta bio.
+     *
+     * @return HasMany<Lead, $this>
+     */
+    public function leads(): HasMany
+    {
+        return $this->hasMany(Lead::class);
+    }
+
+    /**
      * Plano Pro (sem watermark e com domínio próprio).
      */
     public function isPro(): bool

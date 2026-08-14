@@ -5,6 +5,7 @@ namespace App\UseCases\Analytics;
 use App\Models\Bio;
 use App\Repositories\AnalyticsRepository;
 use App\Repositories\BioRepository;
+use App\Repositories\LeadRepository;
 use Illuminate\Support\Carbon;
 
 /**
@@ -15,6 +16,7 @@ final class TrackEvent
     public function __construct(
         private BioRepository $bios,
         private AnalyticsRepository $events,
+        private LeadRepository $leads,
     ) {}
 
     /**
@@ -49,6 +51,39 @@ final class TrackEvent
             'item_type' => $meta['item_type'] ?? null,
             'label' => $meta['label'] ?? null,
             'target_url' => $meta['url'] ?? null,
+        ]);
+
+        if ($type === 'click' && ($meta['item_type'] ?? null) === 'whatsapp-hero') {
+            $this->captureWhatsAppLead($bio, $payload, $meta);
+        }
+    }
+
+    /**
+     * Lead a partir de clique no WhatsApp hero (máx. 1 por visitante/bio/dia).
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $meta
+     */
+    private function captureWhatsAppLead(Bio $bio, array $payload, array $meta): void
+    {
+        $visitorId = isset($payload['visitor_id']) && is_string($payload['visitor_id'])
+            ? $payload['visitor_id']
+            : '';
+
+        if ($visitorId === '' || $this->leads->existsWhatsAppLeadToday($bio->id, $visitorId)) {
+            return;
+        }
+
+        $label = $meta['label'] ?? null;
+
+        $this->leads->create([
+            'bio_id' => $bio->id,
+            'name' => null,
+            'contact' => null,
+            'source_type' => 'whatsapp-hero',
+            'source_label' => is_string($label) ? $label : null,
+            'stage' => 'novo',
+            'visitor_id' => $visitorId,
         ]);
     }
 }

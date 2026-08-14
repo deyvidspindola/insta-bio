@@ -6,6 +6,7 @@ use App\Models\Bio;
 use App\Models\FormSubmission;
 use App\Repositories\BioRepository;
 use App\Repositories\FormSubmissionRepository;
+use App\UseCases\Leads\CreateLeadFromFormSubmission;
 
 /**
  * Persiste a resposta de um bloco de formulário da bio pública.
@@ -15,6 +16,7 @@ final class SubmitFormResponse
     public function __construct(
         private BioRepository $bios,
         private FormSubmissionRepository $submissions,
+        private CreateLeadFromFormSubmission $createLead,
     ) {}
 
     /**
@@ -44,7 +46,7 @@ final class SubmitFormResponse
             $normalized[$fieldId] = is_scalar($value) ? (string) $value : '';
         }
 
-        return $this->submissions->create([
+        $submission = $this->submissions->create([
             'bio_id' => $bio->id,
             'section_id' => (string) ($payload['section_id'] ?? ''),
             'item_index' => (int) ($payload['item_index'] ?? 0),
@@ -53,5 +55,11 @@ final class SubmitFormResponse
             'visitor_id' => isset($payload['visitor_id']) ? (string) $payload['visitor_id'] : null,
             'ip' => $ip,
         ]);
+
+        // Garante relação bio para extrair campos do formulário no lead.
+        $submission->setRelation('bio', $bio);
+        $this->createLead->execute($submission);
+
+        return $submission;
     }
 }
