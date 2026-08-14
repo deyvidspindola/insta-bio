@@ -21,4 +21,5 @@ export const ENDPOINTS = {
   analyticsClicks: '/api/analytics/clicks',
   resolveMaps: '/api/maps/resolve',
   bioPages: '/api/bio/pages',
+  bioForms: '/api/bio/forms',
 } as const

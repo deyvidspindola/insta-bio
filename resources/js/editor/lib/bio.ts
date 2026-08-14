@@ -387,33 +387,12 @@ export function createItem(
     case 'form':
       return {
         type,
-        title: 'Fale conosco',
-        description: 'Deixe seu contato e retornamos em breve.',
-        submitLabel: 'Enviar',
-        successMessage: 'Recebemos sua mensagem. Obrigado!',
-        fields: [
-          {
-            id: 'nome',
-            type: 'text',
-            label: 'Nome',
-            required: true,
-            placeholder: 'Seu nome',
-          },
-          {
-            id: 'email',
-            type: 'email',
-            label: 'E-mail',
-            required: true,
-            placeholder: 'voce@email.com',
-          },
-          {
-            id: 'mensagem',
-            type: 'textarea',
-            label: 'Mensagem',
-            required: false,
-            placeholder: 'Como podemos ajudar?',
-          },
-        ],
+        formSlug: '',
+        display: 'embed',
+        buttonLabel: 'Abrir formulário',
+        // fields vazio: o conteúdo vem do formulário (formSlug).
+        // Blocos legados com fields inline continuam válidos no schema.
+        fields: [],
       }
     default:
       return {

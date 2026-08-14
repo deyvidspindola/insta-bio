@@ -7,29 +7,25 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Resposta enviada por um bloco de formulário da bio.
+ * Formulário reutilizável da bio (rascunho e publicado).
  *
  * @property int $id
  * @property int $bio_id
- * @property string $section_id
- * @property int $item_index
- * @property string|null $form_slug
- * @property string|null $form_title
- * @property array<string, mixed> $answers
- * @property string|null $visitor_id
- * @property string|null $ip
+ * @property string $slug
+ * @property string $title
+ * @property array<string, mixed>|null $json_draft
+ * @property array<string, mixed>|null $json_published
+ * @property string $status
  */
 #[Fillable([
     'bio_id',
-    'section_id',
-    'item_index',
-    'form_slug',
-    'form_title',
-    'answers',
-    'visitor_id',
-    'ip',
+    'slug',
+    'title',
+    'json_draft',
+    'json_published',
+    'status',
 ])]
-class FormSubmission extends Model
+class BioForm extends Model
 {
     /**
      * @return array<string, string>
@@ -37,8 +33,8 @@ class FormSubmission extends Model
     protected function casts(): array
     {
         return [
-            'answers' => 'array',
-            'item_index' => 'integer',
+            'json_draft' => 'array',
+            'json_published' => 'array',
         ];
     }
 

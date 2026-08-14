@@ -73,14 +73,16 @@ export function FormSubmissionsPanel() {
             onChange={(e) => changeFilter(e.target.value)}
           >
             <option value="all">Todos</option>
-            {forms.map((form) => (
-              <option
-                key={`${form.section_id}:${form.item_index}`}
-                value={`${form.section_id}:${form.item_index}`}
-              >
-                {form.form_title || `${form.section_id} · #${form.item_index + 1}`}
+            {forms.map((form) => {
+              const value = form.form_slug
+                ? `slug:${form.form_slug}`
+                : `${form.section_id}:${form.item_index}`
+              return (
+              <option key={value} value={value}>
+                {form.form_title || form.form_slug || `${form.section_id} · #${form.item_index + 1}`}
               </option>
-            ))}
+              )
+            })}
           </select>
         </label>
       )}

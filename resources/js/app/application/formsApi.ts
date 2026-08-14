@@ -2,6 +2,7 @@ import { api } from '../../shared/http'
 
 export type FormSubmissionItem = {
   id: number
+  form_slug?: string | null
   section_id: string
   item_index: number
   form_title: string | null
@@ -10,6 +11,7 @@ export type FormSubmissionItem = {
 }
 
 export type FormFilterOption = {
+  form_slug: string | null
   section_id: string
   item_index: number
   form_title: string | null
@@ -24,10 +26,11 @@ export type FormSubmissionsResponse = {
  * API de respostas de formulários para o dono da bio.
  */
 export const formsApi = {
-  list: (sectionId?: string | null, itemIndex?: number | null) => {
+  list: (filter?: { formSlug?: string | null; sectionId?: string | null; itemIndex?: number | null }) => {
     const params = new URLSearchParams()
-    if (sectionId) params.set('section_id', sectionId)
-    if (typeof itemIndex === 'number') params.set('item_index', String(itemIndex))
+    if (filter?.formSlug) params.set('form_slug', filter.formSlug)
+    if (filter?.sectionId) params.set('section_id', filter.sectionId)
+    if (typeof filter?.itemIndex === 'number') params.set('item_index', String(filter.itemIndex))
     const qs = params.toString()
     return api<FormSubmissionsResponse>(`/api/forms/submissions${qs ? `?${qs}` : ''}`)
   },

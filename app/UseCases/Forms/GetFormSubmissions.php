@@ -17,18 +17,28 @@ final class GetFormSubmissions
     ) {}
 
     /**
-     * @return array{items: list<array<string, mixed>>, forms: list<array{section_id: string, item_index: int, form_title: string|null}>}
+     * @return array{
+     *   items: list<array<string, mixed>>,
+     *   forms: list<array{form_slug: string|null, section_id: string, item_index: int, form_title: string|null}>
+     * }
      */
-    public function execute(User $user, ?string $sectionId, ?int $itemIndex): array
-    {
+    public function execute(
+        User $user,
+        ?string $sectionId,
+        ?int $itemIndex,
+        ?string $formSlug = null,
+    ): array {
         $bio = $this->currentBio->require($user);
-        $rows = $this->submissions->allForBio($bio, $sectionId, $itemIndex);
+        $rows = $this->submissions->allForBio($bio, $sectionId, $itemIndex, $formSlug);
 
         $formsMap = [];
         foreach ($this->submissions->allForBio($bio) as $row) {
-            $key = $row->section_id.':'.$row->item_index;
+            $key = filled($row->form_slug)
+                ? 'slug:'.$row->form_slug
+                : $row->section_id.':'.$row->item_index;
             if (! isset($formsMap[$key])) {
                 $formsMap[$key] = [
+                    'form_slug' => $row->form_slug,
                     'section_id' => $row->section_id,
                     'item_index' => $row->item_index,
                     'form_title' => $row->form_title,
@@ -39,6 +49,7 @@ final class GetFormSubmissions
         return [
             'items' => $rows->map(fn ($row) => [
                 'id' => $row->id,
+                'form_slug' => $row->form_slug,
                 'section_id' => $row->section_id,
                 'item_index' => $row->item_index,
                 'form_title' => $row->form_title,

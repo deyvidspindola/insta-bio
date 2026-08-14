@@ -1,24 +1,19 @@
-import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
-import type { FormCard, FormField, FormFieldType } from '@bio-types'
+import { useEffect, useState } from 'react'
+import type { FormCard, FormDisplayMode } from '@bio-types'
+import { api } from '../../../shared/http'
+import { ENDPOINTS } from '../../lib/endpoints'
 import { Field } from './Field'
 import { FieldGroup } from './FieldGroup'
 
-const FIELD_TYPE_OPTIONS: { value: FormFieldType; label: string }[] = [
-  { value: 'text', label: 'Texto' },
-  { value: 'email', label: 'E-mail' },
-  { value: 'phone', label: 'Telefone' },
-  { value: 'textarea', label: 'Texto longo' },
-]
-
-function newField(): FormField {
-  return {
-    id: `campo-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    type: 'text',
-    label: 'Novo campo',
-    required: false,
-  }
+type BioFormOption = {
+  slug: string
+  title: string
+  status: string
 }
 
+/**
+ * No conteúdo da bio: escolhe formulário do menu Formulários + modo embed/modal.
+ */
 export function FormItemFields({
   item,
   onChange,
@@ -26,145 +21,96 @@ export function FormItemFields({
   item: FormCard
   onChange: (item: FormCard) => void
 }) {
-  const fields = item.fields ?? []
+  const [forms, setForms] = useState<BioFormOption[]>([])
+  const [loading, setLoading] = useState(true)
 
-  function patchField(index: number, patch: Partial<FormField>) {
-    const next = fields.map((field, i) => (i === index ? { ...field, ...patch } : field))
-    onChange({ ...item, fields: next })
-  }
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    api<{ forms: BioFormOption[] }>(ENDPOINTS.bioForms)
+      .then((data) => {
+        if (!cancelled) setForms(data.forms ?? [])
+      })
+      .catch(() => {
+        if (!cancelled) setForms([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  function moveField(from: number, to: number) {
-    if (to < 0 || to >= fields.length) return
-    const next = [...fields]
-    const [moved] = next.splice(from, 1)
-    next.splice(to, 0, moved)
-    onChange({ ...item, fields: next })
-  }
+  const display: FormDisplayMode = item.display === 'modal' ? 'modal' : 'embed'
+  const selected = forms.find((form) => form.slug === item.formSlug)
 
   return (
     <>
       <FieldGroup title="Formulário">
-        <Field label="Título">
-          <input
-            value={item.title ?? ''}
-            onChange={(e) => onChange({ ...item, title: e.target.value })}
-            placeholder="Ex.: Fale conosco"
-          />
+        <Field label="Qual formulário">
+          <select
+            value={item.formSlug ?? ''}
+            disabled={loading}
+            onChange={(e) =>
+              onChange({
+                ...item,
+                formSlug: e.target.value,
+                title: forms.find((f) => f.slug === e.target.value)?.title ?? item.title,
+                fields: [],
+              })
+            }
+          >
+            <option value="">{loading ? 'Carregando…' : 'Selecione um formulário'}</option>
+            {forms.map((form) => (
+              <option key={form.slug} value={form.slug}>
+                {form.title}
+                {form.status !== 'published' ? ' (rascunho)' : ''}
+              </option>
+            ))}
+          </select>
+          {!loading && forms.length === 0 && (
+            <p className="mt-1.5 text-[11px] leading-snug text-amber-600 dark:text-amber-400">
+              Nenhum formulário ainda. Crie um na aba Formulários do menu.
+            </p>
+          )}
+          {selected && selected.status !== 'published' && (
+            <p className="mt-1.5 text-[11px] leading-snug text-amber-600 dark:text-amber-400">
+              Publique este formulário na aba Formulários para aparecer na bio pública.
+            </p>
+          )}
         </Field>
-        <Field label="Descrição (opcional)">
+
+        <Field label="Exibição">
+          <select
+            value={display}
+            onChange={(e) =>
+              onChange({ ...item, display: e.target.value as FormDisplayMode })
+            }
+          >
+            <option value="embed">Embutido na bio</option>
+            <option value="modal">Botão que abre em modal</option>
+          </select>
+        </Field>
+
+        {display === 'modal' && (
+          <Field label="Texto do botão">
+            <input
+              value={item.buttonLabel ?? ''}
+              onChange={(e) => onChange({ ...item, buttonLabel: e.target.value })}
+              placeholder="Abrir formulário"
+            />
+          </Field>
+        )}
+
+        <Field label="Descrição no card (opcional)">
           <textarea
             rows={2}
             value={item.description ?? ''}
             onChange={(e) => onChange({ ...item, description: e.target.value })}
-            placeholder="Texto curto acima dos campos"
+            placeholder="Texto curto abaixo do botão (só no modo modal)"
           />
         </Field>
-        <Field label="Texto do botão">
-          <input
-            value={item.submitLabel ?? ''}
-            onChange={(e) => onChange({ ...item, submitLabel: e.target.value })}
-            placeholder="Enviar"
-          />
-        </Field>
-        <Field label="Mensagem de sucesso">
-          <input
-            value={item.successMessage ?? ''}
-            onChange={(e) => onChange({ ...item, successMessage: e.target.value })}
-            placeholder="Recebemos sua mensagem. Obrigado!"
-          />
-        </Field>
-      </FieldGroup>
-
-      <FieldGroup title="Campos">
-        <div className="space-y-3">
-          {fields.map((field, index) => (
-            <div
-              key={field.id}
-              className="space-y-2 rounded-lg border border-border/70 bg-background/30 p-3"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Campo {index + 1}
-                </p>
-                <div className="flex items-center gap-0.5">
-                  <button
-                    type="button"
-                    className="btn-ghost p-1.5"
-                    disabled={index === 0}
-                    aria-label="Mover campo para cima"
-                    onClick={() => moveField(index, index - 1)}
-                  >
-                    <ChevronUp className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-ghost p-1.5"
-                    disabled={index === fields.length - 1}
-                    aria-label="Mover campo para baixo"
-                    onClick={() => moveField(index, index + 1)}
-                  >
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-ghost p-1.5 text-muted-foreground hover:text-red-400"
-                    aria-label="Remover campo"
-                    onClick={() =>
-                      onChange({
-                        ...item,
-                        fields: fields.filter((_, i) => i !== index),
-                      })
-                    }
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-              <Field label="Rótulo">
-                <input
-                  value={field.label}
-                  onChange={(e) => patchField(index, { label: e.target.value })}
-                />
-              </Field>
-              <Field label="Tipo">
-                <select
-                  value={field.type}
-                  onChange={(e) =>
-                    patchField(index, { type: e.target.value as FormFieldType })
-                  }
-                >
-                  {FIELD_TYPE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Placeholder (opcional)">
-                <input
-                  value={field.placeholder ?? ''}
-                  onChange={(e) => patchField(index, { placeholder: e.target.value })}
-                />
-              </Field>
-              <label className="flex cursor-pointer items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={Boolean(field.required)}
-                  onChange={(e) => patchField(index, { required: e.target.checked })}
-                />
-                Obrigatório
-              </label>
-            </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          className="btn-secondary mt-2 flex w-full items-center justify-center gap-1.5 py-1.5 text-xs"
-          onClick={() => onChange({ ...item, fields: [...fields, newField()] })}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Adicionar campo
-        </button>
       </FieldGroup>
     </>
   )

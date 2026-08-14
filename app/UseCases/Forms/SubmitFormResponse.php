@@ -50,6 +50,9 @@ final class SubmitFormResponse
             'bio_id' => $bio->id,
             'section_id' => (string) ($payload['section_id'] ?? ''),
             'item_index' => (int) ($payload['item_index'] ?? 0),
+            'form_slug' => isset($payload['form_slug']) && is_string($payload['form_slug'])
+                ? trim($payload['form_slug'])
+                : null,
             'form_title' => isset($payload['form_title']) ? (string) $payload['form_title'] : null,
             'answers' => $normalized,
             'visitor_id' => isset($payload['visitor_id']) ? (string) $payload['visitor_id'] : null,

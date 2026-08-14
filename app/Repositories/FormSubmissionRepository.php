@@ -42,12 +42,26 @@ class FormSubmissionRepository
      *
      * @return Collection<int, FormSubmission>
      */
-    public function allForBio(Bio $bio, ?string $sectionId = null, ?int $itemIndex = null): Collection
-    {
+    public function allForBio(
+        Bio $bio,
+        ?string $sectionId = null,
+        ?int $itemIndex = null,
+        ?string $formSlug = null,
+    ): Collection {
         return FormSubmission::query()
             ->where('bio_id', $bio->id)
-            ->when($sectionId !== null && $sectionId !== '', fn ($q) => $q->where('section_id', $sectionId))
-            ->when($itemIndex !== null, fn ($q) => $q->where('item_index', $itemIndex))
+            ->when(
+                $formSlug !== null && $formSlug !== '',
+                fn ($q) => $q->where('form_slug', $formSlug),
+            )
+            ->when(
+                ($formSlug === null || $formSlug === '') && $sectionId !== null && $sectionId !== '',
+                fn ($q) => $q->where('section_id', $sectionId),
+            )
+            ->when(
+                ($formSlug === null || $formSlug === '') && $itemIndex !== null,
+                fn ($q) => $q->where('item_index', $itemIndex),
+            )
             ->orderByDesc('created_at')
             ->limit(500)
             ->get();

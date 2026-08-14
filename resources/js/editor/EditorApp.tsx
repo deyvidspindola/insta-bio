@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   AlertTriangle,
   ArrowUpRight,
+  ClipboardList,
   CreditCard,
   Eye,
   FileText,
@@ -30,6 +31,7 @@ import { AppearanceForm } from './components/AppearanceForm'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { DashboardPanel } from './components/DashboardPanel'
 import { FormSubmissionsPanel } from './components/FormSubmissionsPanel'
+import { FormsPanel } from './components/FormsPanel'
 import { IdentityForm } from './components/IdentityForm'
 import { ImagesGallery } from './components/ImagesGallery'
 import { LeadsPanel } from './components/LeadsPanel'
@@ -43,6 +45,7 @@ import { QuickAddLink } from './components/QuickAddLink'
 import { SectionEditor } from './components/SectionEditor'
 import { SectionMobilePicker, SectionSidebar } from './components/SectionSidebar'
 import { DemoModeProvider } from './context/DemoModeContext'
+import { useBioForms } from './hooks/useBioForms'
 import { useBioPages } from './hooks/useBioPages'
 import {
   fetchSession,
@@ -74,6 +77,7 @@ type Tab =
   | 'appearance'
   | 'sections'
   | 'pages'
+  | 'forms'
   | 'images'
   | 'respostas'
   | 'funil'
@@ -82,7 +86,7 @@ type Tab =
 type EditorMode = 'full' | 'demo'
 
 /** Tabs de gestão (sem coluna de preview). */
-const WORKSPACE_TABS: Tab[] = ['respostas', 'funil', 'account']
+const WORKSPACE_TABS: Tab[] = ['forms', 'respostas', 'funil', 'account']
 
 function isPlanLimitError(message: string) {
   return /plano|upgrade|\bpro\b/i.test(message)
@@ -149,6 +153,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   const statusTimerRef = useRef<number | null>(null)
   const actionErrorTimerRef = useRef<number | null>(null)
   const pagesApi = useBioPages(!isDemo && authenticated === true)
+  const formsApi = useBioForms(!isDemo && authenticated === true)
 
   function markClean(next: BioConfig) {
     setSavedSnapshot(JSON.stringify(next))
@@ -564,8 +569,9 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     { id: 'appearance', label: 'Aparência', shortLabel: 'Visual', icon: Palette },
     { id: 'sections', label: 'Conteúdo', shortLabel: 'Links', icon: Layers },
     { id: 'pages', label: 'Páginas', shortLabel: 'Págs', icon: FileText },
+    { id: 'forms', label: 'Formulários', shortLabel: 'Forms', icon: ClipboardList },
     { id: 'images', label: 'Arquivos', shortLabel: 'Mídia', icon: Images },
-    { id: 'respostas', label: 'Respostas', shortLabel: 'Forms', icon: Inbox },
+    { id: 'respostas', label: 'Respostas', shortLabel: 'Inbox', icon: Inbox },
     { id: 'funil', label: 'Funil', shortLabel: 'Leads', icon: Kanban },
     { id: 'account', label: 'Conta', shortLabel: 'Plano', icon: CreditCard },
     { id: 'advanced', label: 'Avançado', shortLabel: 'Extra', icon: Wrench },
@@ -577,6 +583,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
           tab.id !== 'advanced' &&
           tab.id !== 'images' &&
           tab.id !== 'pages' &&
+          tab.id !== 'forms' &&
           tab.id !== 'respostas' &&
           tab.id !== 'funil' &&
           tab.id !== 'account',
@@ -1031,6 +1038,14 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                   setDragIndex(null)
                   setDropIndex(null)
                 }}
+                onStatus={showStatus}
+                onActionError={showActionError}
+              />
+            )}
+
+            {!isDemo && activeTab === 'forms' && (
+              <FormsPanel
+                formsApi={formsApi}
                 onStatus={showStatus}
                 onActionError={showActionError}
               />

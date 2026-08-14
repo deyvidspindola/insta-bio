@@ -4,6 +4,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BioController;
+use App\Http\Controllers\BioFormController;
 use App\Http\Controllers\BioPageController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\FormController;
@@ -19,6 +20,9 @@ Route::get('/api/auth/session', [BioController::class, 'session']);
 Route::post('/api/analytics/track', [AnalyticsController::class, 'track']);
 Route::post('/api/public/forms/submit', [FormController::class, 'submit'])
     ->middleware('throttle:20,1');
+Route::get('/api/public/forms/{formSlug}', [BioFormController::class, 'showPublic'])
+    ->middleware('throttle:60,1')
+    ->where('formSlug', '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?');
 Route::post('/webhooks/mercadopago', [BillingController::class, 'webhook']);
 Route::get('/api/public/bio/{slug}', [PublicBioController::class, 'json']);
 
@@ -56,6 +60,14 @@ Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
     Route::post('/api/bio/pages/{slug}/publish', [BioPageController::class, 'publish'])
         ->where('slug', '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?');
     Route::delete('/api/bio/pages/{slug}', [BioPageController::class, 'destroy'])
+        ->where('slug', '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?');
+    Route::get('/api/bio/forms', [BioFormController::class, 'index']);
+    Route::post('/api/bio/forms', [BioFormController::class, 'store']);
+    Route::put('/api/bio/forms/{slug}', [BioFormController::class, 'update'])
+        ->where('slug', '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?');
+    Route::post('/api/bio/forms/{slug}/publish', [BioFormController::class, 'publish'])
+        ->where('slug', '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?');
+    Route::delete('/api/bio/forms/{slug}', [BioFormController::class, 'destroy'])
         ->where('slug', '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?');
     Route::get('/api/domain', [DomainController::class, 'show']);
     Route::post('/api/domain', [DomainController::class, 'store']);

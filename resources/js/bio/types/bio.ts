@@ -161,8 +161,11 @@ export type CardSchedule = {
  * - copy: copia `cta` (se houver) ou `url` para a área de transferência
  * - tally: abre formulário Tally em popup (URL tally.so)
  * - page: navega para página interna `/{bioSlug}/{pageSlug}`
+ * - form: abre formulário próprio da bio em modal
  */
-export type CardAction = 'link' | 'copy' | 'tally' | 'page'
+export type CardAction = 'link' | 'copy' | 'tally' | 'page' | 'form'
+
+export type FormDisplayMode = 'embed' | 'modal'
 
 export interface WhatsAppHero {
   type: 'whatsapp-hero'
@@ -174,6 +177,8 @@ export interface WhatsAppHero {
   action?: CardAction
   /** Slug da página interna quando action === 'page' */
   pageSlug?: string
+  /** Slug do formulário quando action === 'form' */
+  formSlug?: string
   /** @deprecated Preferir título; mantido só como fallback de analytics */
   reportName?: string
   layout?: AppHeroLayout
@@ -192,6 +197,8 @@ export interface AppHero {
   action?: CardAction
   /** Slug da página interna quando action === 'page' */
   pageSlug?: string
+  /** Slug do formulário quando action === 'form' */
+  formSlug?: string
   /** @deprecated Preferir título; mantido só como fallback de analytics */
   reportName?: string
   icon?: IconName
@@ -210,6 +217,8 @@ export interface FeatureCard {
   action?: CardAction
   /** Slug da página interna quando action === 'page' */
   pageSlug?: string
+  /** Slug do formulário quando action === 'form' */
+  formSlug?: string
   /** @deprecated Preferir título + showTitleOnMedia */
   reportName?: string
   variant?: 'gradient' | 'compact' | 'portrait' | 'banner' | 'square'
@@ -242,6 +251,8 @@ export interface LinkCard {
   action?: CardAction
   /** Slug da página interna quando action === 'page' */
   pageSlug?: string
+  /** Slug do formulário quando action === 'form' */
+  formSlug?: string
   /** @deprecated Preferir título */
   reportName?: string
   icon?: IconName
@@ -437,12 +448,19 @@ export interface FormField {
   placeholder?: string
 }
 
-/** Formulário próprio para captar contato sem sair da bio. */
+/** Formulário próprio — referencia um bio_form ou usa fields legados inline. */
 export interface FormCard {
   type: 'form'
+  /** Slug do formulário criado no menu Formulários */
+  formSlug?: string
+  /** Embutido na bio ou botão que abre modal */
+  display?: FormDisplayMode
+  /** Texto do botão quando display === 'modal' */
+  buttonLabel?: string
+  /** Legado / override local */
   title?: string
   description?: string
-  fields: FormField[]
+  fields?: FormField[]
   submitLabel?: string
   successMessage?: string
   schedule?: CardSchedule

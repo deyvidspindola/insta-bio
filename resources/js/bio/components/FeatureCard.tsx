@@ -40,7 +40,7 @@ export function FeatureCard({
   grid?: boolean
   pageBackground?: string
 }) {
-  const interactive = isCardInteractive(item.action, item.url, item.cta, item.pageSlug)
+  const interactive = isCardInteractive(item.action, item.url, item.cta, item.pageSlug, item.formSlug)
   const copyText = resolveCopyText(item.cta, item.url)
   const shellClass = `bio-card bio-card--media group relative block ${grid ? 'h-full' : ''}`
   const hasImage = Boolean(item.image?.trim())
@@ -58,6 +58,7 @@ export function FeatureCard({
     url: item.url,
     action: item.action,
     pageSlug: item.pageSlug,
+    formSlug: item.formSlug,
     copyText,
   }
 

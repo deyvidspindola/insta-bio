@@ -51,8 +51,9 @@ export function ItemTypeFields({
           value={item.action}
           url={item.url}
           pageSlug={item.pageSlug}
-          onChange={({ action, pageSlug }) =>
-            onChange({ ...item, action, pageSlug })
+          formSlug={item.formSlug}
+          onChange={({ action, pageSlug, formSlug }) =>
+            onChange({ ...item, action, pageSlug, formSlug })
           }
         />
       )}

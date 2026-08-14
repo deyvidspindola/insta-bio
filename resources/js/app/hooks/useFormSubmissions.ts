@@ -19,14 +19,17 @@ export function useFormSubmissions() {
     setLoading(true)
     setError(null)
     try {
+      let formSlug: string | null = null
       let sectionId: string | null = null
       let itemIndex: number | null = null
-      if (nextFilter !== 'all') {
+      if (nextFilter.startsWith('slug:')) {
+        formSlug = nextFilter.slice(5) || null
+      } else if (nextFilter !== 'all') {
         const [section, index] = nextFilter.split(':')
         sectionId = section || null
         itemIndex = index !== undefined && index !== '' ? Number(index) : null
       }
-      const data = await formsApi.list(sectionId, itemIndex)
+      const data = await formsApi.list({ formSlug, sectionId, itemIndex })
       setItems(data.items)
       setForms(data.forms)
     } catch (err) {

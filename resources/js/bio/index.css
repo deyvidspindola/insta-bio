@@ -833,3 +833,49 @@ button.bio-card {
 .bio-form-submit:not(:disabled):hover {
   filter: brightness(1.05);
 }
+
+.bio-form-modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .bio-form-modal-root {
+    align-items: center;
+  }
+}
+
+.bio-form-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(0 0 0 / 0.55);
+  cursor: pointer;
+}
+
+.bio-form-modal-panel {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 28rem);
+  max-height: min(90vh, 40rem);
+  overflow: auto;
+  border-radius: 1.25rem;
+  border: 1px solid var(--border);
+  background: var(--card, #111);
+  padding: 1.25rem;
+  box-shadow: 0 24px 64px rgb(0 0 0 / 0.45);
+}
+
+.bio-form-modal-trigger {
+  cursor: pointer;
+  text-align: left;
+}
+
+.bio-form-modal-trigger:hover {
+  filter: brightness(1.03);
+}

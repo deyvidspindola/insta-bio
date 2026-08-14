@@ -107,7 +107,7 @@ final class CreateLeadFromFormSubmission
     }
 
     /**
-     * Campos do bloco de formulário no JSON da bio (publicado ou rascunho).
+     * Campos do formulário (bio_forms publicado ou bloco legado na bio).
      *
      * @return list<array<string, mixed>>
      */
@@ -116,6 +116,19 @@ final class CreateLeadFromFormSubmission
         $bio = $submission->bio;
         if ($bio === null) {
             return [];
+        }
+
+        $formSlug = is_string($submission->form_slug) ? trim($submission->form_slug) : '';
+        if ($formSlug !== '') {
+            $form = $bio->forms()
+                ->where('slug', $formSlug)
+                ->first();
+            if ($form !== null) {
+                $config = $form->json_published ?? $form->json_draft ?? [];
+                $fields = is_array($config['fields'] ?? null) ? $config['fields'] : [];
+
+                return array_values(array_filter($fields, 'is_array'));
+            }
         }
 
         $config = $bio->json_published ?? $bio->json_draft ?? [];

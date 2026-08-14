@@ -5,6 +5,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { CardAction } from '../types/bio'
+import { FormModal, fetchPublishedForm, type ResolvedFormDefinition } from '../components/FormModal'
 import { trackClick, trackMetaFromElement } from './analytics'
 import { openTallyPopup, parseTallyFormId } from './tally'
 
@@ -41,12 +42,13 @@ export function resolveCardAction(action?: CardAction): CardAction {
   return action ?? 'link'
 }
 
-/** Card responde a clique (link, copy, tally ou page). */
+/** Card responde a clique (link, copy, tally, page ou form). */
 export function isCardInteractive(
   action: CardAction | undefined,
   url?: string,
   cta?: string,
   pageSlug?: string,
+  formSlug?: string,
 ): boolean {
   const mode = resolveCardAction(action)
   if (mode === 'copy') return Boolean(resolveCopyText(cta, url))
@@ -54,6 +56,7 @@ export function isCardInteractive(
     return Boolean(parseTallyFormId(url ?? '')) || hasClickableUrl(url)
   }
   if (mode === 'page') return Boolean(pageSlug?.trim())
+  if (mode === 'form') return Boolean(formSlug?.trim())
   return hasClickableUrl(url)
 }
 
@@ -77,6 +80,7 @@ type CardLinkProps = {
   url?: string
   action?: CardAction
   pageSlug?: string
+  formSlug?: string
   /** Override do texto a copiar (padrão: url). Preferir CTA via resolveCopyText no caller. */
   copyText?: string
   className?: string
@@ -90,6 +94,7 @@ export function CardLink({
   url,
   action,
   pageSlug,
+  formSlug,
   copyText,
   className = '',
   children,
@@ -99,7 +104,10 @@ export function CardLink({
 }: CardLinkProps) {
   const mode = resolveCardAction(action)
   const [copied, setCopied] = useState(false)
-  const interactive = isCardInteractive(mode, url, copyText, pageSlug)
+  const [formOpen, setFormOpen] = useState(false)
+  const [formDef, setFormDef] = useState<ResolvedFormDefinition | null>(null)
+  const [formLoading, setFormLoading] = useState(false)
+  const interactive = isCardInteractive(mode, url, copyText, pageSlug, formSlug)
 
   const contextValue: CardActionContextValue = {
     action: mode,
@@ -222,6 +230,41 @@ export function CardLink({
           >
             {children}
           </a>
+        </CardActionContext.Provider>
+      )
+    }
+  }
+
+  if (mode === 'form') {
+    const slug = formSlug?.trim()
+    if (slug) {
+      return (
+        <CardActionContext.Provider value={{ ...contextValue, interactive: true }}>
+          <button
+            type="button"
+            {...shellProps}
+            className={`${className} cursor-pointer`}
+            disabled={formLoading}
+            onClick={(event) => {
+              const fromDom = trackMetaFromElement(event.currentTarget)
+              trackClick({
+                ...fromDom,
+                url: `form://${slug}`,
+              })
+              setFormLoading(true)
+              void fetchPublishedForm(slug)
+                .then((data) => {
+                  if (data) {
+                    setFormDef(data)
+                    setFormOpen(true)
+                  }
+                })
+                .finally(() => setFormLoading(false))
+            }}
+          >
+            {children}
+          </button>
+          <FormModal open={formOpen} definition={formDef} onClose={() => setFormOpen(false)} />
         </CardActionContext.Provider>
       )
     }

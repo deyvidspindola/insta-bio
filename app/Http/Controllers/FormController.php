@@ -30,11 +30,13 @@ class FormController extends Controller
     {
         $sectionId = $request->query('section_id');
         $itemIndex = $request->query('item_index');
+        $formSlug = $request->query('form_slug');
 
         return response()->json($useCase->execute(
             $this->actor($request),
             is_string($sectionId) && $sectionId !== '' ? $sectionId : null,
             is_numeric($itemIndex) ? (int) $itemIndex : null,
+            is_string($formSlug) && $formSlug !== '' ? $formSlug : null,
         ));
     }
 }

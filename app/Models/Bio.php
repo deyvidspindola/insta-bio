@@ -100,6 +100,16 @@ class Bio extends Model
     }
 
     /**
+     * Formulários reutilizáveis desta bio.
+     *
+     * @return HasMany<BioForm, $this>
+     */
+    public function forms(): HasMany
+    {
+        return $this->hasMany(BioForm::class);
+    }
+
+    /**
      * Leads do funil desta bio.
      *
      * @return HasMany<Lead, $this>

@@ -10,14 +10,22 @@ export const CARD_ACTION_OPTIONS = [
   { value: 'copy', label: 'Copiar texto' },
   { value: 'tally', label: 'Formulário Tally (popup)' },
   { value: 'page', label: 'Abrir página interna' },
+  { value: 'form', label: 'Abrir formulário (modal)' },
 ] as const
 
 export type CardActionChange = {
   action: CardAction
   pageSlug?: string
+  formSlug?: string
 }
 
 type BioPageOption = {
+  slug: string
+  title: string
+  status: string
+}
+
+type BioFormOption = {
   slug: string
   title: string
   status: string
@@ -27,17 +35,21 @@ export function CardActionField({
   value,
   url,
   pageSlug,
+  formSlug,
   onChange,
 }: {
   value?: CardAction
   url?: string
   pageSlug?: string
+  formSlug?: string
   onChange: (next: CardActionChange) => void
 }) {
   const action = value ?? 'link'
   const tallyOk = action !== 'tally' || Boolean(parseTallyFormId(url ?? ''))
   const [pages, setPages] = useState<BioPageOption[]>([])
   const [pagesLoading, setPagesLoading] = useState(false)
+  const [forms, setForms] = useState<BioFormOption[]>([])
+  const [formsLoading, setFormsLoading] = useState(false)
 
   useEffect(() => {
     if (action !== 'page') return
@@ -60,6 +72,27 @@ export function CardActionField({
     }
   }, [action])
 
+  useEffect(() => {
+    if (action !== 'form') return
+
+    let cancelled = false
+    setFormsLoading(true)
+    api<{ forms: BioFormOption[] }>(ENDPOINTS.bioForms)
+      .then((data) => {
+        if (!cancelled) setForms(data.forms ?? [])
+      })
+      .catch(() => {
+        if (!cancelled) setForms([])
+      })
+      .finally(() => {
+        if (!cancelled) setFormsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [action])
+
   return (
     <Field label="Ação do botão">
       <select
@@ -67,9 +100,11 @@ export function CardActionField({
         onChange={(e) => {
           const next = e.target.value as CardAction
           if (next === 'page') {
-            onChange({ action: next, pageSlug: pageSlug ?? '' })
+            onChange({ action: next, pageSlug: pageSlug ?? '', formSlug: undefined })
+          } else if (next === 'form') {
+            onChange({ action: next, formSlug: formSlug ?? '', pageSlug: undefined })
           } else {
-            onChange({ action: next, pageSlug: undefined })
+            onChange({ action: next, pageSlug: undefined, formSlug: undefined })
           }
         }}
       >
@@ -118,9 +153,28 @@ export function CardActionField({
               Nenhuma página interna ainda. Crie uma na aba Páginas.
             </p>
           )}
-          {!pagesLoading && pages.length > 0 && !pageSlug && (
-            <p className="text-[11px] leading-snug text-muted-foreground">
-              Escolha a página que abre ao clicar no card.
+        </div>
+      )}
+      {action === 'form' && (
+        <div className="mt-2 space-y-1.5">
+          <select
+            value={formSlug ?? ''}
+            onChange={(e) => onChange({ action: 'form', formSlug: e.target.value })}
+            disabled={formsLoading}
+          >
+            <option value="">
+              {formsLoading ? 'Carregando formulários…' : 'Selecione o formulário'}
+            </option>
+            {forms.map((form) => (
+              <option key={form.slug} value={form.slug}>
+                {form.title}
+                {form.status !== 'published' ? ' (rascunho)' : ''}
+              </option>
+            ))}
+          </select>
+          {!formsLoading && forms.length === 0 && (
+            <p className="text-[11px] leading-snug text-amber-600 dark:text-amber-400">
+              Nenhum formulário ainda. Crie um na aba Formulários.
             </p>
           )}
         </div>
@@ -130,13 +184,15 @@ export function CardActionField({
 }
 
 export function showsUrlField(action?: CardAction): boolean {
-  return (action ?? 'link') !== 'page'
+  const mode = action ?? 'link'
+  return mode !== 'page' && mode !== 'form'
 }
 
 export function urlFieldLabel(action?: CardAction): string {
   if (action === 'copy') return 'Texto / URL (opcional)'
   if (action === 'tally') return 'URL do formulário Tally'
   if (action === 'page') return 'Página interna'
+  if (action === 'form') return 'Formulário'
   return 'URL (opcional)'
 }
 
@@ -144,5 +200,6 @@ export function urlFieldPlaceholder(action?: CardAction): string {
   if (action === 'copy') return 'Chave Pix, texto ou URL — ou use o CTA'
   if (action === 'tally') return 'https://tally.so/r/...'
   if (action === 'page') return 'Selecione a página na ação'
+  if (action === 'form') return 'Selecione o formulário na ação'
   return 'Deixe vazio para card sem link'
 }
