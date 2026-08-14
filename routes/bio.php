@@ -4,6 +4,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BioController;
+use App\Http\Controllers\BioPageController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\FormController;
 use App\Http\Controllers\MapsController;
@@ -40,6 +41,14 @@ Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
     Route::post('/api/billing/checkout', [BillingController::class, 'checkout']);
     Route::post('/api/billing/sandbox', [BillingController::class, 'sandbox']);
     Route::get('/api/forms/submissions', [FormController::class, 'index']);
+    Route::get('/api/bio/pages', [BioPageController::class, 'index']);
+    Route::post('/api/bio/pages', [BioPageController::class, 'store']);
+    Route::put('/api/bio/pages/{slug}', [BioPageController::class, 'update'])
+        ->where('slug', '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?');
+    Route::post('/api/bio/pages/{slug}/publish', [BioPageController::class, 'publish'])
+        ->where('slug', '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?');
+    Route::delete('/api/bio/pages/{slug}', [BioPageController::class, 'destroy'])
+        ->where('slug', '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?');
     Route::get('/api/domain', [DomainController::class, 'show']);
     Route::post('/api/domain', [DomainController::class, 'store']);
     Route::post('/api/domain/verify', [DomainController::class, 'verify']);

@@ -90,6 +90,16 @@ class Bio extends Model
     }
 
     /**
+     * Páginas internas desta bio.
+     *
+     * @return HasMany<BioPage, $this>
+     */
+    public function pages(): HasMany
+    {
+        return $this->hasMany(BioPage::class);
+    }
+
+    /**
      * Plano Pro (sem watermark e com domínio próprio).
      */
     public function isPro(): bool
