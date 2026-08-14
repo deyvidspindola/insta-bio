@@ -269,14 +269,28 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
                     />
                   </Field>
                 </div>
-                <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(field.required)}
-                    onChange={(e) => patchField(index, { required: e.target.checked })}
-                  />
-                  Obrigatório
-                </label>
+                <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/10 px-3 py-2.5">
+                  <span className="text-sm font-medium text-foreground">Obrigatório</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={Boolean(field.required)}
+                    aria-label="Campo obrigatório"
+                    onClick={() => patchField(index, { required: !field.required })}
+                    className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                      field.required ? 'border-primary bg-primary/25' : 'border-border bg-muted'
+                    }`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full shadow-sm transition-transform ${
+                        field.required
+                          ? 'translate-x-5 bg-primary'
+                          : 'translate-x-0 bg-muted-foreground'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
