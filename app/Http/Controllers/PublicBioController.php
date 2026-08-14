@@ -6,6 +6,7 @@ use App\Models\Bio;
 use App\UseCases\PublicBio\GetPublishedBioJson;
 use App\UseCases\PublicBio\ResolveHomePage;
 use App\UseCases\PublicBio\ShowPublicBio;
+use App\UseCases\PublicBioPage\ShowPublicBioPage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -32,6 +33,16 @@ class PublicBioController extends Controller
     public function show(string $slug, ShowPublicBio $useCase): View
     {
         $result = $useCase->execute($slug);
+
+        return view($result['view'], $result['data']);
+    }
+
+    /**
+     * Página interna pública `/{slug}/{pageSlug}`.
+     */
+    public function showPage(string $slug, string $pageSlug, ShowPublicBioPage $useCase): View
+    {
+        $result = $useCase->execute($slug, $pageSlug);
 
         return view($result['view'], $result['data']);
     }

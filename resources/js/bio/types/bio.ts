@@ -160,8 +160,9 @@ export type CardSchedule = {
  * - link (padrão): abre `url` em nova aba
  * - copy: copia `cta` (se houver) ou `url` para a área de transferência
  * - tally: abre formulário Tally em popup (URL tally.so)
+ * - page: navega para página interna `/{bioSlug}/{pageSlug}`
  */
-export type CardAction = 'link' | 'copy' | 'tally'
+export type CardAction = 'link' | 'copy' | 'tally' | 'page'
 
 export interface WhatsAppHero {
   type: 'whatsapp-hero'
@@ -171,6 +172,8 @@ export interface WhatsAppHero {
   cta: string
   url: string
   action?: CardAction
+  /** Slug da página interna quando action === 'page' */
+  pageSlug?: string
   /** @deprecated Preferir título; mantido só como fallback de analytics */
   reportName?: string
   layout?: AppHeroLayout
@@ -187,6 +190,8 @@ export interface AppHero {
   cta: string
   url: string
   action?: CardAction
+  /** Slug da página interna quando action === 'page' */
+  pageSlug?: string
   /** @deprecated Preferir título; mantido só como fallback de analytics */
   reportName?: string
   icon?: IconName
@@ -203,6 +208,8 @@ export interface FeatureCard {
   cta?: string
   url: string
   action?: CardAction
+  /** Slug da página interna quando action === 'page' */
+  pageSlug?: string
   /** @deprecated Preferir título + showTitleOnMedia */
   reportName?: string
   variant?: 'gradient' | 'compact' | 'portrait' | 'banner' | 'square'
@@ -233,6 +240,8 @@ export interface LinkCard {
   subtitle?: string
   url: string
   action?: CardAction
+  /** Slug da página interna quando action === 'page' */
+  pageSlug?: string
   /** @deprecated Preferir título */
   reportName?: string
   icon?: IconName

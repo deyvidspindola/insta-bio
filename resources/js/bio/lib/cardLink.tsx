@@ -31,21 +31,29 @@ export function resolveCopyText(cta?: string, url?: string): string {
   return (cta?.trim() || url?.trim() || '')
 }
 
+/** Href relativo da página interna no domínio atual. */
+export function resolvePageHref(pageSlug: string): string {
+  const bioSlug = window.location.pathname.split('/').filter(Boolean)[0] ?? ''
+  return `/${bioSlug}/${pageSlug.trim()}`
+}
+
 export function resolveCardAction(action?: CardAction): CardAction {
   return action ?? 'link'
 }
 
-/** Card responde a clique (link, copy ou tally). */
+/** Card responde a clique (link, copy, tally ou page). */
 export function isCardInteractive(
   action: CardAction | undefined,
   url?: string,
   cta?: string,
+  pageSlug?: string,
 ): boolean {
   const mode = resolveCardAction(action)
   if (mode === 'copy') return Boolean(resolveCopyText(cta, url))
   if (mode === 'tally') {
     return Boolean(parseTallyFormId(url ?? '')) || hasClickableUrl(url)
   }
+  if (mode === 'page') return Boolean(pageSlug?.trim())
   return hasClickableUrl(url)
 }
 
@@ -68,6 +76,7 @@ export function useCardAction(): CardActionContextValue {
 type CardLinkProps = {
   url?: string
   action?: CardAction
+  pageSlug?: string
   /** Override do texto a copiar (padrão: url). Preferir CTA via resolveCopyText no caller. */
   copyText?: string
   className?: string
@@ -80,6 +89,7 @@ type CardLinkProps = {
 export function CardLink({
   url,
   action,
+  pageSlug,
   copyText,
   className = '',
   children,
@@ -89,7 +99,7 @@ export function CardLink({
 }: CardLinkProps) {
   const mode = resolveCardAction(action)
   const [copied, setCopied] = useState(false)
-  const interactive = isCardInteractive(mode, url, copyText)
+  const interactive = isCardInteractive(mode, url, copyText, pageSlug)
 
   const contextValue: CardActionContextValue = {
     action: mode,
@@ -186,6 +196,32 @@ export function CardLink({
           >
             {children}
           </button>
+        </CardActionContext.Provider>
+      )
+    }
+  }
+
+  if (mode === 'page') {
+    const slug = pageSlug?.trim()
+    if (slug) {
+      const href = resolvePageHref(slug)
+
+      return (
+        <CardActionContext.Provider value={{ ...contextValue, interactive: true }}>
+          <a
+            href={href}
+            {...shellProps}
+            className={`${className} cursor-pointer`}
+            onClick={(event) => {
+              const fromDom = trackMetaFromElement(event.currentTarget)
+              trackClick({
+                ...fromDom,
+                url: href,
+              })
+            }}
+          >
+            {children}
+          </a>
         </CardActionContext.Provider>
       )
     }

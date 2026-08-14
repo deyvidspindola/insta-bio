@@ -4,7 +4,7 @@ import { BioIcon } from './icons'
 import { CardActionIcon } from './CardActionIcon'
 
 export function LinkCard({ item, grid = false }: { item: LinkCardType; grid?: boolean }) {
-  const interactive = isCardInteractive(item.action, item.url)
+  const interactive = isCardInteractive(item.action, item.url, undefined, item.pageSlug)
   const hasIcon = Boolean(item.icon)
 
   if (grid) {
@@ -12,6 +12,7 @@ export function LinkCard({ item, grid = false }: { item: LinkCardType; grid?: bo
       <CardLink
         url={item.url}
         action={item.action}
+        pageSlug={item.pageSlug}
         className="bio-card bio-link-card bio-link-card--grid group relative flex h-full flex-col p-3"
       >
         <div className="bio-link-body mb-3 flex items-center justify-between">
@@ -46,6 +47,7 @@ export function LinkCard({ item, grid = false }: { item: LinkCardType; grid?: bo
     <CardLink
       url={item.url}
       action={item.action}
+      pageSlug={item.pageSlug}
       className="bio-card bio-link-card group relative block"
     >
       <div className="bio-link-body flex items-center gap-4 p-4">

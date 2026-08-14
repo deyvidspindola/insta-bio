@@ -14,7 +14,7 @@ import { TextItemFields } from './TextItemFields'
 import { VideoItemFields } from './VideoItemFields'
 import { YoutubeItemFields } from './YoutubeItemFields'
 import { Field } from './Field'
-import { CardActionField, urlFieldLabel, urlFieldPlaceholder } from './CardActionField'
+import { CardActionField, showsUrlField, urlFieldLabel, urlFieldPlaceholder } from './CardActionField'
 
 type CardActionItem = FeatureCard | AppHero | WhatsAppHero | LinkCard
 
@@ -50,14 +50,18 @@ export function ItemTypeFields({
         <CardActionField
           value={item.action}
           url={item.url}
-          onChange={(action) => onChange({ ...item, action })}
+          pageSlug={item.pageSlug}
+          onChange={({ action, pageSlug }) =>
+            onChange({ ...item, action, pageSlug })
+          }
         />
       )}
 
       {'url' in item &&
         item.type !== 'video' &&
         item.type !== 'youtube-embed' &&
-        item.type !== 'spotify-embed' && (
+        item.type !== 'spotify-embed' &&
+        (!withAction || showsUrlField(item.action)) && (
           <Field label={withAction ? urlFieldLabel(item.action) : 'URL (opcional)'}>
             <input
               value={item.url}

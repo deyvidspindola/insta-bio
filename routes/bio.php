@@ -62,6 +62,11 @@ Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
     Route::match(['get', 'post'], '/api/maps/resolve', [MapsController::class, 'resolve']);
 });
 
+Route::get('/{slug}/{pageSlug}', [PublicBioController::class, 'showPage'])
+    ->where('slug', '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?')
+    ->where('pageSlug', '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?')
+    ->name('bio.page.show');
+
 Route::get('/{slug}', [PublicBioController::class, 'show'])
     ->where('slug', '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?')
     ->name('bio.show');

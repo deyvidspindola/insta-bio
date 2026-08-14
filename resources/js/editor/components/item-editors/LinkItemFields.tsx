@@ -1,7 +1,7 @@
 import type { LinkCard } from '@bio-types'
 import { IconPicker } from '../IconPicker'
 import { CardWidthField } from './CardWidthField'
-import { CardActionField, urlFieldLabel, urlFieldPlaceholder } from './CardActionField'
+import { CardActionField, showsUrlField, urlFieldLabel, urlFieldPlaceholder } from './CardActionField'
 import { Field } from './Field'
 import { ScheduleFields } from './ScheduleFields'
 import { withOptionalIcon } from './withOptionalIcon'
@@ -29,17 +29,19 @@ export function LinkItemFields({
           </p>
         )}
       </Field>
-      <Field label={item.action && item.action !== 'link' ? urlFieldLabel(item.action) : 'URL'}>
-        <input
-          type="url"
-          inputMode="url"
-          value={item.url}
-          onChange={(e) => onChange({ ...item, url: e.target.value })}
-          placeholder={
-            item.action && item.action !== 'link' ? urlFieldPlaceholder(item.action) : 'https://'
-          }
-        />
-      </Field>
+      {showsUrlField(item.action) && (
+        <Field label={item.action && item.action !== 'link' ? urlFieldLabel(item.action) : 'URL'}>
+          <input
+            type="url"
+            inputMode="url"
+            value={item.url}
+            onChange={(e) => onChange({ ...item, url: e.target.value })}
+            placeholder={
+              item.action && item.action !== 'link' ? urlFieldPlaceholder(item.action) : 'https://'
+            }
+          />
+        </Field>
+      )}
 
       <details className="rounded-lg border border-border/70 bg-muted/10 px-3 py-2">
         <summary className="cursor-pointer text-sm font-medium">Mais opções</summary>
@@ -47,7 +49,8 @@ export function LinkItemFields({
           <CardActionField
             value={item.action}
             url={item.url}
-            onChange={(action) => onChange({ ...item, action })}
+            pageSlug={item.pageSlug}
+            onChange={({ action, pageSlug }) => onChange({ ...item, action, pageSlug })}
           />
           <Field label="Subtítulo (opcional)">
             <input

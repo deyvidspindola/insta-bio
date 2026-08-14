@@ -20,4 +20,5 @@ export const ENDPOINTS = {
   analyticsTimeseries: '/api/analytics/timeseries',
   analyticsClicks: '/api/analytics/clicks',
   resolveMaps: '/api/maps/resolve',
+  bioPages: '/api/bio/pages',
 } as const

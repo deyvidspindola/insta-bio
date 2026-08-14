@@ -146,12 +146,13 @@ function HeroShell({
   children: ReactNode
   className?: string
 }) {
-  const interactive = isCardInteractive(item.action, item.url, item.cta)
+  const interactive = isCardInteractive(item.action, item.url, item.cta, item.pageSlug)
 
   return (
     <CardLink
       url={item.url}
       action={item.action}
+      pageSlug={item.pageSlug}
       copyText={resolveCopyText(item.cta, item.url)}
       className={`bio-card bio-card--hero bio-card--media group relative block overflow-hidden border transition-all ${className} ${interactive ? '' : 'cursor-default'}`}
       style={{ borderColor: theme.border }}
@@ -332,7 +333,7 @@ function HeroCondensed({
         >
           {item.title}
         </h3>
-        {!centered && isCardInteractive(item.action, item.url, item.cta) && (
+        {!centered && isCardInteractive(item.action, item.url, item.cta, item.pageSlug) && (
           <span style={{ color: theme.bodyText }}>
             <CardActionIcon className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" />
           </span>
