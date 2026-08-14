@@ -447,11 +447,12 @@ export function PagesPanel({
                   </button>
                   <button
                     type="button"
-                    className="btn-secondary inline-flex items-center justify-center px-2 py-1.5 text-xs text-red-500 hover:text-red-400"
+                    className="btn-danger min-h-10 shrink-0 px-2.5 py-2 text-xs sm:px-3 sm:py-1.5"
                     onClick={() => setConfirmDeleteSlug(page.slug)}
-                    aria-label={`Excluir ${page.title}`}
+                    aria-label={`Remover ${page.title}`}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="hidden sm:inline">Remover</span>
                   </button>
                 </div>
               </div>
@@ -464,7 +465,7 @@ export function PagesPanel({
         open={confirmDeleteSlug !== null}
         title="Excluir página?"
         description="Esta ação não pode ser desfeita. Links da bio que apontam para ela deixarão de abrir a página."
-        confirmLabel="Excluir"
+        confirmLabel="Remover"
         cancelLabel="Cancelar"
         variant="danger"
         loading={deleting}

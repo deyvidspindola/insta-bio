@@ -141,21 +141,22 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
+              className="btn-primary min-h-10 shrink-0 px-2.5 py-2 text-xs sm:px-3 sm:py-1.5"
               onClick={() => void handleSave()}
               disabled={saving || !isDirty}
             >
-              <Save className="h-3.5 w-3.5" />
-              {saving ? 'Salvando…' : 'Salvar'}
+              <Save className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{saving ? 'Salvando…' : 'Salvar'}</span>
             </button>
             <button
               type="button"
-              className="btn-danger inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
+              className="btn-danger min-h-10 shrink-0 px-2.5 py-2 text-xs sm:px-3 sm:py-1.5"
               onClick={() => setConfirmDeleteSlug(selectedForm.slug)}
               disabled={saving || deleting}
+              aria-label="Remover"
             >
-              <Trash2 className="h-3.5 w-3.5" />
-              Excluir
+              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">Remover</span>
             </button>
           </div>
         </div>
@@ -298,7 +299,7 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
           open={confirmDeleteSlug !== null}
           title="Excluir formulário?"
           description="Esta ação não pode ser desfeita. Cards da bio que apontam para ele deixarão de funcionar."
-          confirmLabel="Excluir"
+          confirmLabel="Remover"
           cancelLabel="Cancelar"
           variant="danger"
           loading={deleting}
@@ -402,11 +403,12 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
                   </button>
                   <button
                     type="button"
-                    className="btn-danger inline-flex items-center justify-center px-2 py-1.5 text-xs"
+                    className="btn-danger min-h-10 shrink-0 px-2.5 py-2 text-xs sm:px-3 sm:py-1.5"
                     onClick={() => setConfirmDeleteSlug(form.slug)}
-                    aria-label={`Excluir ${form.title}`}
+                    aria-label={`Remover ${form.title}`}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="hidden sm:inline">Remover</span>
                   </button>
                 </div>
               </div>
@@ -419,7 +421,7 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
         open={confirmDeleteSlug !== null}
         title="Excluir formulário?"
         description="Esta ação não pode ser desfeita. Cards da bio que apontam para ele deixarão de funcionar."
-        confirmLabel="Excluir"
+        confirmLabel="Remover"
         cancelLabel="Cancelar"
         variant="danger"
         loading={deleting}
