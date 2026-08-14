@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react'
 import {
   ArrowLeft,
   FileText,
-  Globe,
   Loader2,
   Pencil,
   Plus,
@@ -38,13 +37,9 @@ interface PagesPanelProps {
   onActionError: (message: string) => void
 }
 
-function statusLabel(status: string): string {
-  return status === 'published' ? 'Publicada' : 'Rascunho'
-}
-
 /**
  * Lista e edita páginas internas reusando SectionEditor / SectionSidebar.
- * Um nível só: o AddBlockPicker já não oferece bloco "page".
+ * Salvar já disponibiliza a página na bio — sem passo "Publicar".
  */
 export function PagesPanel({
   brand,
@@ -69,13 +64,11 @@ export function PagesPanel({
     draftSections,
     isDirty,
     saving,
-    publishing,
     deleting,
     selectPage,
     updateDraftSections,
     createPage,
     saveDraft,
-    publishPage,
     deletePage,
   } = pagesApi
 
@@ -83,7 +76,6 @@ export function PagesPanel({
   const [newTitle, setNewTitle] = useState('')
   const [creatingBusy, setCreatingBusy] = useState(false)
   const [confirmDeleteSlug, setConfirmDeleteSlug] = useState<string | null>(null)
-  const [confirmPublishOpen, setConfirmPublishOpen] = useState(false)
 
   function commitSections(next: BioSection[]) {
     updateDraftSections(next)
@@ -136,19 +128,9 @@ export function PagesPanel({
   async function handleSave() {
     try {
       await saveDraft()
-      onStatus('Rascunho da página salvo')
+      onStatus('Página salva')
     } catch (err) {
       onActionError(err instanceof Error ? err.message : 'Falha ao salvar página')
-    }
-  }
-
-  async function handlePublish() {
-    try {
-      await publishPage()
-      setConfirmPublishOpen(false)
-      onStatus('Página publicada')
-    } catch (err) {
-      onActionError(err instanceof Error ? err.message : 'Falha ao publicar página')
     }
   }
 
@@ -191,7 +173,7 @@ export function PagesPanel({
             </button>
             <h2 className="truncate text-base font-semibold">{selectedPage.title}</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              /{selectedPage.slug} · {statusLabel(selectedPage.status)}
+              /{selectedPage.slug}
               {isDirty ? ' · alterações não salvas' : ''}
             </p>
           </div>
@@ -199,21 +181,22 @@ export function PagesPanel({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
+              className="btn-primary min-h-10 shrink-0 px-2.5 py-2 text-xs sm:px-3 sm:py-1.5"
               onClick={() => void handleSave()}
-              disabled={saving || publishing || !isDirty}
+              disabled={saving || !isDirty}
             >
-              <Save className="h-3.5 w-3.5" />
-              {saving ? 'Salvando…' : 'Salvar rascunho'}
+              <Save className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{saving ? 'Salvando…' : 'Salvar'}</span>
             </button>
             <button
               type="button"
-              className="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
-              onClick={() => setConfirmPublishOpen(true)}
-              disabled={saving || publishing}
+              className="btn-danger min-h-10 shrink-0 px-2.5 py-2 text-xs sm:px-3 sm:py-1.5"
+              onClick={() => setConfirmDeleteSlug(selectedPage.slug)}
+              disabled={saving || deleting}
+              aria-label="Remover"
             >
-              <Globe className="h-3.5 w-3.5" />
-              {publishing ? 'Publicando…' : 'Publicar'}
+              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">Remover</span>
             </button>
           </div>
         </div>
@@ -315,20 +298,16 @@ export function PagesPanel({
         )}
 
         <ConfirmDialog
-          open={confirmPublishOpen}
-          title="Publicar página?"
-          description={
-            <>
-              O rascunho atual será salvo e publicado. Visitantes poderão abrir esta página
-              interna a partir da bio.
-            </>
-          }
-          confirmLabel="Publicar"
+          open={confirmDeleteSlug !== null}
+          title="Excluir página?"
+          description="Esta ação não pode ser desfeita. Links da bio que apontam para ela deixarão de abrir a página."
+          confirmLabel="Remover"
           cancelLabel="Cancelar"
-          loading={publishing}
-          onConfirm={() => void handlePublish()}
+          variant="danger"
+          loading={deleting}
+          onConfirm={() => void handleDelete()}
           onCancel={() => {
-            if (!publishing) setConfirmPublishOpen(false)
+            if (!deleting) setConfirmDeleteSlug(null)
           }}
         />
       </div>
@@ -418,19 +397,7 @@ export function PagesPanel({
               <div className="flex flex-wrap items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{page.title}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    /{page.slug}
-                    <span className="mx-1.5 text-border">·</span>
-                    <span
-                      className={
-                        page.status === 'published'
-                          ? 'text-emerald-500'
-                          : 'text-amber-600 dark:text-amber-400'
-                      }
-                    >
-                      {statusLabel(page.status)}
-                    </span>
-                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">/{page.slug}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
                   <button

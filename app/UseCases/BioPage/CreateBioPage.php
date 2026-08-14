@@ -36,12 +36,13 @@ final class CreateBioPage
             throw new ApplicationException('Este slug já está em uso nesta bio.', 422);
         }
 
+        $empty = ['sections' => []];
         $page = $this->pages->create($bio, [
             'slug' => $slug,
             'title' => $title,
-            'json_draft' => ['sections' => []],
-            'json_published' => null,
-            'status' => 'draft',
+            'json_draft' => $empty,
+            'json_published' => $empty,
+            'status' => 'published',
         ]);
 
         return [

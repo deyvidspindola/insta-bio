@@ -42,7 +42,6 @@ export function useBioPages(enabled = true) {
   const [draftSections, setDraftSections] = useState<BioSection[]>([])
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [publishing, setPublishing] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
   const selectedPage = useMemo(
@@ -123,35 +122,11 @@ export function useBioPages(enabled = true) {
     setSaving(true)
     setError(null)
     try {
-      const page = await api<BioPageRecord>(pageUrl(selectedSlug), {
+      await api<BioPageRecord>(pageUrl(selectedSlug), {
         method: 'PUT',
         body: JSON.stringify({ sections: draftSections }),
       })
-      applyServerPage(page)
-      return page
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Falha ao salvar rascunho'
-      setError(message)
-      throw err
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function publishPage(): Promise<BioPageRecord> {
-    if (!selectedSlug) throw new Error('Nenhuma página selecionada')
-    setPublishing(true)
-    setError(null)
-    try {
-      // Garante que o rascunho local vai para o servidor antes de publicar.
-      if (isDirty) {
-        const saved = await api<BioPageRecord>(pageUrl(selectedSlug), {
-          method: 'PUT',
-          body: JSON.stringify({ sections: draftSections }),
-        })
-        applyServerPage(saved)
-      }
-
+      // Salvar já disponibiliza a página na bio (sem passo "Publicar").
       const page = await api<BioPageRecord>(publishUrl(selectedSlug), {
         method: 'POST',
         body: JSON.stringify({}),
@@ -159,11 +134,11 @@ export function useBioPages(enabled = true) {
       applyServerPage(page)
       return page
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Falha ao publicar página'
+      const message = err instanceof Error ? err.message : 'Falha ao salvar página'
       setError(message)
       throw err
     } finally {
-      setPublishing(false)
+      setSaving(false)
     }
   }
 
@@ -197,14 +172,12 @@ export function useBioPages(enabled = true) {
     draftSections,
     isDirty,
     saving,
-    publishing,
     deleting,
     loadPages,
     selectPage,
     updateDraftSections,
     createPage,
     saveDraft,
-    publishPage,
     deletePage,
   }
 }

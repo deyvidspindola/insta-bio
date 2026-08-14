@@ -144,7 +144,7 @@ export function CardActionField({
             {pages.map((page) => (
               <option key={page.slug} value={page.slug}>
                 {page.title}
-                {page.status !== 'published' ? ' (rascunho)' : ''}
+                {page.status !== 'published' ? ' (não salva)' : ''}
               </option>
             ))}
           </select>
@@ -168,7 +168,7 @@ export function CardActionField({
             {forms.map((form) => (
               <option key={form.slug} value={form.slug}>
                 {form.title}
-                {form.status !== 'published' ? ' (rascunho)' : ''}
+                {form.status !== 'published' ? ' (não salvo)' : ''}
               </option>
             ))}
           </select>
