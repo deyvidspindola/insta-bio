@@ -115,7 +115,7 @@ export function CardActionField({
           </select>
           {!pagesLoading && pages.length === 0 && (
             <p className="text-[11px] leading-snug text-amber-600 dark:text-amber-400">
-              Nenhuma página interna ainda. Crie uma pela API ou aguarde o editor de páginas.
+              Nenhuma página interna ainda. Crie uma na aba Páginas.
             </p>
           )}
           {!pagesLoading && pages.length > 0 && !pageSlug && (

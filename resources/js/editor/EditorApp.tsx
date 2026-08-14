@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   ArrowUpRight,
   Eye,
+  FileText,
   Globe,
   Images,
   Inbox,
@@ -28,6 +29,7 @@ import { DashboardPanel } from './components/DashboardPanel'
 import { IdentityForm } from './components/IdentityForm'
 import { ImagesGallery } from './components/ImagesGallery'
 import { LoginScreen } from './components/LoginScreen'
+import { PagesPanel } from './components/PagesPanel'
 import { PreviewPanel } from './components/PreviewPanel'
 import { PreviewSheet } from './components/PreviewSheet'
 import { fetchEditorPaths } from './lib/paths'
@@ -36,6 +38,7 @@ import { QuickAddLink } from './components/QuickAddLink'
 import { SectionEditor } from './components/SectionEditor'
 import { SectionMobilePicker, SectionSidebar } from './components/SectionSidebar'
 import { DemoModeProvider } from './context/DemoModeContext'
+import { useBioPages } from './hooks/useBioPages'
 import {
   fetchSession,
   loadEditorConfig,
@@ -60,7 +63,7 @@ import { applyTheme, getStoredTheme, type Theme } from './lib/theme'
 import { checkForUpdates } from './lib/updates'
 import { syncBrandSeo } from '@site/lib/pageMeta'
 
-type Tab = 'dashboard' | 'identity' | 'appearance' | 'sections' | 'images' | 'advanced'
+type Tab = 'dashboard' | 'identity' | 'appearance' | 'sections' | 'pages' | 'images' | 'advanced'
 type EditorMode = 'full' | 'demo'
 
 function isPlanLimitError(message: string) {
@@ -110,6 +113,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   } | null>(null)
   const statusTimerRef = useRef<number | null>(null)
   const actionErrorTimerRef = useRef<number | null>(null)
+  const pagesApi = useBioPages(!isDemo && authenticated === true)
 
   function markClean(next: BioConfig) {
     setSavedSnapshot(JSON.stringify(next))
@@ -119,23 +123,35 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     !isDemo &&
     Boolean(config && savedSnapshot !== null && JSON.stringify(config) !== savedSnapshot)
 
+  const editingPage =
+    activeTab === 'pages' && pagesApi.selectedSlug !== null && config !== null
+
+  const previewConfig: BioConfig | null =
+    editingPage && config
+      ? { brand: config.brand, sections: pagesApi.draftSections }
+      : config
+
+  const previewFocusSections = editingPage ? pagesApi.draftSections : config?.sections
   const previewFocus =
-    config && focusItemIndex !== null && config.sections[activeSection]
+    previewFocusSections &&
+    focusItemIndex !== null &&
+    previewFocusSections[activeSection]
       ? {
-          sectionId: config.sections[activeSection].id,
+          sectionId: previewFocusSections[activeSection].id,
           itemIndex: focusItemIndex,
         }
       : null
 
   function handlePreviewSelect(target: { sectionId: string; itemIndex: number }) {
-    if (!config) return
-    const sectionIndex = config.sections.findIndex((section) => section.id === target.sectionId)
+    const sections = editingPage ? pagesApi.draftSections : config?.sections
+    if (!sections) return
+    const sectionIndex = sections.findIndex((section) => section.id === target.sectionId)
     if (sectionIndex < 0) return
-    if (target.itemIndex < 0 || target.itemIndex >= config.sections[sectionIndex].items.length) {
+    if (target.itemIndex < 0 || target.itemIndex >= sections[sectionIndex].items.length) {
       return
     }
 
-    setActiveTab('sections')
+    if (!editingPage) setActiveTab('sections')
     setActiveSection(sectionIndex)
     setFocusItemIndex(target.itemIndex)
     setOpenItemRequest({
@@ -143,6 +159,15 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
       index: target.itemIndex,
       nonce: Date.now(),
     })
+  }
+
+  function selectRailTab(tab: Tab) {
+    if (activeTab === 'pages' || tab === 'pages') {
+      setActiveSection(0)
+      setFocusItemIndex(null)
+      setOpenItemRequest(null)
+    }
+    setActiveTab(tab)
   }
 
   function toggleTheme() {
@@ -501,12 +526,15 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     { id: 'identity', label: 'Identidade', shortLabel: 'Perfil', icon: User },
     { id: 'appearance', label: 'Aparência', shortLabel: 'Visual', icon: Palette },
     { id: 'sections', label: 'Conteúdo', shortLabel: 'Links', icon: Layers },
+    { id: 'pages', label: 'Páginas', shortLabel: 'Págs', icon: FileText },
     { id: 'images', label: 'Arquivos', shortLabel: 'Mídia', icon: Images },
     { id: 'advanced', label: 'Configurações', shortLabel: 'Config', icon: Settings },
   ]
 
   const railTabs = isDemo
-    ? allRailTabs.filter((tab) => tab.id !== 'advanced' && tab.id !== 'images')
+    ? allRailTabs.filter(
+        (tab) => tab.id !== 'advanced' && tab.id !== 'images' && tab.id !== 'pages',
+      )
     : allRailTabs
 
   const isDark = theme === 'dark'
@@ -765,7 +793,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                     key={tab.id}
                     type="button"
                     className={`rail-btn ${activeTab === tab.id ? 'active' : ''}`}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => selectRailTab(tab.id)}
                     title={tab.label}
                     aria-label={tab.label}
                     aria-current={activeTab === tab.id ? 'page' : undefined}
@@ -909,6 +937,30 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
               </div>
             )}
 
+            {!isDemo && activeTab === 'pages' && (
+              <PagesPanel
+                brand={config.brand}
+                pagesApi={pagesApi}
+                activeSection={activeSection}
+                onActiveSectionChange={setActiveSection}
+                onFocusItem={setFocusItemIndex}
+                openItemRequest={openItemRequest}
+                onClearOpenItemRequest={() => setOpenItemRequest(null)}
+                dragIndex={dragIndex}
+                dropIndex={dropIndex}
+                onDragStart={setDragIndex}
+                onDragOver={(index) => {
+                  if (dragIndex !== null && dropIndex !== index) setDropIndex(index)
+                }}
+                onClearDrag={() => {
+                  setDragIndex(null)
+                  setDropIndex(null)
+                }}
+                onStatus={showStatus}
+                onActionError={showActionError}
+              />
+            )}
+
             {!isDemo && activeTab === 'images' && <ImagesGallery config={config} />}
 
             {!isDemo && activeTab === 'advanced' && (
@@ -948,14 +1000,16 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
             }`}
           >
             <p className="mb-3 hidden text-[10px] font-semibold uppercase tracking-wider text-muted-foreground xl:block">
-              Preview ao vivo
+              {editingPage ? 'Preview da página' : 'Preview ao vivo'}
             </p>
-            <PreviewPanel
-              config={config}
-              compact
-              focus={previewFocus}
-              onSelectItem={handlePreviewSelect}
-            />
+            {previewConfig && (
+              <PreviewPanel
+                config={previewConfig}
+                compact
+                focus={previewFocus}
+                onSelectItem={handlePreviewSelect}
+              />
+            )}
           </div>
         </div>
 
@@ -967,16 +1021,18 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
           aria-pressed={previewOpen}
         >
           <Eye className="h-5 w-5" />
-          {previewOpen ? 'Fechar preview' : 'Ver preview da bio'}
+          {previewOpen ? 'Fechar preview' : editingPage ? 'Ver preview da página' : 'Ver preview da bio'}
         </button>
 
-        <PreviewSheet
-          config={config}
-          open={previewOpen}
-          onClose={() => setPreviewOpen(false)}
-          focus={previewFocus}
-          onSelectItem={handlePreviewSelect}
-        />
+        {previewConfig && (
+          <PreviewSheet
+            config={previewConfig}
+            open={previewOpen}
+            onClose={() => setPreviewOpen(false)}
+            focus={previewFocus}
+            onSelectItem={handlePreviewSelect}
+          />
+        )}
 
         <ConfirmDialog
           open={confirmPublishOpen}
