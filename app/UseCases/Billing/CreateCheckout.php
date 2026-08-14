@@ -19,7 +19,7 @@ final class CreateCheckout
     ) {}
 
     /**
-     * @return array{init_point: string, preapproval_id: string|null}
+     * @return array{init_point: string, preapproval_id: string|null, driver: string}
      */
     public function execute(User $user): array
     {

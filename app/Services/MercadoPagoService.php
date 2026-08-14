@@ -31,17 +31,56 @@ class MercadoPagoService
     }
 
     /**
+     * Checkout de teste (local ou credenciais TEST do Mercado Pago).
+     */
+    public function sandbox(): bool
+    {
+        return (bool) config('services.mercadopago.sandbox');
+    }
+
+    /**
+     * Driver efetivo: simulador local ou API do Mercado Pago.
+     */
+    public function driver(): string
+    {
+        if ($this->allowsLocalSimulation()) {
+            return 'local';
+        }
+
+        return 'mercadopago';
+    }
+
+    /**
+     * Simulador interno: só fora de produção e sem token configurado.
+     */
+    public function allowsLocalSimulation(): bool
+    {
+        return $this->sandbox()
+            && ! app()->isProduction()
+            && ! $this->configured();
+    }
+
+    /**
      * Cria o checkout de assinatura Pro e grava a subscription pendente.
      *
-     * @return array{init_point: string, preapproval_id: string|null}
+     * @return array{init_point: string, preapproval_id: string|null, driver: string}
      */
     public function createCheckout(Bio $bio): array
     {
+        if ($this->allowsLocalSimulation()) {
+            return $this->createLocalCheckout($bio);
+        }
+
         if (! $this->configured()) {
             throw new RuntimeException('Mercado Pago não está configurado.');
         }
 
-        MercadoPagoConfig::setAccessToken((string) config('services.mercadopago.access_token'));
+        $this->bootSdk();
+
+        $payerEmail = $bio->user->email;
+        if ($this->sandbox() && filled(config('services.mercadopago.test_payer_email'))) {
+            $payerEmail = (string) config('services.mercadopago.test_payer_email');
+        }
 
         $payload = [
             'reason' => 'Links na Bio Pro',
@@ -52,7 +91,7 @@ class MercadoPagoService
                 'currency_id' => config('linksnabio.pro_currency', 'BRL'),
             ],
             'back_url' => rtrim((string) config('app.url'), '/').'/app/configuracoes',
-            'payer_email' => $bio->user->email,
+            'payer_email' => $payerEmail,
             'external_reference' => (string) $bio->id,
             'status' => 'pending',
         ];
@@ -60,7 +99,7 @@ class MercadoPagoService
         try {
             $client = new PreApprovalClient;
             $preapproval = $client->create($payload);
-            $initPoint = $preapproval->init_point ?? $preapproval->sandbox_init_point ?? null;
+            $initPoint = $this->checkoutUrl($preapproval);
             $id = $preapproval->id ?? null;
 
             if (! $initPoint) {
@@ -70,16 +109,65 @@ class MercadoPagoService
             $this->subscriptions->upsertForBio($bio, [
                 'mp_preapproval_id' => $id ? (string) $id : null,
                 'status' => 'pending',
-                'payload' => ['created' => $payload],
+                'payload' => ['created' => $payload, 'sandbox' => $this->sandbox()],
             ]);
 
             return [
                 'init_point' => $initPoint,
                 'preapproval_id' => $id ? (string) $id : null,
+                'driver' => 'mercadopago',
             ];
         } catch (Throwable $e) {
             Log::warning('Falha ao criar checkout Mercado Pago', ['error' => $e->getMessage()]);
             throw $e;
+        }
+    }
+
+    /**
+     * Checkout fictício para o sandbox local (sem chamar a API).
+     *
+     * @return array{init_point: string, preapproval_id: string|null, driver: string}
+     */
+    public function createLocalCheckout(Bio $bio): array
+    {
+        $id = 'sandbox-'.$bio->id;
+        $this->subscriptions->upsertForBio($bio, [
+            'mp_preapproval_id' => $id,
+            'status' => 'pending',
+            'payload' => ['driver' => 'local'],
+        ]);
+
+        return [
+            'init_point' => '',
+            'preapproval_id' => $id,
+            'driver' => 'local',
+        ];
+    }
+
+    /**
+     * Atualiza assinatura e plano a partir do status (webhook ou sandbox).
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function applyStatus(Bio $bio, string $status, array $payload = [], ?string $preapprovalId = null): void
+    {
+        $attributes = [
+            'status' => $status,
+            'payload' => $payload,
+            'current_period_end' => now()->addMonth(),
+        ];
+        if ($preapprovalId !== null) {
+            $attributes['mp_preapproval_id'] = $preapprovalId;
+        }
+
+        $this->subscriptions->upsertForBio($bio, $attributes);
+
+        if (in_array($status, ['authorized', 'active'], true)) {
+            $this->bios->update($bio, ['plan' => 'pro']);
+        }
+
+        if (in_array($status, ['cancelled', 'paused', 'rejected'], true) && $bio->plan === 'pro') {
+            $this->bios->update($bio, ['plan' => 'free']);
         }
     }
 
@@ -137,20 +225,7 @@ class MercadoPagoService
             return;
         }
 
-        $this->subscriptions->upsertForBio($bio, [
-            'mp_preapproval_id' => $id,
-            'status' => $status,
-            'payload' => $data,
-            'current_period_end' => now()->addMonth(),
-        ]);
-
-        if (in_array($status, ['authorized', 'active'], true)) {
-            $this->bios->update($bio, ['plan' => 'pro']);
-        }
-
-        if (in_array($status, ['cancelled', 'paused', 'rejected'], true) && $bio->plan === 'pro') {
-            $this->bios->update($bio, ['plan' => 'free']);
-        }
+        $this->applyStatus($bio, $status, is_array($data) ? $data : [], $id);
     }
 
     /**
@@ -181,12 +256,36 @@ class MercadoPagoService
         }
 
         if ($status === 'approved') {
-            $this->bios->update($bio, ['plan' => 'pro']);
-            $this->subscriptions->upsertForBio($bio, [
-                'status' => 'authorized',
-                'payload' => $data,
-                'current_period_end' => now()->addMonth(),
-            ]);
+            $this->applyStatus($bio, 'authorized', is_array($data) ? $data : []);
         }
+    }
+
+    /**
+     * Configura o SDK (token + runtime LOCAL no sandbox).
+     */
+    private function bootSdk(): void
+    {
+        MercadoPagoConfig::setAccessToken((string) config('services.mercadopago.access_token'));
+
+        if ($this->sandbox() && method_exists(MercadoPagoConfig::class, 'setRuntimeEnviroment')) {
+            MercadoPagoConfig::setRuntimeEnviroment(MercadoPagoConfig::LOCAL);
+        }
+    }
+
+    /**
+     * URL de checkout: sandbox_init_point no teste, init_point em produção.
+     */
+    private function checkoutUrl(object $preapproval): ?string
+    {
+        if ($this->sandbox()) {
+            $sandbox = $preapproval->sandbox_init_point ?? null;
+            if (is_string($sandbox) && $sandbox !== '') {
+                return $sandbox;
+            }
+        }
+
+        $live = $preapproval->init_point ?? null;
+
+        return is_string($live) && $live !== '' ? $live : null;
     }
 }

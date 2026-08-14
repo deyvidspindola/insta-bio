@@ -31,6 +31,8 @@ final class GetBillingStatus
             'price' => config('linksnabio.pro_price'),
             'currency' => config('linksnabio.pro_currency'),
             'configured' => $this->mercadoPago->configured(),
+            'sandbox' => $this->mercadoPago->sandbox(),
+            'driver' => $this->mercadoPago->driver(),
             'subscription' => $bio->subscription,
         ];
     }

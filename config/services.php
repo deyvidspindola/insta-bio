@@ -45,6 +45,10 @@ return [
         'access_token' => env('MP_ACCESS_TOKEN'),
         'public_key' => env('MP_PUBLIC_KEY'),
         'webhook_secret' => env('MP_WEBHOOK_SECRET'),
+        'sandbox' => env('MP_SANDBOX') === null
+            ? env('APP_ENV', 'production') !== 'production'
+            : filter_var(env('MP_SANDBOX'), FILTER_VALIDATE_BOOLEAN),
+        'test_payer_email' => env('MP_TEST_PAYER_EMAIL'),
     ],
 
 ];

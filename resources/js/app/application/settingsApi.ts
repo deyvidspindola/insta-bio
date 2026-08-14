@@ -4,6 +4,8 @@ export type Billing = {
   plan: string
   price: number
   configured: boolean
+  sandbox: boolean
+  driver: 'local' | 'mercadopago'
   limits: { max_links: number | null; custom_domain: boolean; watermark: boolean }
 }
 
@@ -19,7 +21,12 @@ export type DomainState = {
 export const settingsApi = {
   billing: () => api<Billing>('/api/billing'),
   domain: () => api<DomainState>('/api/domain'),
-  checkout: () => api<{ init_point: string }>('/api/billing/checkout', { method: 'POST' }),
+  checkout: () => api<{ init_point: string; driver: 'local' | 'mercadopago' }>('/api/billing/checkout', { method: 'POST' }),
+  sandbox: (action: 'approve' | 'reject') =>
+    api<{ plan: string; status: string }>('/api/billing/sandbox', {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+    }),
   saveDomain: (host: string) =>
     api<{ domain: DomainState['domain']; txt: string; cname: string }>('/api/domain', {
       method: 'POST',

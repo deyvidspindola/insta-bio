@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\UseCases\Billing\CreateCheckout;
 use App\UseCases\Billing\GetBillingStatus;
 use App\UseCases\Billing\HandleMercadoPagoWebhook;
+use App\UseCases\Billing\SimulateSandboxPayment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -27,6 +28,18 @@ class BillingController extends Controller
     public function checkout(Request $request, CreateCheckout $useCase): JsonResponse
     {
         return response()->json($useCase->execute($this->actor($request)));
+    }
+
+    /**
+     * Aprova ou recusa o checkout no sandbox local.
+     */
+    public function sandbox(Request $request, SimulateSandboxPayment $useCase): JsonResponse
+    {
+        $data = $request->validate([
+            'action' => ['required', 'in:approve,reject'],
+        ]);
+
+        return response()->json($useCase->execute($this->actor($request), $data['action']));
     }
 
     /**

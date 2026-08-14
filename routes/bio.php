@@ -35,6 +35,7 @@ Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
     Route::post('/api/assets/delete', [MediaController::class, 'destroy']);
     Route::get('/api/billing', [BillingController::class, 'show']);
     Route::post('/api/billing/checkout', [BillingController::class, 'checkout']);
+    Route::post('/api/billing/sandbox', [BillingController::class, 'sandbox']);
     Route::get('/api/domain', [DomainController::class, 'show']);
     Route::post('/api/domain', [DomainController::class, 'store']);
     Route::post('/api/domain/verify', [DomainController::class, 'verify']);

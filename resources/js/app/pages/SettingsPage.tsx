@@ -24,7 +24,14 @@ export function SettingsPage() {
         </form>
       </div>
       <h1 className="mt-6 text-3xl font-semibold">Configurações</h1>
-      <PlanCard billing={settings.billing} onUpgrade={() => void settings.upgrade()} />
+      <PlanCard
+        billing={settings.billing}
+        sandboxOpen={settings.sandboxOpen}
+        pending={settings.pending}
+        onUpgrade={() => void settings.upgrade()}
+        onSandbox={(action) => void settings.sandbox(action)}
+        onCloseSandbox={settings.closeSandbox}
+      />
       <DomainForm
         domain={settings.domain}
         host={settings.host}

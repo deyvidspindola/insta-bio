@@ -10,6 +10,8 @@ export function useSettings() {
   const [host, setHost] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [sandboxOpen, setSandboxOpen] = useState(false)
+  const [pending, setPending] = useState(false)
 
   useEffect(() => {
     void Promise.all([settingsApi.billing(), settingsApi.domain()]).then(([bill, dom]) => {
@@ -21,11 +23,38 @@ export function useSettings() {
 
   async function upgrade() {
     setError(null)
+    setPending(true)
     try {
       const data = await settingsApi.checkout()
+      if (data.driver === 'local') {
+        setSandboxOpen(true)
+        return
+      }
       window.location.href = data.init_point
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível iniciar o checkout')
+    } finally {
+      setPending(false)
+    }
+  }
+
+  async function sandbox(action: 'approve' | 'reject') {
+    setError(null)
+    setPending(true)
+    try {
+      const result = await settingsApi.sandbox(action)
+      const bill = await settingsApi.billing()
+      setBilling(bill)
+      setSandboxOpen(false)
+      setMessage(
+        action === 'approve'
+          ? `Pagamento sandbox aprovado. Plano atual: ${result.plan === 'pro' ? 'Pro' : 'Free'}.`
+          : 'Pagamento sandbox recusado. O plano continua Free.',
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha no sandbox')
+    } finally {
+      setPending(false)
     }
   }
 
@@ -56,5 +85,19 @@ export function useSettings() {
     }
   }
 
-  return { billing, domain, host, setHost, message, error, upgrade, saveDomain, verify }
+  return {
+    billing,
+    domain,
+    host,
+    setHost,
+    message,
+    error,
+    sandboxOpen,
+    pending,
+    upgrade,
+    sandbox,
+    closeSandbox: () => setSandboxOpen(false),
+    saveDomain,
+    verify,
+  }
 }
