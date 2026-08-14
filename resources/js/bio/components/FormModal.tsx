@@ -25,11 +25,14 @@ export function BioFormFields({
   sectionId,
   itemIndex,
   onSubmitted,
+  hideTitle = false,
 }: {
   definition: ResolvedFormDefinition
   sectionId?: string
   itemIndex?: number
   onSubmitted?: () => void
+  /** Quando o título já está no header do modal. */
+  hideTitle?: boolean
 }) {
   const fields = definition.fields ?? []
   const [values, setValues] = useState<Record<string, string>>(() =>
@@ -109,7 +112,7 @@ export function BioFormFields({
 
   return (
     <form className="space-y-3" onSubmit={(e) => void handleSubmit(e)} noValidate>
-      {definition.title?.trim() && (
+      {!hideTitle && definition.title?.trim() && (
         <h3 className="text-sm font-bold leading-tight text-foreground">{definition.title.trim()}</h3>
       )}
       {definition.description?.trim() && (
@@ -206,6 +209,8 @@ export function FormModal({
 
   if (!open || !definition || typeof document === 'undefined') return null
 
+  const title = definition.title?.trim() || 'Formulário'
+
   return createPortal(
     <div className="bio-form-modal-root" role="presentation">
       <button type="button" className="bio-form-modal-backdrop" aria-label="Fechar" onClick={onClose} />
@@ -215,20 +220,25 @@ export function FormModal({
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <p id={titleId} className="sr-only">
-            {definition.title || 'Formulário'}
-          </p>
+        <header className="bio-form-modal-header">
+          <h2 id={titleId} className="bio-form-modal-title">
+            {title}
+          </h2>
           <button
             type="button"
-            className="ml-auto rounded-lg border border-border p-1.5 text-muted-foreground hover:text-foreground"
+            className="bio-form-modal-close"
             onClick={onClose}
             aria-label="Fechar formulário"
           >
             <X className="h-4 w-4" />
           </button>
-        </div>
-        <BioFormFields definition={definition} sectionId={sectionId} itemIndex={itemIndex} />
+        </header>
+        <BioFormFields
+          definition={definition}
+          sectionId={sectionId}
+          itemIndex={itemIndex}
+          hideTitle
+        />
       </div>
     </div>,
     document.body,

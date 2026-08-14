@@ -867,8 +867,44 @@ button.bio-card {
   border-radius: 1.25rem;
   border: 1px solid var(--border);
   background: var(--card, #111);
-  padding: 1.25rem;
+  padding: 1rem 1.25rem 1.25rem;
   box-shadow: 0 24px 64px rgb(0 0 0 / 0.45);
+}
+
+.bio-form-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.bio-form-modal-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding-top: 0.15rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--foreground, #fff);
+}
+
+.bio-form-modal-close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted-foreground, #a3a3a3);
+  cursor: pointer;
+}
+
+.bio-form-modal-close:hover {
+  color: var(--foreground, #fff);
 }
 
 .bio-form-modal-trigger {
