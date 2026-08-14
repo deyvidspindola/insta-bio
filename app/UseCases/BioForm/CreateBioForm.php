@@ -38,12 +38,13 @@ final class CreateBioForm
             throw new ApplicationException('Este slug já está em uso nesta bio.', 422);
         }
 
+        $draft = $this->defaultDraft();
         $form = $this->forms->create($bio, [
             'slug' => $slug,
             'title' => $title,
-            'json_draft' => $this->defaultDraft(),
-            'json_published' => null,
-            'status' => 'draft',
+            'json_draft' => $draft,
+            'json_published' => $draft,
+            'status' => 'published',
         ]);
 
         return $this->toArray($form);

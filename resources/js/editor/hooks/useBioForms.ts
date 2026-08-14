@@ -78,7 +78,6 @@ export function useBioForms(enabled = true) {
   const [draft, setDraft] = useState<EditorDraft>(structuredClone(EMPTY_DRAFT))
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [publishing, setPublishing] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
   const selectedForm = useMemo(
@@ -174,34 +173,11 @@ export function useBioForms(enabled = true) {
     setSaving(true)
     setError(null)
     try {
-      const form = await api<BioFormRecord>(formUrl(selectedSlug), {
+      await api<BioFormRecord>(formUrl(selectedSlug), {
         method: 'PUT',
         body: JSON.stringify(draftPayload(draft)),
       })
-      applyServerForm(form)
-      return form
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Falha ao salvar rascunho'
-      setError(message)
-      throw err
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function publishForm(): Promise<BioFormRecord> {
-    if (!selectedSlug) throw new Error('Nenhum formulário selecionado')
-    setPublishing(true)
-    setError(null)
-    try {
-      if (isDirty) {
-        const saved = await api<BioFormRecord>(formUrl(selectedSlug), {
-          method: 'PUT',
-          body: JSON.stringify(draftPayload(draft)),
-        })
-        applyServerForm(saved)
-      }
-
+      // Salvar já disponibiliza o formulário na bio (sem passo "Publicar").
       const form = await api<BioFormRecord>(publishUrl(selectedSlug), {
         method: 'POST',
         body: JSON.stringify({}),
@@ -209,11 +185,11 @@ export function useBioForms(enabled = true) {
       applyServerForm(form)
       return form
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Falha ao publicar formulário'
+      const message = err instanceof Error ? err.message : 'Falha ao salvar formulário'
       setError(message)
       throw err
     } finally {
-      setPublishing(false)
+      setSaving(false)
     }
   }
 
@@ -247,14 +223,12 @@ export function useBioForms(enabled = true) {
     draft,
     isDirty,
     saving,
-    publishing,
     deleting,
     loadForms,
     selectForm,
     updateDraft,
     createForm,
     saveDraft,
-    publishForm,
     deleteForm,
   }
 }

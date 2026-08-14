@@ -76,7 +76,7 @@ export function FormItemFields({
           )}
           {selected && selected.status !== 'published' && (
             <p className="mt-1.5 text-[11px] leading-snug text-amber-600 dark:text-amber-400">
-              Publique este formulário na aba Formulários para aparecer na bio pública.
+              Salve o formulário na aba Formulários para ele aparecer na bio pública.
             </p>
           )}
         </Field>

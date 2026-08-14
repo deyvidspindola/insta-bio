@@ -4,7 +4,6 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardList,
-  Globe,
   Loader2,
   Pencil,
   Plus,
@@ -30,10 +29,6 @@ const FIELD_TYPE_OPTIONS: { value: FormFieldType; label: string }[] = [
   { value: 'textarea', label: 'Texto longo' },
 ]
 
-function statusLabel(status: string): string {
-  return status === 'published' ? 'Publicada' : 'Rascunho'
-}
-
 function newField(): FormField {
   return {
     id: `campo-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -45,6 +40,7 @@ function newField(): FormField {
 
 /**
  * Lista e edita formulários reutilizáveis (menu Formulários).
+ * Salvar já disponibiliza o formulário na bio — sem passo "Publicar".
  */
 export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProps) {
   const {
@@ -54,13 +50,11 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
     draft,
     isDirty,
     saving,
-    publishing,
     deleting,
     selectForm,
     updateDraft,
     createForm,
     saveDraft,
-    publishForm,
     deleteForm,
   } = formsApi
 
@@ -68,7 +62,6 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
   const [newTitle, setNewTitle] = useState('')
   const [creatingBusy, setCreatingBusy] = useState(false)
   const [confirmDeleteSlug, setConfirmDeleteSlug] = useState<string | null>(null)
-  const [confirmPublishOpen, setConfirmPublishOpen] = useState(false)
 
   const fields = draft.fields
 
@@ -108,19 +101,9 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
   async function handleSave() {
     try {
       await saveDraft()
-      onStatus('Rascunho do formulário salvo')
+      onStatus('Formulário salvo')
     } catch (err) {
       onActionError(err instanceof Error ? err.message : 'Falha ao salvar formulário')
-    }
-  }
-
-  async function handlePublish() {
-    try {
-      await publishForm()
-      setConfirmPublishOpen(false)
-      onStatus('Formulário publicado')
-    } catch (err) {
-      onActionError(err instanceof Error ? err.message : 'Falha ao publicar formulário')
     }
   }
 
@@ -150,7 +133,7 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
             </button>
             <h2 className="truncate text-base font-semibold">{draft.title || selectedForm.title}</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              /{selectedForm.slug} · {statusLabel(selectedForm.status)}
+              /{selectedForm.slug}
               {isDirty ? ' · alterações não salvas' : ''}
             </p>
           </div>
@@ -158,27 +141,18 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
+              className="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
               onClick={() => void handleSave()}
-              disabled={saving || publishing || !isDirty}
+              disabled={saving || !isDirty}
             >
               <Save className="h-3.5 w-3.5" />
-              {saving ? 'Salvando…' : 'Salvar rascunho'}
+              {saving ? 'Salvando…' : 'Salvar'}
             </button>
             <button
               type="button"
-              className="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
-              onClick={() => setConfirmPublishOpen(true)}
-              disabled={saving || publishing}
-            >
-              <Globe className="h-3.5 w-3.5" />
-              {publishing ? 'Publicando…' : 'Publicar'}
-            </button>
-            <button
-              type="button"
-              className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-500 hover:text-red-400"
+              className="btn-danger inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
               onClick={() => setConfirmDeleteSlug(selectedForm.slug)}
-              disabled={saving || publishing || deleting}
+              disabled={saving || deleting}
             >
               <Trash2 className="h-3.5 w-3.5" />
               Excluir
@@ -251,7 +225,7 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
                     </button>
                     <button
                       type="button"
-                      className="btn-ghost p-1.5 text-muted-foreground hover:text-red-400"
+                      className="btn-danger p-1.5"
                       aria-label="Remover campo"
                       onClick={() =>
                         updateDraft((prev) => ({
@@ -268,29 +242,33 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
                   <input
                     value={field.label}
                     onChange={(e) => patchField(index, { label: e.target.value })}
+                    placeholder="Nome do campo"
                   />
                 </Field>
-                <Field label="Tipo">
-                  <select
-                    value={field.type}
-                    onChange={(e) =>
-                      patchField(index, { type: e.target.value as FormFieldType })
-                    }
-                  >
-                    {FIELD_TYPE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Placeholder (opcional)">
-                  <input
-                    value={field.placeholder ?? ''}
-                    onChange={(e) => patchField(index, { placeholder: e.target.value })}
-                  />
-                </Field>
-                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Field label="Tipo">
+                    <select
+                      value={field.type}
+                      onChange={(e) =>
+                        patchField(index, { type: e.target.value as FormFieldType })
+                      }
+                    >
+                      {FIELD_TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Placeholder">
+                    <input
+                      value={field.placeholder ?? ''}
+                      onChange={(e) => patchField(index, { placeholder: e.target.value })}
+                      placeholder="Opcional"
+                    />
+                  </Field>
+                </div>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
                   <input
                     type="checkbox"
                     checked={Boolean(field.required)}
@@ -317,24 +295,6 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
         </FieldGroup>
 
         <ConfirmDialog
-          open={confirmPublishOpen}
-          title="Publicar formulário?"
-          description={
-            <>
-              O rascunho atual será salvo e publicado. Cards da bio que usam este formulário
-              passarão a exibir a versão publicada.
-            </>
-          }
-          confirmLabel="Publicar"
-          cancelLabel="Cancelar"
-          loading={publishing}
-          onConfirm={() => void handlePublish()}
-          onCancel={() => {
-            if (!publishing) setConfirmPublishOpen(false)
-          }}
-        />
-
-        <ConfirmDialog
           open={confirmDeleteSlug !== null}
           title="Excluir formulário?"
           description="Esta ação não pode ser desfeita. Cards da bio que apontam para ele deixarão de funcionar."
@@ -357,7 +317,7 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
         <div>
           <h2 className="text-base font-semibold">Formulários</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Crie formulários reutilizáveis e use-os como bloco na bio.
+            Crie formulários reutilizáveis e use-os como bloco na bio ou em modal.
           </p>
         </div>
         <button
@@ -409,43 +369,27 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
         </form>
       )}
 
-      {loading && (
-        <div className="card flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Carregando formulários…
         </div>
-      )}
-
-      {!loading && forms.length === 0 && !creating && (
-        <div className="card py-12 text-center">
-          <ClipboardList className="mx-auto h-8 w-8 text-muted-foreground/60" />
-          <p className="mt-3 text-sm font-medium">Nenhum formulário ainda</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Crie um formulário e adicione-o como bloco na bio.
+      ) : forms.length === 0 ? (
+        <div className="card flex flex-col items-center gap-2 px-4 py-10 text-center">
+          <ClipboardList className="h-8 w-8 text-muted-foreground" />
+          <p className="text-sm font-medium">Nenhum formulário ainda</p>
+          <p className="text-xs text-muted-foreground">
+            Crie um formulário e depois adicione na bio (embutido ou modal).
           </p>
         </div>
-      )}
-
-      {!loading && forms.length > 0 && (
+      ) : (
         <ul className="space-y-2">
           {forms.map((form) => (
             <li key={form.slug} className="card !p-3 sm:!p-4">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{form.title}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    /{form.slug}
-                    <span className="mx-1.5 text-border">·</span>
-                    <span
-                      className={
-                        form.status === 'published'
-                          ? 'text-emerald-500'
-                          : 'text-amber-600 dark:text-amber-400'
-                      }
-                    >
-                      {statusLabel(form.status)}
-                    </span>
-                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">/{form.slug}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
                   <button
@@ -458,7 +402,7 @@ export function FormsPanel({ formsApi, onStatus, onActionError }: FormsPanelProp
                   </button>
                   <button
                     type="button"
-                    className="btn-secondary inline-flex items-center justify-center px-2 py-1.5 text-xs text-red-500 hover:text-red-400"
+                    className="btn-danger inline-flex items-center justify-center px-2 py-1.5 text-xs"
                     onClick={() => setConfirmDeleteSlug(form.slug)}
                     aria-label={`Excluir ${form.title}`}
                   >
