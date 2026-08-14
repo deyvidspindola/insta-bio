@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'webhooks/mercadopago',
             'api/analytics/track',
+            'api/public/forms/submit',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

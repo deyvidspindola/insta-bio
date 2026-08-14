@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BioController;
 use App\Http\Controllers\DomainController;
+use App\Http\Controllers\FormController;
 use App\Http\Controllers\MapsController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\OnboardingController;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/api/auth/session', [BioController::class, 'session']);
 Route::post('/api/analytics/track', [AnalyticsController::class, 'track']);
+Route::post('/api/public/forms/submit', [FormController::class, 'submit'])
+    ->middleware('throttle:20,1');
 Route::post('/webhooks/mercadopago', [BillingController::class, 'webhook']);
 Route::get('/api/public/bio/{slug}', [PublicBioController::class, 'json']);
 

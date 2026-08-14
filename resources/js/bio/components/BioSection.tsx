@@ -291,7 +291,7 @@ function renderItem(
         className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
         style: delay,
         ...scheduleProps,
-        children: <FormCardBlock item={item} />,
+        children: <FormCardBlock item={item} sectionId={sectionId} itemIndex={index} />,
       })
     default:
       return null
