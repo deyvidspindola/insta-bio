@@ -39,6 +39,7 @@ Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
     Route::get('/api/billing', [BillingController::class, 'show']);
     Route::post('/api/billing/checkout', [BillingController::class, 'checkout']);
     Route::post('/api/billing/sandbox', [BillingController::class, 'sandbox']);
+    Route::get('/api/forms/submissions', [FormController::class, 'index']);
     Route::get('/api/domain', [DomainController::class, 'show']);
     Route::post('/api/domain', [DomainController::class, 'store']);
     Route::post('/api/domain/verify', [DomainController::class, 'verify']);

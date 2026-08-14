@@ -24,6 +24,14 @@ export function SettingsPage() {
         </form>
       </div>
       <h1 className="mt-6 text-3xl font-semibold">Configurações</h1>
+      <nav className="mt-4 flex flex-wrap gap-3 text-sm">
+        <a href="/app/respostas" className="text-primary hover:underline">
+          Respostas dos formulários
+        </a>
+        <a href="/app/funil" className="text-primary hover:underline">
+          Funil de prospects
+        </a>
+      </nav>
       <PlanCard
         billing={settings.billing}
         sandboxOpen={settings.sandboxOpen}

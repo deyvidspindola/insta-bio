@@ -5,6 +5,7 @@ import {
   Eye,
   Globe,
   Images,
+  Inbox,
   Layers,
   LayoutDashboard,
   LogOut,
@@ -599,6 +600,14 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                   <span className="hidden sm:inline">{publishing ? 'Publicando…' : 'Publicar'}</span>
                 </button>
 
+                <a
+                  href="/app/respostas"
+                  className="topbar-btn"
+                  title="Respostas dos formulários"
+                  aria-label="Respostas"
+                >
+                  <Inbox className="h-4 w-4" />
+                </a>
                 <a
                   href="/app/configuracoes"
                   className="topbar-btn"
