@@ -7,6 +7,7 @@ import {
   Globe,
   Images,
   Inbox,
+  Kanban,
   Layers,
   LayoutDashboard,
   LogOut,
@@ -635,6 +636,14 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                   aria-label="Respostas"
                 >
                   <Inbox className="h-4 w-4" />
+                </a>
+                <a
+                  href="/app/funil"
+                  className="topbar-btn"
+                  title="Funil de prospects"
+                  aria-label="Funil"
+                >
+                  <Kanban className="h-4 w-4" />
                 </a>
                 <a
                   href="/app/configuracoes"

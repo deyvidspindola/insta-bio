@@ -4,6 +4,7 @@ import { VerifyPage } from './pages/VerifyPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { FormSubmissionsPage } from './pages/FormSubmissionsPage'
+import { LeadsPage } from './pages/LeadsPage'
 
 /**
  * Roteamento simples por pathname para o SPA de auth/onboarding/settings.
@@ -16,6 +17,7 @@ export function AppShell() {
   if (path.startsWith('/email/verify')) return <VerifyPage />
   if (path === '/onboarding') return <OnboardingPage />
   if (path.startsWith('/app/respostas')) return <FormSubmissionsPage />
+  if (path.startsWith('/app/funil')) return <LeadsPage />
   if (path.startsWith('/app/configuracoes')) return <SettingsPage />
 
   return <LoginPage />
