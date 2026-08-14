@@ -21,7 +21,8 @@ export function itemSpansFullInGrid(item: SectionItem): boolean {
     item.type === 'youtube-embed' ||
     item.type === 'spotify-embed' ||
     item.type === 'text' ||
-    item.type === 'list'
+    item.type === 'list' ||
+    item.type === 'form'
   ) {
     return true
   }

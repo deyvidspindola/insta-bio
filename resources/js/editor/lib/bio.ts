@@ -47,6 +47,11 @@ export const CARD_TYPES = [
     hint: 'Lista com números, pontos, letras ou sem marcador.',
   },
   {
+    value: 'form',
+    label: 'Formulário',
+    hint: 'Capte nome, e-mail ou telefone sem o visitante sair da bio.',
+  },
+  {
     value: 'video',
     label: 'Vídeo',
     hint: 'Vídeo próprio (MP4) com capa opcional.',
@@ -378,6 +383,37 @@ export function createItem(
         title: 'Nova lista',
         style: 'bullet',
         items: ['Primeiro item', 'Segundo item'],
+      }
+    case 'form':
+      return {
+        type,
+        title: 'Fale conosco',
+        description: 'Deixe seu contato e retornamos em breve.',
+        submitLabel: 'Enviar',
+        successMessage: 'Recebemos sua mensagem. Obrigado!',
+        fields: [
+          {
+            id: 'nome',
+            type: 'text',
+            label: 'Nome',
+            required: true,
+            placeholder: 'Seu nome',
+          },
+          {
+            id: 'email',
+            type: 'email',
+            label: 'E-mail',
+            required: true,
+            placeholder: 'voce@email.com',
+          },
+          {
+            id: 'mensagem',
+            type: 'textarea',
+            label: 'Mensagem',
+            required: false,
+            placeholder: 'Como podemos ajudar?',
+          },
+        ],
       }
     default:
       return {

@@ -15,6 +15,7 @@ import { ProductsCard } from './ProductsCard'
 import { SlideCard } from './SlideCard'
 import { SpotifyEmbedCard } from './SpotifyEmbedCard'
 import { TextBlock } from './TextBlock'
+import { FormCardBlock } from './FormCardBlock'
 import { VideoCard } from './VideoCard'
 import { YoutubeEmbedCard } from './YoutubeEmbedCard'
 
@@ -280,6 +281,17 @@ function renderItem(
         style: delay,
         ...scheduleProps,
         children: <ListCard item={item} pageBackground={pageBackground} />,
+      })
+    case 'form':
+      return wrapPreviewItem({
+        sectionId,
+        index,
+        itemType: item.type,
+        label: itemTrackLabel(item),
+        className: `animate-fade-up col-span-2 ${focusClass}`.trim(),
+        style: delay,
+        ...scheduleProps,
+        children: <FormCardBlock item={item} />,
       })
     default:
       return null

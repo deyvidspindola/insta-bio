@@ -418,6 +418,27 @@ export interface ListCard {
   schedule?: CardSchedule
 }
 
+export type FormFieldType = 'text' | 'email' | 'phone' | 'textarea'
+
+export interface FormField {
+  id: string
+  type: FormFieldType
+  label: string
+  required?: boolean
+  placeholder?: string
+}
+
+/** Formulário próprio para captar contato sem sair da bio. */
+export interface FormCard {
+  type: 'form'
+  title?: string
+  description?: string
+  fields: FormField[]
+  submitLabel?: string
+  successMessage?: string
+  schedule?: CardSchedule
+}
+
 export interface BioSection {
   id: string
   title: string
@@ -447,6 +468,7 @@ export type SectionItem =
   | SpotifyEmbedCard
   | TextBlock
   | ListCard
+  | FormCard
 
 export interface BioConfig {
   brand: BioBrand

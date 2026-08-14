@@ -1,6 +1,7 @@
 import type { AppHero, FeatureCard, LinkCard, SectionItem, WhatsAppHero } from '@bio-types'
 import { AppHeroItemFields, WhatsAppHeroItemFields } from './AppHeroItemFields'
 import { FeatureItemFields } from './FeatureItemFields'
+import { FormItemFields } from './FormItemFields'
 import { GridItemFields } from './GridItemFields'
 import { LinkItemFields } from './LinkItemFields'
 import { ListItemFields } from './ListItemFields'
@@ -73,6 +74,9 @@ export function ItemTypeFields({
       )}
       {item.type === 'list' && (
         <ListItemFields item={item} onChange={onChange} />
+      )}
+      {item.type === 'form' && (
+        <FormItemFields item={item} onChange={onChange} />
       )}
       {item.type === 'whatsapp-hero' && (
         <WhatsAppHeroItemFields

@@ -106,6 +106,7 @@ function typeFallbackLabel(type: string): string {
     'spotify-embed': 'Spotify',
     text: 'Texto',
     list: 'Lista',
+    form: 'Formulário',
   }
   return map[type] ?? 'Card'
 }

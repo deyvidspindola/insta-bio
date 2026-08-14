@@ -128,6 +128,36 @@
           "subtitle": "Portfólio e links de venda na bio",
           "url": "https://wa.me/5519982624408?text=Sou%20criador",
           "icon": "sparkles"
+        },
+        {
+          "type": "form",
+          "title": "Quer uma demo?",
+          "description": "Deixe seu contato — respondemos sem spam.",
+          "submitLabel": "Quero conversar",
+          "successMessage": "Recebemos! Em breve alguém da equipe fala com você.",
+          "fields": [
+            {
+              "id": "nome",
+              "type": "text",
+              "label": "Nome",
+              "required": true,
+              "placeholder": "Seu nome"
+            },
+            {
+              "id": "email",
+              "type": "email",
+              "label": "E-mail",
+              "required": true,
+              "placeholder": "voce@email.com"
+            },
+            {
+              "id": "telefone",
+              "type": "phone",
+              "label": "WhatsApp",
+              "required": false,
+              "placeholder": "(11) 99999-9999"
+            }
+          ]
         }
       ]
     }

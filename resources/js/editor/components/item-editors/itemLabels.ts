@@ -18,5 +18,6 @@ export function itemPreviewTitle(item: SectionItem): string {
   if (item.type === 'products') return 'Produtos'
   if (item.type === 'youtube-embed') return 'YouTube'
   if (item.type === 'spotify-embed') return 'Spotify'
+  if (item.type === 'form') return item.title?.trim() || 'Formulário'
   return item.type
 }

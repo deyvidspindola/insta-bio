@@ -19,6 +19,7 @@ const TYPE_ICONS: Partial<Record<SectionItem['type'], typeof Sparkles>> = {
   press: Newspaper,
   text: Type,
   list: List,
+  form: Type,
   video: Video,
   'youtube-embed': Play,
   'spotify-embed': Video,

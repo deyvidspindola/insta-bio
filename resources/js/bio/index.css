@@ -787,3 +787,49 @@ button.bio-card {
 .bio-embed-card--error {
   color: color-mix(in oklch, var(--color-foreground, #fff) 65%, transparent);
 }
+
+/* ── Formulário ────────────────────────────────────────────────── */
+
+.bio-form-card {
+  border: 1px solid color-mix(in oklch, var(--color-border) 70%, transparent);
+  background: var(--color-card);
+}
+
+.bio-form-input {
+  border-radius: 0.65rem;
+  border: 1px solid color-mix(in oklch, var(--color-border) 80%, transparent);
+  background: color-mix(in oklch, var(--color-background) 55%, transparent);
+  padding: 0.65rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--color-foreground);
+  outline: none;
+}
+
+.bio-form-input:focus {
+  border-color: color-mix(in oklch, var(--color-primary) 55%, transparent);
+}
+
+.bio-form-submit {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  border: none;
+  background: var(--bio-fill-primary, var(--color-primary));
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+}
+
+.bio-form-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.bio-form-submit:not(:disabled):hover {
+  filter: brightness(1.05);
+}
