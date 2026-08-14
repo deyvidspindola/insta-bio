@@ -6,6 +6,7 @@ import {
   contrastTextOn,
   extractGradientEndColor,
   resolveEffectiveBioBackground,
+  resolvePageChrome,
 } from '../lib/colorEngine'
 import { formatBioFooter } from '../lib/footer'
 import { resolvePrimarySurfaceColors } from '../lib/contrastColor'
@@ -35,6 +36,7 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
     backgroundPresetColor: bgPreset?.edgeColor,
     hasBackgroundImage: hasBgImage,
   })
+  const pageChrome = hasBgImage ? null : resolvePageChrome(pageBackground)
   const footerColors = contrastTextOn(pageBackground)
   const footerText = formatBioFooter(brand.footer)
 
@@ -67,6 +69,14 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
           '--color-background': bgColorForVars,
         }
       : {}),
+    ...(pageChrome
+      ? {
+          '--color-foreground': pageChrome.foreground,
+          '--color-muted-foreground': pageChrome.mutedForeground,
+          '--color-card': pageChrome.card,
+          '--color-border': pageChrome.border,
+        }
+      : {}),
   } as CSSProperties
 
   useEffect(() => {
@@ -75,6 +85,15 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
 
   useEffect(() => {
     const root = document.documentElement
+    const chromeKeys = [
+      '--color-foreground',
+      '--color-muted-foreground',
+      '--color-card',
+      '--color-border',
+    ]
+    if (!pageChrome) {
+      chromeKeys.forEach((key) => root.style.removeProperty(key))
+    }
     const keys = Object.keys(themeVars) as Array<keyof typeof themeVars>
 
     keys.forEach((key) => {
@@ -90,6 +109,7 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
     brand.theme.cardRadius,
     brand.theme.backgroundPreset,
     brand.theme.backgroundImage,
+    pageChrome,
     primarySurface.solidFrom,
     primarySurface.solidTo,
     primarySurface.fillPrimary,
@@ -98,6 +118,7 @@ export function BioPage({ config, previewFocus = null }: BioPageProps) {
   return (
     <div
       data-bio-template={template}
+      data-bio-surface={pageChrome ? 'light' : 'dark'}
       className="relative isolate min-h-screen text-foreground"
       style={themeVars}
     >

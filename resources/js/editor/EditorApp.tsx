@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
+  AlertTriangle,
   ArrowUpRight,
   Eye,
   Globe,
@@ -30,6 +31,7 @@ import { PreviewPanel } from './components/PreviewPanel'
 import { PreviewSheet } from './components/PreviewSheet'
 import { fetchEditorPaths } from './lib/paths'
 import { setBioJsonRelativePath } from '@site/lib/publicUrl'
+import { QuickAddLink } from './components/QuickAddLink'
 import { SectionEditor } from './components/SectionEditor'
 import { SectionMobilePicker, SectionSidebar } from './components/SectionSidebar'
 import { DemoModeProvider } from './context/DemoModeContext'
@@ -46,7 +48,9 @@ import { BRAND_LOGO_URL, BRAND_NAME } from './lib/brand'
 import {
   copyBioConfig,
   createDefaultConfig,
+  createDefaultSection,
   createSection,
+  createSimpleLink,
   downloadBioConfig,
   normalizeBioConfig,
 } from './lib/bio'
@@ -57,6 +61,10 @@ import { syncBrandSeo } from '@site/lib/pageMeta'
 
 type Tab = 'dashboard' | 'identity' | 'appearance' | 'sections' | 'images' | 'advanced'
 type EditorMode = 'full' | 'demo'
+
+function isPlanLimitError(message: string) {
+  return /plano|upgrade|\bpro\b/i.test(message)
+}
 
 const HISTORY_LIMIT = 50
 const UPDATE_PROMPT_KEY = 'insta-bio:update-prompt-dismissed'
@@ -342,6 +350,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   function showActionError(message: string) {
     setActionError(message)
     if (actionErrorTimerRef.current) window.clearTimeout(actionErrorTimerRef.current)
+    if (isPlanLimitError(message)) return
     actionErrorTimerRef.current = window.setTimeout(() => setActionError(null), 6000)
   }
 
@@ -382,6 +391,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
       setConfirmPublishOpen(false)
       showStatus('Bio publicada')
     } catch (err) {
+      setConfirmPublishOpen(false)
       showActionError(err instanceof Error ? err.message : 'Erro ao publicar')
     } finally {
       setPublishing(false)
@@ -448,6 +458,15 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     setFocusItemIndex(null)
   }
 
+  function addFirstLink(title: string, url: string) {
+    commit((prev) => ({
+      ...prev,
+      sections: [{ ...createDefaultSection(), items: [createSimpleLink(title, url)] }],
+    }))
+    setActiveSection(0)
+    setFocusItemIndex(0)
+  }
+
   if (!isDemo && authenticated === null) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -480,7 +499,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     { id: 'dashboard', label: 'Dashboard', shortLabel: 'Stats', icon: LayoutDashboard },
     { id: 'identity', label: 'Identidade', shortLabel: 'Perfil', icon: User },
     { id: 'appearance', label: 'Aparência', shortLabel: 'Visual', icon: Palette },
-    { id: 'sections', label: 'Conteúdo', shortLabel: 'Cards', icon: Layers },
+    { id: 'sections', label: 'Conteúdo', shortLabel: 'Links', icon: Layers },
     { id: 'images', label: 'Arquivos', shortLabel: 'Mídia', icon: Images },
     { id: 'advanced', label: 'Configurações', shortLabel: 'Config', icon: Settings },
   ]
@@ -631,16 +650,35 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
         )}
 
         {actionError && (
-          <div className="pointer-events-none fixed bottom-20 left-4 right-4 z-50 md:bottom-5 md:right-auto md:max-w-md">
-            <div className="pointer-events-auto rounded-lg border border-red-500/35 bg-red-500/10 px-4 py-2 text-sm text-red-300 shadow-lg backdrop-blur">
-              {actionError}
-              <button
-                type="button"
-                className="ml-3 text-xs underline opacity-80 hover:opacity-100"
-                onClick={() => setActionError(null)}
-              >
-                Fechar
-              </button>
+          <div
+            className={`pointer-events-none fixed left-4 right-4 z-[110] md:right-auto md:max-w-md ${
+              previewOpen ? 'bottom-[min(62vh,34rem)]' : 'bottom-20'
+            } md:bottom-5`}
+          >
+            <div className="editor-alert pointer-events-auto" role="alert">
+              <div className="editor-alert__icon" aria-hidden="true">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="editor-alert__title">
+                  {isPlanLimitError(actionError) ? 'Limite do plano Free' : 'Não foi possível concluir'}
+                </p>
+                <p className="editor-alert__text">{actionError}</p>
+                <div className="editor-alert__actions">
+                  {isPlanLimitError(actionError) && (
+                    <a href="/app/configuracoes" className="btn-primary px-3 py-1.5 text-xs">
+                      Ver plano Pro
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    className="btn-secondary px-3 py-1.5 text-xs"
+                    onClick={() => setActionError(null)}
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -770,48 +808,58 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
 
             {activeTab === 'sections' && config.sections.length > 0 && (
               <>
-                <SectionMobilePicker
-                  sections={config.sections}
-                  activeSection={activeSection}
-                  onSelect={(index) => {
-                    setActiveSection(index)
-                    setFocusItemIndex(null)
-                  }}
-                  onAdd={addSection}
-                  onReorder={reorderSections}
-                />
-                <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-[210px_minmax(0,1fr)]">
-                  <div className="hidden md:block">
-                    <SectionSidebar
-                      sections={config.sections}
-                      activeSection={activeSection}
-                      dragIndex={dragIndex}
-                      dropIndex={dropIndex}
-                      onSelect={(index) => {
-                        setActiveSection(index)
-                        setFocusItemIndex(null)
-                      }}
-                      onReorder={reorderSections}
-                      onAdd={addSection}
-                      onDragStart={setDragIndex}
-                      onDragOver={(index) => {
-                        if (dragIndex !== null && dropIndex !== index) setDropIndex(index)
-                      }}
-                      onDrop={(index) => {
-                        if (dragIndex !== null) reorderSections(dragIndex, index)
-                        setDragIndex(null)
-                        setDropIndex(null)
-                      }}
-                      onDragEnd={() => {
-                        setDragIndex(null)
-                        setDropIndex(null)
-                      }}
-                    />
-                  </div>
+                {config.sections.length > 1 && (
+                  <SectionMobilePicker
+                    sections={config.sections}
+                    activeSection={activeSection}
+                    onSelect={(index) => {
+                      setActiveSection(index)
+                      setFocusItemIndex(null)
+                    }}
+                    onAdd={addSection}
+                    onReorder={reorderSections}
+                  />
+                )}
+                <div
+                  className={`grid min-w-0 grid-cols-1 gap-4 ${
+                    config.sections.length > 1 ? 'md:grid-cols-[210px_minmax(0,1fr)]' : ''
+                  }`}
+                >
+                  {config.sections.length > 1 && (
+                    <div className="hidden md:block">
+                      <SectionSidebar
+                        sections={config.sections}
+                        activeSection={activeSection}
+                        dragIndex={dragIndex}
+                        dropIndex={dropIndex}
+                        onSelect={(index) => {
+                          setActiveSection(index)
+                          setFocusItemIndex(null)
+                        }}
+                        onReorder={reorderSections}
+                        onAdd={addSection}
+                        onDragStart={setDragIndex}
+                        onDragOver={(index) => {
+                          if (dragIndex !== null && dropIndex !== index) setDropIndex(index)
+                        }}
+                        onDrop={(index) => {
+                          if (dragIndex !== null) reorderSections(dragIndex, index)
+                          setDragIndex(null)
+                          setDropIndex(null)
+                        }}
+                        onDragEnd={() => {
+                          setDragIndex(null)
+                          setDropIndex(null)
+                        }}
+                      />
+                    </div>
+                  )}
 
                   <SectionEditor
                     section={config.sections[activeSection]}
                     theme={config.brand.theme}
+                    isOnlySection={config.sections.length <= 1}
+                    onAddSection={addSection}
                     onChange={(section) => {
                       commit((prev) => {
                         const sections = [...prev.sections]
@@ -841,11 +889,14 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
             )}
 
             {activeTab === 'sections' && config.sections.length === 0 && (
-              <div className="card text-center">
-                <p className="mb-4 text-sm text-muted-foreground">Nenhuma seção ainda.</p>
-                <button type="button" className="btn-primary" onClick={addSection}>
-                  Criar primeira seção
-                </button>
+              <div className="mx-auto max-w-lg space-y-4">
+                <div className="px-1 text-center">
+                  <h2 className="text-base font-semibold">Seus links</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Adicione o primeiro botão da bio. Título e URL bastam.
+                  </p>
+                </div>
+                <QuickAddLink onAdd={addFirstLink} />
               </div>
             )}
 

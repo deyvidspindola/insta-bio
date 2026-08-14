@@ -367,3 +367,34 @@ export function resolveEffectiveBioBackground(input: BioBackgroundInput): string
   }
   return "#000000";
 }
+
+export interface PageChromeTokens {
+  foreground: string
+  mutedForeground: string
+  card: string
+  border: string
+}
+
+function backgroundLuminance(pageBackground: string): number {
+  const direct = parseColor(pageBackground)
+  if (direct) return relativeLuminance(direct)
+  const stops = extractGradientColors(pageBackground)
+  if (stops.length > 0) {
+    return Math.max(...stops.map((stop) => relativeLuminance(stop)))
+  }
+  return 0
+}
+
+/**
+ * Tokens de texto/card para fundo claro.
+ * Em fundo escuro retorna null para manter o CSS padrão da bio.
+ */
+export function resolvePageChrome(pageBackground: string): PageChromeTokens | null {
+  if (backgroundLuminance(pageBackground) <= 0.5) return null
+  return {
+    foreground: '#0A0A0A',
+    mutedForeground: 'rgba(10,10,10,0.55)',
+    card: '#ffffff',
+    border: 'rgba(10,10,10,0.12)',
+  }
+}

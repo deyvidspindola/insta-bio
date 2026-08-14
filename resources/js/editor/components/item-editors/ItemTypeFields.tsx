@@ -37,6 +37,12 @@ export function ItemTypeFields({
 }) {
   const withAction = supportsCardAction(item)
 
+  if (item.type === 'link') {
+    return (
+      <LinkItemFields item={item} isGridSection={isGridSection} onChange={onChange} />
+    )
+  }
+
   return (
     <>
       {withAction && (
@@ -80,9 +86,6 @@ export function ItemTypeFields({
       )}
       {item.type === 'feature' && (
         <FeatureItemFields item={item} isGridSection={isGridSection} onChange={onChange} />
-      )}
-      {item.type === 'link' && (
-        <LinkItemFields item={item} isGridSection={isGridSection} onChange={onChange} />
       )}
       {item.type === 'press' && (
         <PressItemFields item={item} isGridSection={isGridSection} onChange={onChange} />

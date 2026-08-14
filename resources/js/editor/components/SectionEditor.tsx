@@ -2,18 +2,18 @@ import { useEffect, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { BioBrand, BioSection, SectionItem, AppHeroPreset } from '@bio-types'
 import {
-  APP_HERO_PRESET_LIST,
-  PRIMARY_CARD_TYPES,
-  SECONDARY_CARD_TYPES,
   cloneItem,
   createAppHero,
   createItem,
+  createSimpleLink,
   ensureGridHeroLayouts,
   LAYOUT_OPTIONS,
   newHeroItemForSection,
 } from '../lib/bio'
+import { AddBlockPicker } from './AddBlockPicker'
 import { ConfirmDialog } from './ConfirmDialog'
 import { ItemEditor } from './ItemEditor'
+import { QuickAddLink } from './QuickAddLink'
 
 interface SectionEditorProps {
   section: BioSection
@@ -23,6 +23,8 @@ interface SectionEditorProps {
   onFocusItem?: (index: number | null) => void
   /** Abre este card (ex.: clique no preview) e fecha os demais */
   openItemRequest?: { index: number; nonce: number } | null
+  isOnlySection?: boolean
+  onAddSection?: () => void
 }
 
 export function SectionEditor({
@@ -32,6 +34,8 @@ export function SectionEditor({
   onRemove,
   onFocusItem,
   openItemRequest = null,
+  isOnlySection = true,
+  onAddSection,
 }: SectionEditorProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
@@ -147,6 +151,12 @@ export function SectionEditor({
     openOnly(newIndex)
   }
 
+  function addSimpleLink(title: string, url: string) {
+    const newIndex = section.items.length
+    patchSection({ ...section, items: [...section.items, createSimpleLink(title, url)] })
+    openOnly(newIndex)
+  }
+
   const pendingItem =
     confirmRemoveItem !== null ? section.items[confirmRemoveItem] : null
   const pendingItemTitle =
@@ -162,101 +172,17 @@ export function SectionEditor({
 
   return (
     <div className="min-w-0 space-y-4">
-      <div className="card">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <h3 className="text-sm font-semibold">Configuração da seção</h3>
-          <button
-            type="button"
-            className="btn-danger px-3 py-1.5 text-xs"
-            onClick={() => setConfirmRemoveSection(true)}
-          >
-            Excluir seção
-          </button>
-        </div>
+      <QuickAddLink onAdd={addSimpleLink} />
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="field">
-            <label>Layout</label>
-            <select
-              value={section.layout ?? 'stack'}
-              onChange={(e) =>
-                patchSection({
-                  ...section,
-                  layout: e.target.value as BioSection['layout'],
-                })
-              }
-            >
-              {LAYOUT_OPTIONS.map((layout) => (
-                <option key={layout.value} value={layout.value}>
-                  {layout.label}
-                </option>
-              ))}
-            </select>
-            {isGridSection && (
-              <p className="mt-1 text-[10px] text-muted-foreground/75">
-                Em grade, destaques de app usam layout compacto — o completo fica desativado.
-              </p>
-            )}
-          </div>
-          <div className="field sm:col-span-2">
-            <label>Título da seção</label>
-            <input
-              value={section.title}
-              onChange={(e) => patchSection({ ...section, title: e.target.value })}
-              placeholder="Ex.: Conecte-se, Eventos…"
-            />
-          </div>
-          <div className="field sm:col-span-2">
-            <label>Subtítulo</label>
-            <input
-              value={section.subtitle ?? ''}
-              onChange={(e) => patchSection({ ...section, subtitle: e.target.value })}
-            />
-          </div>
-          <label className="field sm:col-span-2 flex cursor-pointer items-start gap-3 rounded-lg border border-border/70 bg-muted/10 px-3 py-2.5">
-            <input
-              type="checkbox"
-              className="mt-0.5"
-              checked={Boolean(section.hideTitle)}
-              onChange={(e) =>
-                patchSection({
-                  ...section,
-                  hideTitle: e.target.checked ? true : undefined,
-                })
-              }
-            />
-            <span>
-              <span className="block text-sm font-medium text-foreground">
-                Ocultar título na bio
-              </span>
-              <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
-                Layout mais contínuo, sem rótulos em caixa alta. O nome da seção continua
-                visível só no editor.
-              </span>
-            </span>
-          </label>
-        </div>
-
-        <details className="mt-3 rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
-          <summary className="cursor-pointer text-[11px] font-medium text-muted-foreground">
-            Avançado
-          </summary>
-          <div className="field mt-2">
-            <label>ID interno</label>
-            <input
-              value={section.id}
-              onChange={(e) => patchSection({ ...section, id: e.target.value })}
-            />
-            <p className="mt-1 text-[10px] text-muted-foreground/75">
-              Usado só internamente. Prefira alterar o título acima.
-            </p>
-          </div>
-        </details>
-      </div>
+      {section.items.length === 0 && (
+        <p className="px-1 text-center text-[12px] leading-snug text-muted-foreground">
+          Ainda não há links neste grupo. Adicione o primeiro acima.
+        </p>
+      )}
 
       {section.items.length > 1 && (
         <div className="flex items-center justify-end gap-2">
-          <button type="button" className="btn-secondary px-3 py-1.5 text-xs" onClick={collapseAll}>
+          <button type="button" className="btn-secondary min-h-10 px-3 py-1.5 text-xs" onClick={collapseAll}>
             Recolher todos
           </button>
         </div>
@@ -331,78 +257,130 @@ export function SectionEditor({
         ))}
       </div>
 
-      <div className="card space-y-4">
-        <div>
-          <p className="mb-1 text-sm font-medium">Destaque de app</p>
-          <p className="mb-3 text-[10px] text-muted-foreground">
-            Atalhos prontos (WhatsApp, Instagram, etc.) com visual de destaque.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {APP_HERO_PRESET_LIST.map((preset) => (
-              <button
-                key={preset.value}
-                type="button"
-                className="btn-secondary px-3 py-1.5 text-xs"
-                onClick={() => addAppHero(preset.value)}
-              >
-                + {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
+      <AddBlockPicker onAddItem={addItem} onAddAppHero={addAppHero} />
 
-        <div>
-          <p className="mb-1 text-sm font-medium">Cards em destaque</p>
-          <p className="mb-3 text-[10px] text-muted-foreground">
-            Use para o que importa na bio: foto, gradiente, CTA e imprensa.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {PRIMARY_CARD_TYPES.map((type) => (
-              <button
-                key={type.value}
-                type="button"
-                className="btn-secondary px-3 py-1.5 text-xs"
-                title={type.hint}
-                onClick={() => addItem(type.value)}
-              >
-                + {type.label}
-              </button>
-            ))}
+      <details className="card">
+        <summary className="cursor-pointer list-none">
+          <div className="flex min-h-12 items-center justify-between gap-3">
+            <span>
+              <span className="block text-sm font-semibold">Opções do grupo</span>
+              <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                Título na bio, layout e agrupamento. Opcional — a maioria das bios usa uma lista só.
+              </span>
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform" aria-hidden="true" />
           </div>
-        </div>
+        </summary>
 
-        <div>
-          <p className="mb-1 text-sm font-medium">Itens secundários</p>
-          <p className="mb-3 text-[10px] text-muted-foreground">
-            Lista fina / utilitário — não substitui um card visual de destaque.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {SECONDARY_CARD_TYPES.map((type) => (
-              <button
-                key={type.value}
-                type="button"
-                className="btn-secondary px-3 py-1.5 text-xs"
-                title={type.hint}
-                onClick={() => addItem(type.value)}
+        <div className="mt-4 space-y-3 border-t border-border/70 pt-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="field">
+              <label>Layout</label>
+              <select
+                value={section.layout ?? 'stack'}
+                onChange={(e) =>
+                  patchSection({
+                    ...section,
+                    layout: e.target.value as BioSection['layout'],
+                  })
+                }
               >
-                + {type.label}
+                {LAYOUT_OPTIONS.map((layout) => (
+                  <option key={layout.value} value={layout.value}>
+                    {layout.label}
+                  </option>
+                ))}
+              </select>
+              {isGridSection && (
+                <p className="mt-1 text-[10px] text-muted-foreground/75">
+                  Em grade, destaques de app usam layout compacto — o completo fica desativado.
+                </p>
+              )}
+            </div>
+            <div className="field sm:col-span-2">
+              <label>Nome do grupo</label>
+              <input
+                value={section.title}
+                onChange={(e) => patchSection({ ...section, title: e.target.value })}
+                placeholder="Ex.: Links, Eventos…"
+              />
+            </div>
+            <div className="field sm:col-span-2">
+              <label>Subtítulo</label>
+              <input
+                value={section.subtitle ?? ''}
+                onChange={(e) => patchSection({ ...section, subtitle: e.target.value })}
+              />
+            </div>
+            <label className="field sm:col-span-2 flex cursor-pointer items-start gap-3 rounded-lg border border-border/70 bg-muted/10 px-3 py-2.5">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={Boolean(section.hideTitle)}
+                onChange={(e) =>
+                  patchSection({
+                    ...section,
+                    hideTitle: e.target.checked ? true : undefined,
+                  })
+                }
+              />
+              <span>
+                <span className="block text-sm font-medium text-foreground">
+                  Ocultar nome na bio
+                </span>
+                <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                  O nome continua só no editor, para você organizar.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <details className="rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
+            <summary className="cursor-pointer text-[11px] font-medium text-muted-foreground">
+              Avançado
+            </summary>
+            <div className="field mt-2">
+              <label>ID interno</label>
+              <input
+                value={section.id}
+                onChange={(e) => patchSection({ ...section, id: e.target.value })}
+              />
+              <p className="mt-1 text-[10px] text-muted-foreground/75">
+                Usado só internamente. Prefira alterar o nome acima.
+              </p>
+            </div>
+          </details>
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {onAddSection && (
+              <button type="button" className="btn-secondary min-h-11 flex-1 text-sm" onClick={onAddSection}>
+                Novo grupo
               </button>
-            ))}
+            )}
+            {!isOnlySection && (
+              <button
+                type="button"
+                className="btn-danger min-h-11 flex-1 text-sm"
+                onClick={() => setConfirmRemoveSection(true)}
+              >
+                Excluir grupo
+              </button>
+            )}
           </div>
         </div>
-      </div>
+      </details>
 
       <ConfirmDialog
         open={confirmRemoveSection}
-        title="Excluir esta seção?"
+        title="Excluir este grupo?"
         description={
           <>
-            Todos os cards desta seção serão removidos do editor. Você ainda precisa{' '}
+            Todos os cards deste grupo serão removidos do editor. Você ainda precisa{' '}
             <span className="font-medium text-foreground">Salvar</span> ou{' '}
             <span className="font-medium text-foreground">Publicar</span> para gravar a alteração.
           </>
         }
-        confirmLabel="Excluir seção"
+        confirmLabel="Excluir grupo"
         variant="danger"
         onConfirm={() => {
           setConfirmRemoveSection(false)
@@ -416,8 +394,8 @@ export function SectionEditor({
         title="Remover card?"
         description={
           <>
-            Remover <span className="font-medium text-foreground">{pendingItemTitle}</span> desta
-            seção? A alteração só fica permanente após salvar ou publicar.
+            Remover <span className="font-medium text-foreground">{pendingItemTitle}</span> deste
+            grupo? A alteração só fica permanente após salvar ou publicar.
           </>
         }
         confirmLabel="Remover"

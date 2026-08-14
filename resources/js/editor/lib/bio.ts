@@ -73,8 +73,8 @@ export const CARD_TYPES = [
   },
   {
     value: 'link',
-    label: 'Link simples',
-    hint: 'Botão clássico — reserve para itens secundários/utilitários.',
+    label: 'Link',
+    hint: 'Botão com título e URL — o jeito mais rápido de adicionar um link.',
   },
   {
     value: 'location',
@@ -181,13 +181,23 @@ export function normalizeBioConfig(config: BioConfig): BioConfig {
       ? ({ name: raw.name } as BioConfig['brand'])
       : undefined)
 
+  const incomingTheme = incomingBrand?.theme ?? {}
+  const theme = {
+    ...defaults.brand.theme,
+    ...incomingTheme,
+  }
+  const incomingSetBackground =
+    incomingTheme.background !== undefined ||
+    incomingTheme.backgroundPreset !== undefined ||
+    incomingTheme.backgroundImage !== undefined
+  if (!incomingSetBackground) {
+    delete theme.background
+  }
+
   const brand = {
     ...defaults.brand,
     ...(incomingBrand ?? {}),
-    theme: {
-      ...defaults.brand.theme,
-      ...(incomingBrand?.theme ?? {}),
-    },
+    theme,
     seo: {
       ...defaults.brand.seo,
       ...(incomingBrand?.seo ?? {}),
@@ -207,7 +217,14 @@ export function normalizeBioConfig(config: BioConfig): BioConfig {
 }
 
 export function createDefaultConfig(): BioConfig {
-  return normalizeBioConfig(structuredClone(defaultBio as BioConfig))
+  const config = normalizeBioConfig(structuredClone(defaultBio as BioConfig))
+  if (!config.brand.theme.background && !config.brand.theme.backgroundPreset && !config.brand.theme.backgroundImage) {
+    config.brand.theme.background = '#ffffff'
+  }
+  if (config.sections.length === 0) {
+    config.sections = [createDefaultSection()]
+  }
+  return config
 }
 
 /** @deprecated Use createDefaultConfig — mantido para compatibilidade */
@@ -222,16 +239,36 @@ export function createEmptyConfig(): BioConfig {
 export function isStarterBio(config: BioConfig): boolean {
   const sections = config.sections ?? []
   if (sections.length === 0) return true
+  if (sections.length === 1 && (sections[0].items?.length ?? 0) === 0) return true
 
   const demoSections = (demoBio as BioConfig).sections ?? []
   return JSON.stringify(sections) === JSON.stringify(demoSections)
 }
 
+/** Primeira seção oculta na bio — o usuário só vê uma lista de links. */
+export function createDefaultSection(): BioSection {
+  return {
+    id: `secao-${Date.now()}`,
+    title: 'Links',
+    hideTitle: true,
+    items: [],
+  }
+}
+
 export function createSection(): BioSection {
   return {
     id: `secao-${Date.now()}`,
-    title: 'Nova seção',
+    title: 'Novo grupo',
+    hideTitle: true,
     items: [],
+  }
+}
+
+export function createSimpleLink(title = '', url = ''): Extract<SectionItem, { type: 'link' }> {
+  return {
+    type: 'link',
+    title: title.trim() || 'Novo link',
+    url: url.trim(),
   }
 }
 
@@ -269,12 +306,7 @@ export function createItem(
         gradient: themeGradient,
       }
     case 'link':
-      return {
-        type,
-        title: 'Novo link',
-        subtitle: 'Subtítulo opcional',
-        url: 'https://',
-      }
+      return createSimpleLink()
     case 'press':
       return {
         type,

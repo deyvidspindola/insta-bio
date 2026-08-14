@@ -24,10 +24,10 @@ export function SectionOrderSheet({
   return (
     <div className="preview-sheet-root md:hidden" role="presentation">
       <button type="button" className="preview-sheet-backdrop" aria-label="Fechar" onClick={onClose} />
-      <div className="preview-sheet-panel" role="dialog" aria-modal="true" aria-label="Ordem das seções">
+      <div className="preview-sheet-panel" role="dialog" aria-modal="true" aria-label="Ordem dos grupos">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div>
-            <p className="text-sm font-semibold">Ordem das seções</p>
+            <p className="text-sm font-semibold">Ordem dos grupos</p>
             <p className="text-[10px] text-muted-foreground">Use as setas para reorganizar</p>
           </div>
           <button

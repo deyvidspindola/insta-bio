@@ -641,7 +641,7 @@ export function AppearanceForm({
             <div className="space-y-3 border-t border-border pt-4">
               <p className="text-xs font-semibold">Formato dos links</p>
               <p className="text-[10px] text-muted-foreground">
-                Vale para Link simples e Localização.
+                Vale para Link e Localização.
               </p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {BIO_TEMPLATE_LIST.map((item) => {

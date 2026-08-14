@@ -669,7 +669,7 @@ export const BLANK_THEME_SNAPSHOT: ThemePackSnapshot = {
     primary: '#3b82f6',
     secondary: '#93c5fd',
     glow: 'rgba(59, 130, 246, 0.28)',
-    background: '#0a0a0a',
+    background: '#ffffff',
     backgroundPreset: undefined,
     backgroundImage: undefined,
     backgroundOverlayOpacity: undefined,

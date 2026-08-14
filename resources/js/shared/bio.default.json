@@ -16,7 +16,8 @@
     "logo": "",
     "theme": {
       "primary": "oklch(0.72 0.16 55)",
-      "glow": "oklch(0.70 0.18 55 / 0.28)"
+      "glow": "oklch(0.70 0.18 55 / 0.28)",
+      "background": "#ffffff"
     },
     "seo": {
       "title": "Meu Link na Bio",
@@ -24,5 +25,12 @@
     },
     "footer": "© 2026"
   },
-  "sections": []
+  "sections": [
+    {
+      "id": "links",
+      "title": "Links",
+      "hideTitle": true,
+      "items": []
+    }
+  ]
 }

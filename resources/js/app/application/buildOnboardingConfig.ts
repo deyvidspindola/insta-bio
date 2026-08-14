@@ -34,6 +34,7 @@ export function buildOnboardingConfig(
       {
         id: 'links',
         title: 'Links',
+        hideTitle: true,
         items: links
           .filter((link) => link.title.trim() && link.url.trim())
           .map((link) => ({

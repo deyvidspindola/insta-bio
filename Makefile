@@ -16,6 +16,7 @@ help: ## Lista os atalhos
 	@echo "  App:     http://localhost:8000"
 	@echo "  Mail:    http://localhost:8025  (Mailpit)"
 	@echo "  Admin:   admin@local.dev / admin123"
+	@echo "  Sandbox: make artisan CMD=\"billing:sandbox admin@local.dev\""
 	@echo "  Artisan: make artisan CMD=\"route:list\""
 	@echo ""
 

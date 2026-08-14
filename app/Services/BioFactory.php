@@ -57,6 +57,7 @@ class BioFactory
                 'theme' => [
                     'primary' => 'oklch(0.72 0.16 55)',
                     'glow' => 'oklch(0.70 0.18 55 / 0.28)',
+                    'background' => '#ffffff',
                 ],
                 'template' => 'classic',
                 'seo' => [
@@ -69,6 +70,7 @@ class BioFactory
                 [
                     'id' => 'links',
                     'title' => 'Links',
+                    'hideTitle' => true,
                     'items' => [],
                 ],
             ],

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Copy, Trash2 } from 'lucide-react'
 import type { SectionItem } from '@bio-types'
 import { itemHasScheduleWindow } from '@site/lib/cardSchedule'
 import { ItemTypeFields } from './item-editors/ItemTypeFields'
@@ -102,25 +103,29 @@ export function ItemEditor({
           {onDuplicate && (
             <button
               type="button"
-              className="btn-secondary px-3 py-1.5 text-xs"
+              className="btn-secondary min-h-10 px-2.5 py-2 text-xs sm:px-3 sm:py-1.5"
               onClick={onDuplicate}
+              aria-label="Clonar"
             >
-              Clonar
+              <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">Clonar</span>
             </button>
           )}
           <button
             type="button"
-            className="btn-danger shrink-0 px-3 py-1.5 text-xs"
+            className="btn-danger min-h-10 shrink-0 px-2.5 py-2 text-xs sm:px-3 sm:py-1.5"
             onClick={onRemove}
+            aria-label="Remover"
           >
-            Remover
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="hidden sm:inline">Remover</span>
           </button>
         </div>
       </div>
 
       {collapsed ? null : (
         <>
-          <ScheduleFields item={item} onChange={onChange} />
+          {item.type !== 'link' && <ScheduleFields item={item} onChange={onChange} />}
           <ItemTypeFields item={item} isGridSection={isGridSection} onChange={onChange} />
         </>
       )}
