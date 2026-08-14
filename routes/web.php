@@ -39,7 +39,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
     Route::get('/app', [AppPageController::class, 'editor'])->name('app.editor');
     Route::get('/app/preview', [AppPageController::class, 'preview'])->name('app.preview');
-    Route::get('/app/configuracoes', [AppPageController::class, 'settings'])->name('app.settings');
-    Route::get('/app/respostas', [AppPageController::class, 'settings'])->name('app.forms');
-    Route::get('/app/funil', [AppPageController::class, 'settings'])->name('app.leads');
+    Route::get('/app/configuracoes', fn () => redirect('/app#conta'))->name('app.settings');
+    Route::get('/app/respostas', fn () => redirect('/app#respostas'))->name('app.forms');
+    Route::get('/app/funil', fn () => redirect('/app#funil'))->name('app.leads');
 });

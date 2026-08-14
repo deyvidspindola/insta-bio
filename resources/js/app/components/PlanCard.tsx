@@ -23,7 +23,7 @@ export function PlanCard({
   const local = billing?.driver === 'local'
 
   return (
-    <section className="mt-8 rounded-2xl border border-border bg-card p-6">
+    <section className="rounded-2xl border border-border bg-card p-6">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="font-medium">Plano</h2>
         {sandbox && (

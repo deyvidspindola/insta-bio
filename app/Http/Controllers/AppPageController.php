@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\View\View;
 
 /**
- * Páginas SPA autenticadas (editor, preview, configurações).
+ * Páginas SPA autenticadas (editor e preview).
  */
 class AppPageController extends Controller
 {
@@ -23,13 +23,5 @@ class AppPageController extends Controller
     public function preview(): View
     {
         return view('preview');
-    }
-
-    /**
-     * Configurações (plano e domínio).
-     */
-    public function settings(): View
-    {
-        return view('spa', ['entry' => 'app']);
     }
 }

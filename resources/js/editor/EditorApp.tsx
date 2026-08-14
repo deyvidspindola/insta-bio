@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   AlertTriangle,
   ArrowUpRight,
+  CreditCard,
   Eye,
   FileText,
   Globe,
@@ -17,18 +18,21 @@ import {
   PanelLeftOpen,
   Redo2,
   Save,
-  Settings,
   Sun,
   Undo2,
   User,
+  Wrench,
 } from 'lucide-react'
 import type { BioConfig } from '@bio-types'
+import { AccountSettingsPanel } from './components/AccountSettingsPanel'
 import { AdvancedPanel } from './components/AdvancedPanel'
 import { AppearanceForm } from './components/AppearanceForm'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { DashboardPanel } from './components/DashboardPanel'
+import { FormSubmissionsPanel } from './components/FormSubmissionsPanel'
 import { IdentityForm } from './components/IdentityForm'
 import { ImagesGallery } from './components/ImagesGallery'
+import { LeadsPanel } from './components/LeadsPanel'
 import { LoginScreen } from './components/LoginScreen'
 import { PagesPanel } from './components/PagesPanel'
 import { PreviewPanel } from './components/PreviewPanel'
@@ -64,11 +68,41 @@ import { applyTheme, getStoredTheme, type Theme } from './lib/theme'
 import { checkForUpdates } from './lib/updates'
 import { syncBrandSeo } from '@site/lib/pageMeta'
 
-type Tab = 'dashboard' | 'identity' | 'appearance' | 'sections' | 'pages' | 'images' | 'advanced'
+type Tab =
+  | 'dashboard'
+  | 'identity'
+  | 'appearance'
+  | 'sections'
+  | 'pages'
+  | 'images'
+  | 'respostas'
+  | 'funil'
+  | 'account'
+  | 'advanced'
 type EditorMode = 'full' | 'demo'
+
+/** Tabs de gestão (sem coluna de preview). */
+const WORKSPACE_TABS: Tab[] = ['respostas', 'funil', 'account']
 
 function isPlanLimitError(message: string) {
   return /plano|upgrade|\bpro\b/i.test(message)
+}
+
+function tabFromHash(): Tab | null {
+  const hash = window.location.hash.replace(/^#/, '').toLowerCase()
+  if (hash === 'respostas' || hash === 'forms') return 'respostas'
+  if (hash === 'funil' || hash === 'leads') return 'funil'
+  if (hash === 'conta' || hash === 'configuracoes' || hash === 'account') return 'account'
+  return null
+}
+
+function syncHashForTab(tab: Tab) {
+  const next =
+    tab === 'respostas' ? '#respostas' : tab === 'funil' ? '#funil' : tab === 'account' ? '#conta' : ''
+  const target = `/app${next}`
+  if (`${window.location.pathname}${window.location.hash}` !== target) {
+    window.history.replaceState(null, '', target)
+  }
 }
 
 const HISTORY_LIMIT = 50
@@ -84,7 +118,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
   const [config, setConfig] = useState<BioConfig | null>(null)
   const [past, setPast] = useState<BioConfig[]>([])
   const [future, setFuture] = useState<BioConfig[]>([])
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard')
+  const [activeTab, setActiveTab] = useState<Tab>(() => tabFromHash() ?? 'dashboard')
   const [activeSection, setActiveSection] = useState(0)
   const [status, setStatus] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -169,6 +203,8 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
       setOpenItemRequest(null)
     }
     setActiveTab(tab)
+    if (!isDemo) syncHashForTab(tab)
+    if (WORKSPACE_TABS.includes(tab)) setPreviewOpen(false)
   }
 
   function toggleTheme() {
@@ -529,17 +565,27 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
     { id: 'sections', label: 'Conteúdo', shortLabel: 'Links', icon: Layers },
     { id: 'pages', label: 'Páginas', shortLabel: 'Págs', icon: FileText },
     { id: 'images', label: 'Arquivos', shortLabel: 'Mídia', icon: Images },
-    { id: 'advanced', label: 'Configurações', shortLabel: 'Config', icon: Settings },
+    { id: 'respostas', label: 'Respostas', shortLabel: 'Forms', icon: Inbox },
+    { id: 'funil', label: 'Funil', shortLabel: 'Leads', icon: Kanban },
+    { id: 'account', label: 'Conta', shortLabel: 'Plano', icon: CreditCard },
+    { id: 'advanced', label: 'Avançado', shortLabel: 'Extra', icon: Wrench },
   ]
 
   const railTabs = isDemo
     ? allRailTabs.filter(
-        (tab) => tab.id !== 'advanced' && tab.id !== 'images' && tab.id !== 'pages',
+        (tab) =>
+          tab.id !== 'advanced' &&
+          tab.id !== 'images' &&
+          tab.id !== 'pages' &&
+          tab.id !== 'respostas' &&
+          tab.id !== 'funil' &&
+          tab.id !== 'account',
       )
     : allRailTabs
 
   const isDark = theme === 'dark'
   const shellTopPadding = isDemo ? 'pt-[6.75rem]' : 'pt-14'
+  const hidePreview = WORKSPACE_TABS.includes(activeTab)
 
   return (
     <DemoModeProvider value={isDemo}>
@@ -629,30 +675,33 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                   <span className="hidden sm:inline">{publishing ? 'Publicando…' : 'Publicar'}</span>
                 </button>
 
-                <a
-                  href="/app/respostas"
+                <button
+                  type="button"
                   className="topbar-btn"
+                  onClick={() => selectRailTab('respostas')}
                   title="Respostas dos formulários"
                   aria-label="Respostas"
                 >
                   <Inbox className="h-4 w-4" />
-                </a>
-                <a
-                  href="/app/funil"
+                </button>
+                <button
+                  type="button"
                   className="topbar-btn"
+                  onClick={() => selectRailTab('funil')}
                   title="Funil de prospects"
                   aria-label="Funil"
                 >
                   <Kanban className="h-4 w-4" />
-                </a>
-                <a
-                  href="/app/configuracoes"
+                </button>
+                <button
+                  type="button"
                   className="topbar-btn"
-                  title="Configurações e plano"
-                  aria-label="Configurações"
+                  onClick={() => selectRailTab('account')}
+                  title="Conta e plano"
+                  aria-label="Conta"
                 >
-                  <Settings className="h-4 w-4" />
-                </a>
+                  <CreditCard className="h-4 w-4" />
+                </button>
                 <button
                   type="button"
                   className="topbar-btn"
@@ -712,9 +761,16 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
                 <p className="editor-alert__text">{actionError}</p>
                 <div className="editor-alert__actions">
                   {isPlanLimitError(actionError) && (
-                    <a href="/app/configuracoes" className="btn-primary px-3 py-1.5 text-xs">
+                    <button
+                      type="button"
+                      className="btn-primary px-3 py-1.5 text-xs"
+                      onClick={() => {
+                        setActionError(null)
+                        selectRailTab('account')
+                      }}
+                    >
                       Ver plano Pro
-                    </a>
+                    </button>
                   )}
                   <button
                     type="button"
@@ -754,14 +810,20 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
         )}
 
         <div
-          className={`editor-shell grid grid-cols-1 ${shellTopPadding} md:grid-cols-[minmax(0,1fr)_min(340px,38vw)] ${
-            railExpanded
-              ? 'xl:grid-cols-[220px_minmax(0,1fr)_400px]'
-              : 'xl:grid-cols-[68px_minmax(0,1fr)_400px]'
-          } ${previewOpen ? 'editor-shell--preview-dock' : ''}`}
+          className={`editor-shell grid grid-cols-1 ${shellTopPadding} ${
+            hidePreview
+              ? railExpanded
+                ? 'xl:grid-cols-[220px_minmax(0,1fr)]'
+                : 'xl:grid-cols-[68px_minmax(0,1fr)]'
+              : railExpanded
+                ? 'md:grid-cols-[minmax(0,1fr)_min(340px,38vw)] xl:grid-cols-[220px_minmax(0,1fr)_400px]'
+                : 'md:grid-cols-[minmax(0,1fr)_min(340px,38vw)] xl:grid-cols-[68px_minmax(0,1fr)_400px]'
+          } ${previewOpen && !hidePreview ? 'editor-shell--preview-dock' : ''}`}
         >
           <aside
-            className={`editor-rail sticky z-30 border-b border-border md:col-span-2 xl:col-span-1 xl:row-span-1 xl:border-b-0 xl:border-r xl:py-4 ${
+            className={`editor-rail sticky z-30 border-b border-border ${
+              hidePreview ? 'xl:col-span-1' : 'md:col-span-2 xl:col-span-1'
+            } xl:row-span-1 xl:border-b-0 xl:border-r xl:py-4 ${
               isDemo ? 'top-[6.75rem] xl:h-[calc(100vh-6.75rem)]' : 'top-14 xl:h-[calc(100vh-3.5rem)]'
             } ${railExpanded ? 'editor-rail--expanded xl:px-3' : 'xl:px-2'}`}
           >
@@ -832,7 +894,11 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
             </nav>
           </aside>
 
-          <main className="min-w-0 p-4 sm:p-6 md:col-start-1 md:row-start-2 xl:col-start-2 xl:row-start-1">
+          <main
+            className={`min-w-0 p-4 sm:p-6 xl:col-start-2 xl:row-start-1 ${
+              hidePreview ? '' : 'md:col-start-1 md:row-start-2'
+            }`}
+          >
             {activeTab === 'dashboard' && <DashboardPanel />}
 
             {activeTab === 'identity' && (
@@ -972,6 +1038,12 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
 
             {!isDemo && activeTab === 'images' && <ImagesGallery config={config} />}
 
+            {!isDemo && activeTab === 'respostas' && <FormSubmissionsPanel />}
+
+            {!isDemo && activeTab === 'funil' && <LeadsPanel />}
+
+            {!isDemo && activeTab === 'account' && <AccountSettingsPanel />}
+
             {!isDemo && activeTab === 'advanced' && (
               <AdvancedPanel
                 config={config}
@@ -1001,6 +1073,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
             )}
           </main>
 
+          {!hidePreview && (
           <div
             className={`editor-preview-col hidden min-w-0 overflow-x-hidden border-l border-border p-3 md:col-start-2 md:row-start-2 md:block md:sticky md:overflow-y-auto md:p-4 xl:col-start-3 xl:row-start-1 ${
               isDemo
@@ -1020,8 +1093,10 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
               />
             )}
           </div>
+          )}
         </div>
 
+        {!hidePreview && (
         <button
           type="button"
           className={`preview-fab md:hidden ${previewOpen ? 'preview-fab--open' : ''}`}
@@ -1032,8 +1107,9 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
           <Eye className="h-5 w-5" />
           {previewOpen ? 'Fechar preview' : editingPage ? 'Ver preview da página' : 'Ver preview da bio'}
         </button>
+        )}
 
-        {previewConfig && (
+        {!hidePreview && previewConfig && (
           <PreviewSheet
             config={previewConfig}
             open={previewOpen}
@@ -1071,7 +1147,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
               <p>
                 A versão <strong>{updatePrompt?.latest}</strong> está disponível
                 {updatePrompt?.installed ? <> (você está em {updatePrompt.installed})</> : null}.
-                Abra Configurações para atualizar com segurança.
+                Abra Avançado para atualizar com segurança.
               </p>
               {updatePrompt?.changelog ? (
                 <p className="mt-2 whitespace-pre-wrap text-xs opacity-90">
@@ -1082,7 +1158,7 @@ export default function EditorApp({ mode = 'full' }: EditorAppProps) {
               ) : null}
             </>
           }
-          confirmLabel="Ir para Configurações"
+          confirmLabel="Ir para Avançado"
           cancelLabel="Agora não"
           variant="default"
           onConfirm={goToUpdateSettings}

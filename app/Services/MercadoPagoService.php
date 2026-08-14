@@ -90,7 +90,7 @@ class MercadoPagoService
                 'transaction_amount' => (float) config('linksnabio.pro_price'),
                 'currency_id' => config('linksnabio.pro_currency', 'BRL'),
             ],
-            'back_url' => rtrim((string) config('app.url'), '/').'/app/configuracoes',
+            'back_url' => rtrim((string) config('app.url'), '/').'/app#conta',
             'payer_email' => $payerEmail,
             'external_reference' => (string) $bio->id,
             'status' => 'pending',

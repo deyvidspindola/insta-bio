@@ -1,6 +1,6 @@
-import { ErrorText, PageShell } from '../../shared/ui'
-import { useFormSubmissions } from '../hooks/useFormSubmissions'
-import type { FormSubmissionItem } from '../application/formsApi'
+import { ErrorText } from '../../shared/ui'
+import { useFormSubmissions } from '../../app/hooks/useFormSubmissions'
+import type { FormSubmissionItem } from '../../app/application/formsApi'
 
 function answerColumns(items: FormSubmissionItem[]): string[] {
   const keys = new Set<string>()
@@ -39,32 +39,20 @@ function downloadCsv(items: FormSubmissionItem[]) {
 }
 
 /**
- * Lista e exporta respostas dos formulários da bio.
+ * Respostas dos formulários — painel dentro do layout do editor.
  */
-export function FormSubmissionsPage() {
+export function FormSubmissionsPanel() {
   const { items, forms, filter, changeFilter, loading, error } = useFormSubmissions()
   const columns = answerColumns(items)
 
   return (
-    <PageShell maxWidth="max-w-5xl">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <a href="/app" className="text-sm text-primary">
-          ← Voltar ao editor
-        </a>
-        <div className="flex flex-wrap gap-3 text-sm">
-          <a href="/app/configuracoes" className="text-muted hover:text-foreground">
-            Configurações
-          </a>
-          <a href="/app/funil" className="text-muted hover:text-foreground">
-            Funil
-          </a>
-        </div>
-      </div>
-
-      <div className="mt-6 flex flex-wrap items-end justify-between gap-3">
+    <div className="mx-auto w-full max-w-5xl space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold">Respostas</h1>
-          <p className="mt-1 text-sm text-muted">Envios dos formulários da sua bio.</p>
+          <h2 className="text-2xl font-semibold">Respostas</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Envios dos formulários da sua bio.
+          </p>
         </div>
         <button
           type="button"
@@ -77,8 +65,8 @@ export function FormSubmissionsPage() {
       </div>
 
       {forms.length > 0 && (
-        <label className="mt-6 block text-sm">
-          <span className="mb-1.5 block text-muted">Formulário</span>
+        <label className="block text-sm">
+          <span className="mb-1.5 block text-muted-foreground">Formulário</span>
           <select
             className="w-full max-w-sm rounded-xl border border-border bg-background px-3 py-2.5"
             value={filter}
@@ -100,13 +88,13 @@ export function FormSubmissionsPage() {
       <ErrorText>{error}</ErrorText>
 
       {loading ? (
-        <p className="mt-8 text-sm text-muted">Carregando…</p>
+        <p className="text-sm text-muted-foreground">Carregando…</p>
       ) : items.length === 0 ? (
-        <p className="mt-8 text-sm text-muted">Nenhuma resposta ainda.</p>
+        <p className="text-sm text-muted-foreground">Nenhuma resposta ainda.</p>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-2xl border border-border">
+        <div className="overflow-x-auto rounded-2xl border border-border">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-border bg-card/60 text-xs uppercase tracking-wide text-muted">
+            <thead className="border-b border-border bg-card/60 text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-3 py-2.5 font-semibold">Data</th>
                 <th className="px-3 py-2.5 font-semibold">Formulário</th>
@@ -120,7 +108,7 @@ export function FormSubmissionsPage() {
             <tbody>
               {items.map((item) => (
                 <tr key={item.id} className="border-b border-border/70 last:border-0">
-                  <td className="whitespace-nowrap px-3 py-2.5 text-muted">
+                  <td className="whitespace-nowrap px-3 py-2.5 text-muted-foreground">
                     {item.created_at
                       ? new Date(item.created_at).toLocaleString('pt-BR')
                       : '—'}
@@ -139,6 +127,6 @@ export function FormSubmissionsPage() {
           </table>
         </div>
       )}
-    </PageShell>
+    </div>
   )
 }
